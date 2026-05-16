@@ -44,4 +44,4 @@ As migrações em `sql/` devem ser executadas em ordem no Supabase SQL Editor (o
 
 ---
 
-© 2026 StaFlow Tecnologia
+© 2026 StaFlow Tecnologia — v1.0
