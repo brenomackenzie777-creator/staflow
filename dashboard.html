@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — StaFlow</title>
+<meta name="description" content="Painel de gestão StaFlow.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="auth/auth.css">
+<link rel="stylesheet" href="app.css">
+<style>
+/* Stats e quick actions específicos do dashboard */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.stat {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px 18px 20px;
+  transition: var(--transition);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+.stat:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--white-muted);
+}
+.stat-value {
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 32px;
+  color: var(--white); line-height: 1.1;
+  margin-top: 8px;
+}
+.stat-foot {
+  margin-top: 8px; font-size: 12px; color: var(--white-dim);
+  display: flex; align-items: center; gap: 6px;
+}
+.stat-foot .pill {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 1px;
+  padding: 2px 6px; border-radius: 2px;
+  background: var(--teal-dim); color: var(--teal);
+}
+.stat-foot .pill.amber { background: rgba(255,209,102,0.12); color: var(--amber); }
+
+.row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.card h2 {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card h2 .tag {
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--teal); background: var(--teal-dim);
+  padding: 3px 8px; border-radius: 2px;
+  border: 1px solid var(--teal-border);
+}
+
+.quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.qa {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 14px;
+  background: var(--navy-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer; text-align: left;
+  font-family: inherit; color: var(--white);
+  transition: var(--transition);
+  text-decoration: none;
+}
+.qa:hover { border-color: var(--teal); background: var(--teal-dim); }
+.qa .qa-ico { font-size: 18px; }
+.qa .qa-title { font-weight: 600; font-size: 13px; }
+.qa .qa-desc { font-size: 11px; color: var(--white-dim); }
+
+.activity-item {
+  display: flex; gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-item .av {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--navy-deep); border: 1px solid var(--border);
+  color: var(--white-dim);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 800; font-size: 12px;
+  flex-shrink: 0;
+}
+.activity-item .meta {
+  flex: 1; min-width: 0;
+}
+.activity-item .meta .who {
+  font-weight: 600; font-size: 13px; color: var(--white);
+}
+.activity-item .meta .what {
+  font-size: 12px; color: var(--white-dim);
+}
+.activity-item .when {
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 1px; color: var(--white-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="splash" id="splash"><div class="dot"></div></div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main">
+    <button class="menu-toggle" id="menu-toggle" aria-label="Menu">☰</button>
+
+    <div class="topbar">
+      <div>
+        <h1 id="hello">Olá!</h1>
+        <p class="sub" id="topbar-sub">Bem-vindo ao painel.</p>
+      </div>
+      <div class="topbar-actions">
+        <a href="/funcionarios.html" class="btn btn-ghost">＋ Funcionário</a>
+      </div>
+    </div>
+
+    <!-- Stats — cada card vira link -->
+    <section class="stats">
+      <a href="/funcionarios.html" class="stat">
+        <div class="stat-label">Funcionários ativos</div>
+        <div class="stat-value" id="s-funcionarios">—</div>
+        <div class="stat-foot">Toque para ver equipe</div>
+      </a>
+      <a href="#" class="stat" data-route="ponto">
+        <div class="stat-label">Presentes hoje</div>
+        <div class="stat-value" id="s-presentes">0</div>
+        <div class="stat-foot"><span class="pill">EM BREVE</span> Módulo Ponto</div>
+      </a>
+      <a href="#" class="stat" data-route="tarefas">
+        <div class="stat-label">Tarefas pendentes</div>
+        <div class="stat-value" id="s-tarefas">0</div>
+        <div class="stat-foot"><span class="pill">EM BREVE</span> Módulo Tarefas</div>
+      </a>
+      <a href="#" class="stat" data-route="faltas">
+        <div class="stat-label">Faltas na semana</div>
+        <div class="stat-value" id="s-faltas">0</div>
+        <div class="stat-foot"><span class="pill amber">EM BREVE</span> Módulo Faltas</div>
+      </a>
+    </section>
+
+    <!-- Conteúdo -->
+    <div class="row">
+      <section class="card">
+        <h2>Equipe recente <span class="tag">FUNCIONÁRIOS</span></h2>
+        <div id="recent-area">
+          <div class="empty" id="empty-funcs">
+            <div class="icon">◐</div>
+            <div class="title">Sem funcionários ainda</div>
+            <div class="desc">Cadastre alguém da equipe para começar a registrar ponto e tarefas.</div>
+            <a href="/funcionarios.html" class="btn">＋ Cadastrar primeiro funcionário</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Acesso rápido</h2>
+        <div class="quick-actions">
+          <a class="qa" href="/funcionarios.html"><span class="qa-ico">＋</span><span class="qa-title">Novo funcionário</span><span class="qa-desc">Cadastre alguém</span></a>
+          <a class="qa" href="#" data-soon="Módulo Tarefas em desenvolvimento."><span class="qa-ico">▣</span><span class="qa-title">Criar tarefa</span><span class="qa-desc">Em breve</span></a>
+          <a class="qa" href="/configuracoes.html"><span class="qa-ico">⌂</span><span class="qa-title">Editar condomínio</span><span class="qa-desc">Dados da gestão</span></a>
+          <a class="qa" href="#" data-soon="Exportação em CSV/PDF em desenvolvimento."><span class="qa-ico">⤓</span><span class="qa-title">Baixar relatório</span><span class="qa-desc">Em breve</span></a>
+        </div>
+      </section>
+    </div>
+
+  </main>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app-shell.js"></script>
+
+<script>
+const sb = window.staflowSupabase;
+const T  = window.staflowApp.toast;
+
+function tempoAtras(d) {
+  const ms = Date.now() - new Date(d).getTime();
+  const s = Math.floor(ms / 1000);
+  if (s < 60)      return s + 's atrás';
+  const m = Math.floor(s/60);
+  if (m < 60)      return m + 'min atrás';
+  const h = Math.floor(m/60);
+  if (h < 24)      return h + 'h atrás';
+  const dd = Math.floor(h/24);
+  if (dd < 30)     return dd + 'd atrás';
+  return new Date(d).toLocaleDateString('pt-BR');
+}
+
+// "Em breve" toast nos cards de módulos não construídos
+document.querySelectorAll('[data-soon]').forEach(el => {
+  el.addEventListener('click', (e) => {
+    e.preventDefault();
+    T(el.dataset.soon || 'Em breve.', 'success');
+  });
+});
+document.querySelectorAll('.stat[data-route]').forEach(el => {
+  el.addEventListener('click', (e) => {
+    e.preventDefault();
+    T('Módulo em desenvolvimento.', 'success');
+  });
+});
+
+// Carrega estatísticas e equipe recente
+async function loadStats() {
+  // total de funcionários ativos
+  const { count: totalAtivos, error: e1 } = await sb
+    .from('funcionarios')
+    .select('id', { count: 'exact', head: true })
+    .eq('ativo', true);
+  if (!e1) document.getElementById('s-funcionarios').textContent = totalAtivos ?? 0;
+
+  // últimos 5 funcionários cadastrados (para a coluna "Equipe recente")
+  const { data: ultimos } = await sb
+    .from('funcionarios')
+    .select('id, nome, cargo, created_at, ativo')
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  const empty = document.getElementById('empty-funcs');
+  const area  = document.getElementById('recent-area');
+
+  if (!ultimos || ultimos.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  const CARGO_LBL = { porteiro:'Porteiro', zelador:'Zelador', faxineira:'Faxineira', jardineiro:'Jardineiro', seguranca:'Segurança', outro:'Outro' };
+  area.innerHTML = ultimos.map(f => `
+    <div class="activity-item">
+      <div class="av">${window.staflowApp.iniciais(f.nome)}</div>
+      <div class="meta">
+        <div class="who">${f.nome}</div>
+        <div class="what">${CARGO_LBL[f.cargo] || f.cargo}${f.ativo ? '' : ' · inativo'}</div>
+      </div>
+      <div class="when">${tempoAtras(f.created_at)}</div>
+    </div>
+  `).join('');
+}
+
+// Boot
+(async () => {
+  window.staflowApp.renderSidebar('sidebar');
+  const profile = await window.staflowApp.bootstrapShell({ route: 'dashboard' });
+  if (!profile) return;
+
+  const primeiroNome = (profile.full_name || '').split(' ')[0] || 'pessoa';
+  document.getElementById('hello').textContent = `${window.staflowApp.saudacao()}, ${primeiroNome}.`;
+  document.getElementById('topbar-sub').textContent = profile.condominio_nome
+    ? `Condomínio ${profile.condominio_nome}.`
+    : 'Configure o seu condomínio em Configurações.';
+
+  await loadStats();
+})();
+</script>
+</body>
+</html>

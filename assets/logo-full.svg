@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- StaFlow — logo completa: hexágono + wordmark STA(black) FLOW(navy) -->
+<!-- Versão "light" — usar em fundos claros. Para fundos escuros use logo-full-dark.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" role="img" aria-label="StaFlow">
+  <defs>
+    <linearGradient id="hex-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#3B3FB8"/>
+      <stop offset="100%" stop-color="#2E3192"/>
+    </linearGradient>
+  </defs>
+  <!-- Hexágono -->
+  <g transform="translate(8,12)">
+    <path d="M28 0 L52 14 L52 42 L28 56 L4 42 L4 14 Z"
+          fill="url(#hex-grad)"/>
+    <path d="M38 18
+             C 38 14, 34 12, 28 12
+             C 21 12, 18 15, 18 20
+             C 18 25, 22 26, 28 27
+             C 35 28, 39 29, 39 34
+             C 39 40, 34 43, 28 43
+             C 22 43, 19 40, 19 36"
+          fill="none" stroke="#FFFFFF" stroke-width="4"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <!-- Wordmark -->
+  <g transform="translate(78,52)" font-family="Syne, sans-serif" font-weight="800" font-size="34" letter-spacing="0.5">
+    <text x="0" y="0" fill="#0F1624">STA</text>
+    <text x="68" y="0" fill="#2E3192">FLOW</text>
+  </g>
+</svg>

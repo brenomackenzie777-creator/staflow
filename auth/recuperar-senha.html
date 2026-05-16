@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recuperar senha — StaFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./auth.css">
+</head>
+<body>
+
+<main class="auth-shell">
+  <section class="auth-card">
+
+    <div class="brand">
+      <img class="mark" src="../assets/logo-mark.svg" alt="StaFlow">
+      <div class="wordmark"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+    </div>
+
+    <section id="step-form">
+      <h1 class="auth-title">Recuperar senha</h1>
+      <p class="auth-sub">Informe o e-mail da sua conta e enviaremos um link de redefinição.</p>
+
+      <form id="form-reset" novalidate>
+        <div class="field" id="f-email">
+          <label for="email">E-mail</label>
+          <input class="input" id="email" type="email" autocomplete="email" placeholder="voce@condominio.com.br" required>
+          <span class="field-error">E-mail inválido.</span>
+        </div>
+
+        <button class="btn" id="btn-send" type="submit">
+          <span class="spinner"></span>
+          <span class="btn-label">Enviar link</span>
+        </button>
+
+        <div class="aux-center"><a href="./login.html">← Voltar ao login</a></div>
+      </form>
+    </section>
+
+    <section id="step-sent" style="display:none;">
+      <div class="success-box">
+        <div class="check">✉</div>
+        <h1 class="auth-title">Link enviado</h1>
+        <p class="auth-sub">
+          Enviamos as instruções para <strong id="sent-email"></strong>.
+          Verifique também a caixa de spam.
+        </p>
+        <button class="btn btn-ghost" id="btn-resend" type="button" disabled>
+          <span class="btn-label">Reenviar e-mail</span>
+        </button>
+        <div class="countdown" id="cd">Você poderá reenviar em <b>60</b>s</div>
+        <div class="aux-center" style="margin-top:18px;">
+          <a href="./login.html">Voltar ao login</a>
+        </div>
+      </div>
+    </section>
+
+  </section>
+</main>
+
+<footer class="auth-footer">© 2026 STAFLOW · UMA JORNADA MAIS PRÁTICA</footer>
+<div class="toast" id="toast"><span class="ico"></span><span class="msg"></span></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+function toast(msg, type='error'){
+  const t = document.getElementById('toast');
+  t.className = 'toast show ' + type;
+  t.querySelector('.ico').textContent = type === 'success' ? '✓' : '⚠';
+  t.querySelector('.msg').textContent = msg;
+  clearTimeout(window.__tt); window.__tt = setTimeout(()=>t.className='toast', 4500);
+}
+function validEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
+
+let lastEmail = '';
+
+document.getElementById('form-reset').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  document.getElementById('f-email').classList.remove('has-error');
+  if (!validEmail(email)) { document.getElementById('f-email').classList.add('has-error'); return; }
+
+  const btn = document.getElementById('btn-send');
+  btn.classList.add('loading'); btn.disabled = true;
+  const res = await staflowAuth.resetPassword(email);
+  btn.classList.remove('loading'); btn.disabled = false;
+
+  if (!res.ok) { toast(res.error, 'error'); return; }
+  lastEmail = email;
+  document.getElementById('sent-email').textContent = email;
+  document.getElementById('step-form').style.display = 'none';
+  document.getElementById('step-sent').style.display = 'block';
+  iniciarReenvio();
+});
+
+function iniciarReenvio(){
+  const btn = document.getElementById('btn-resend');
+  const cd  = document.getElementById('cd');
+  let s = 60; btn.disabled = true;
+  const tick = setInterval(() => {
+    s--; cd.innerHTML = 'Você poderá reenviar em <b>'+s+'</b>s';
+    if (s <= 0) { clearInterval(tick); btn.disabled = false; cd.textContent = 'Pronto para reenviar.'; }
+  }, 1000);
+}
+document.getElementById('btn-resend').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-resend');
+  btn.disabled = true;
+  const res = await staflowAuth.resetPassword(lastEmail);
+  if (!res.ok) { toast(res.error, 'error'); btn.disabled = false; return; }
+  toast('E-mail reenviado.', 'success');
+  iniciarReenvio();
+});
+</script>
+</body>
+</html>

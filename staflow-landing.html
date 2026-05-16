@@ -1,0 +1,2199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StaFlow — A equipe do seu condomínio, organizada.</title>
+<meta name="description" content="Ponto digital com geolocalização, checklist de tarefas e controle de faltas. O síndico vê tudo em tempo real. Sem papel, sem WhatsApp, sem desculpa.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════ */
+:root {
+  --navy-brand:  #2E3192;       /* navy primário (logo) */
+  --navy:        #1A2238;       /* surface */
+  --navy-deep:   #0F1624;       /* background */
+  --navy-mid:    #212F4A;
+  --navy-light:  #2A3D5E;
+  --teal:        #06D6A0;
+  --teal-dim:    rgba(6,214,160,0.12);
+  --teal-border: rgba(6,214,160,0.25);
+  --white:       #f0f4ff;
+  --white-dim:   rgba(240,244,255,0.6);
+  --white-muted: rgba(240,244,255,0.35);
+  --amber:       #ffd166;
+  --red:         #ef4444;
+  --blue-accent: #4299e1;
+
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+
+  --radius: 4px;
+  --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--navy-deep);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.65;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 999;
+  opacity: 0.4;
+}
+
+img { display:block; max-width:100%; }
+a  { color: inherit; text-decoration: none; }
+
+/* ═══════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════ */
+.container {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--teal);
+  background: var(--teal-dim);
+  border: 1px solid var(--teal-border);
+  padding: 5px 12px;
+  border-radius: 2px;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--teal);
+  color: var(--navy-deep);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 15px;
+  padding: 16px 32px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.btn-primary:hover {
+  background: #07ebb2;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 32px rgba(6,214,160,0.35);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--white-dim);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 14px 24px;
+  border: 1px solid rgba(240,244,255,0.15);
+  border-radius: var(--radius);
+  transition: var(--transition);
+  cursor: pointer;
+  background: transparent;
+}
+
+.btn-ghost:hover {
+  border-color: rgba(240,244,255,0.35);
+  color: var(--white);
+  background: rgba(240,244,255,0.04);
+}
+
+/* ═══════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════ */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(24px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity:0; }
+  to   { opacity:1; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(6,214,160,0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(6,214,160,0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes slide-in-right {
+  from { opacity:0; transform:translateX(32px); }
+  to   { opacity:1; transform:translateX(0); }
+}
+
+@keyframes notification-pop {
+  0%   { opacity:0; transform:translateY(16px) scale(0.95); }
+  60%  { transform:translateY(-3px) scale(1.01); }
+  100% { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════
+   NAVBAR
+═══════════════════════════════════════════ */
+.navbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 0 32px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  transition: background 0.3s, border-color 0.3s, backdrop-filter 0.3s;
+}
+
+.navbar.scrolled {
+  background: rgba(15, 22, 36, 0.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(240,244,255,0.07);
+}
+
+.nav-inner {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-logo-mark {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: block;
+}
+.nav-logo-mark svg, .nav-logo-mark img { width: 100%; height: 100%; display: block; }
+
+.nav-logo-text {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.nav-logo-text .sta  { color: var(--white); }
+.nav-logo-text .flow { color: var(--teal); }
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  list-style: none;
+}
+
+.nav-links a {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--white-dim);
+  transition: color var(--transition);
+}
+
+.nav-links a:hover { color: var(--white); }
+
+.nav-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-login {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--white-dim);
+  transition: color var(--transition);
+  cursor: pointer;
+}
+
+.nav-login:hover { color: var(--white); }
+
+/* ═══════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════ */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 120px 0 80px;
+  overflow: hidden;
+}
+
+/* background orbs */
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+}
+
+.orb-1 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(6,214,160,0.10) 0%, transparent 70%);
+  top: -100px; right: -100px;
+}
+
+.orb-2 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(26,34,56,0.8) 0%, transparent 70%);
+  bottom: -50px; left: -50px;
+}
+
+.orb-3 {
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(66,153,225,0.07) 0%, transparent 70%);
+  top: 40%; left: 30%;
+}
+
+/* hex grid bg */
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(6,214,160,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6,214,160,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 0%, transparent 100%);
+}
+
+.hero-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-content { animation: fadeUp 0.8s ease both; }
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--teal);
+  background: var(--teal-dim);
+  border: 1px solid var(--teal-border);
+  padding: 6px 14px;
+  border-radius: 2px;
+  margin-bottom: 28px;
+}
+
+.live-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+  animation: pulse-dot 2s infinite;
+  flex-shrink: 0;
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(42px, 5.5vw, 68px);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -2px;
+  margin-bottom: 24px;
+}
+
+.hero h1 .accent { color: var(--teal); }
+.hero h1 .line-indent { display: block; padding-left: 2ch; }
+
+.hero-sub {
+  font-size: 18px;
+  color: var(--white-dim);
+  font-weight: 300;
+  line-height: 1.7;
+  max-width: 440px;
+  margin-bottom: 40px;
+}
+
+.hero-sub strong { color: var(--white); font-weight: 500; }
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+
+.hero-trust {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.hero-trust-avatars {
+  display: flex;
+}
+
+.avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--navy-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  margin-left: -8px;
+  background: var(--navy-mid);
+  color: var(--teal);
+  font-family: var(--font-display);
+}
+
+.avatar:first-child { margin-left: 0; }
+
+.hero-trust-text {
+  font-size: 13px;
+  color: var(--white-muted);
+  line-height: 1.4;
+}
+
+.hero-trust-text strong { color: var(--white-dim); font-weight: 500; }
+
+/* ───── PHONE MOCKUP ───── */
+.hero-visual {
+  position: relative;
+  animation: fadeIn 1s ease 0.3s both;
+}
+
+.phone-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.phone {
+  width: 260px;
+  background: var(--navy-mid);
+  border-radius: 36px;
+  border: 1px solid rgba(240,244,255,0.1);
+  padding: 24px 16px;
+  box-shadow:
+    0 0 0 1px rgba(240,244,255,0.05),
+    0 40px 80px rgba(0,0,0,0.5),
+    0 0 80px rgba(6,214,160,0.08);
+  animation: float 5s ease-in-out infinite;
+  position: relative;
+  z-index: 2;
+}
+
+.phone-notch {
+  width: 80px; height: 6px;
+  background: var(--navy-deep);
+  border-radius: 3px;
+  margin: 0 auto 20px;
+}
+
+.phone-status-bar {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--white-muted);
+  margin-bottom: 20px;
+  padding: 0 4px;
+}
+
+.phone-screen {
+  background: var(--navy-deep);
+  border-radius: 24px;
+  padding: 20px 16px;
+  min-height: 380px;
+  border: 1px solid rgba(240,244,255,0.05);
+}
+
+.phone-greeting {
+  font-size: 12px;
+  color: var(--white-muted);
+  margin-bottom: 2px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+
+.phone-name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 20px;
+}
+
+/* big punch button */
+.punch-btn {
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  background: conic-gradient(var(--teal) 0deg, rgba(6,214,160,0.3) 360deg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  cursor: pointer;
+  border: 3px solid rgba(6,214,160,0.4);
+  box-shadow:
+    0 0 0 12px rgba(6,214,160,0.06),
+    0 0 40px rgba(6,214,160,0.2);
+  transition: transform 0.15s ease;
+  position: relative;
+}
+
+.punch-btn:hover { transform: scale(1.03); }
+
+.punch-btn-icon { font-size: 32px; margin-bottom: 4px; }
+.punch-btn-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--navy-deep);
+}
+
+.phone-time {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--white-muted);
+  margin-bottom: 20px;
+}
+
+.phone-mini-log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.log-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(240,244,255,0.04);
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(240,244,255,0.05);
+}
+
+.log-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.log-dot.green { background: var(--teal); }
+.log-dot.amber { background: var(--amber); }
+
+.log-text { font-size: 11px; color: var(--white-dim); flex:1; }
+.log-time { font-family: var(--font-mono); font-size: 10px; color: var(--white-muted); }
+
+/* floating notification */
+.notif-float {
+  position: absolute;
+  right: -40px;
+  top: 80px;
+  background: var(--navy-light);
+  border: 1px solid rgba(6,214,160,0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  width: 200px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  z-index: 3;
+  animation: notification-pop 0.6s ease 1.5s both;
+}
+
+.notif-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.notif-icon {
+  width: 24px; height: 24px;
+  background: var(--teal-dim);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.notif-app {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--teal);
+  letter-spacing: 1px;
+}
+
+.notif-msg { font-size: 12px; color: var(--white-dim); line-height: 1.4; }
+.notif-time { font-family: var(--font-mono); font-size: 9px; color: var(--white-muted); margin-top: 4px; }
+
+/* second floating card */
+.dashboard-float {
+  position: absolute;
+  left: -50px;
+  bottom: 80px;
+  background: var(--navy-mid);
+  border: 1px solid rgba(240,244,255,0.1);
+  border-radius: 12px;
+  padding: 14px 16px;
+  width: 160px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  z-index: 3;
+  animation: slide-in-right 0.6s ease 2s both;
+}
+
+.dash-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--white-muted);
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+
+.dash-number {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--teal);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.dash-sub { font-size: 11px; color: var(--white-muted); }
+
+/* ═══════════════════════════════════════════
+   SECTION: PROBLEMA
+═══════════════════════════════════════════ */
+.section { padding: 100px 0; }
+
+.section-tag { margin-bottom: 16px; }
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  line-height: 1.1;
+  margin-bottom: 16px;
+}
+
+.section-sub {
+  font-size: 16px;
+  color: var(--white-dim);
+  font-weight: 300;
+  max-width: 560px;
+  line-height: 1.7;
+  margin-bottom: 56px;
+}
+
+/* PAIN CARDS */
+.pain-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  background: rgba(240,244,255,0.06);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.pain-card {
+  background: var(--navy);
+  padding: 36px 32px;
+  position: relative;
+  overflow: hidden;
+  transition: background var(--transition);
+}
+
+.pain-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--teal);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s ease;
+}
+
+.pain-card:hover::before { transform: scaleX(1); }
+.pain-card:hover { background: var(--navy-mid); }
+
+.pain-number {
+  font-family: var(--font-display);
+  font-size: 72px;
+  font-weight: 800;
+  color: rgba(6,214,160,0.08);
+  line-height: 1;
+  margin-bottom: 12px;
+  letter-spacing: -3px;
+}
+
+.pain-emoji { font-size: 28px; margin-bottom: 12px; display: block; }
+
+.pain-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 12px;
+}
+
+.pain-desc {
+  font-size: 14px;
+  color: var(--white-muted);
+  line-height: 1.7;
+}
+
+.pain-quote {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: rgba(240,244,255,0.04);
+  border-left: 2px solid var(--teal);
+  font-size: 13px;
+  color: var(--white-dim);
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════════
+   SECTION: COMO FUNCIONA
+═══════════════════════════════════════════ */
+.how-section {
+  padding: 100px 0;
+  background: var(--navy);
+  position: relative;
+  overflow: hidden;
+}
+
+.how-section::before {
+  content: '';
+  position: absolute;
+  right: -200px; top: -200px;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(6,214,160,0.05) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.how-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  position: relative;
+}
+
+.how-steps::before {
+  content: '';
+  position: absolute;
+  top: 32px;
+  left: calc(100% / 6);
+  right: calc(100% / 6);
+  height: 1px;
+  background: linear-gradient(90deg, var(--teal-border), var(--teal-border));
+  z-index: 0;
+}
+
+.how-step {
+  padding: 0 24px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.how-step-num {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: var(--navy-deep);
+  border: 2px solid var(--teal-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--teal);
+  position: relative;
+}
+
+.how-step-num::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: var(--teal-dim);
+}
+
+.how-step-icon { font-size: 28px; }
+
+.how-step-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  margin-bottom: 12px;
+}
+
+.how-step-desc {
+  font-size: 14px;
+  color: var(--white-muted);
+  line-height: 1.7;
+}
+
+/* persona pills */
+.persona-pills {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 64px;
+  flex-wrap: wrap;
+}
+
+.persona-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--navy-deep);
+  border: 1px solid rgba(240,244,255,0.08);
+  border-radius: 100px;
+  padding: 10px 20px;
+  font-size: 13px;
+  color: var(--white-dim);
+  transition: var(--transition);
+}
+
+.persona-pill:hover {
+  border-color: var(--teal-border);
+  color: var(--white);
+}
+
+.persona-pill .pill-icon { font-size: 18px; }
+
+/* ═══════════════════════════════════════════
+   SECTION: FEATURES (DASHBOARD PREVIEW)
+═══════════════════════════════════════════ */
+.features-section { padding: 100px 0; }
+
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.feature-list { display: flex; flex-direction: column; gap: 4px; }
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 20px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--transition);
+  border-left: 2px solid transparent;
+}
+
+.feature-item.active,
+.feature-item:hover {
+  background: rgba(6,214,160,0.05);
+  border-left-color: var(--teal);
+}
+
+.feature-icon {
+  width: 42px; height: 42px;
+  background: var(--teal-dim);
+  border: 1px solid var(--teal-border);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.feature-text h4 {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+
+.feature-text p {
+  font-size: 13px;
+  color: var(--white-muted);
+  line-height: 1.6;
+}
+
+/* dashboard mockup */
+.dashboard-mock {
+  background: var(--navy);
+  border-radius: 16px;
+  border: 1px solid rgba(240,244,255,0.08);
+  overflow: hidden;
+  box-shadow:
+    0 32px 64px rgba(0,0,0,0.4),
+    0 0 0 1px rgba(240,244,255,0.04);
+}
+
+.dash-topbar {
+  background: var(--navy-mid);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid rgba(240,244,255,0.06);
+}
+
+.dash-dots { display:flex; gap:6px; }
+.dash-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+
+.dash-dot.r { background: #ef4444; }
+.dash-dot.y { background: #f59e0b; }
+.dash-dot.g { background: var(--teal); }
+
+.dash-url {
+  flex: 1;
+  background: rgba(240,244,255,0.06);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--white-muted);
+}
+
+.dash-body { padding: 20px; }
+
+.dash-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.dash-title-sm {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.dash-status-pill {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  background: var(--teal-dim);
+  color: var(--teal);
+  border: 1px solid var(--teal-border);
+  padding: 3px 8px;
+  border-radius: 2px;
+  letter-spacing: 1px;
+}
+
+.dash-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.dash-stat {
+  background: rgba(240,244,255,0.04);
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid rgba(240,244,255,0.05);
+}
+
+.dash-stat-val {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--teal);
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.dash-stat-lbl { font-size: 10px; color: var(--white-muted); }
+
+.dash-employee-list { display: flex; flex-direction: column; gap: 6px; }
+
+.dash-employee {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(240,244,255,0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(240,244,255,0.04);
+}
+
+.emp-avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  color: var(--navy-deep);
+}
+
+.emp-info { flex: 1; }
+.emp-name { font-size: 11px; font-weight: 600; margin-bottom: 1px; }
+.emp-role { font-size: 10px; color: var(--white-muted); }
+
+.emp-status {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 3px 7px;
+  border-radius: 2px;
+  letter-spacing: 1px;
+}
+
+.emp-status.in { background: rgba(6,214,160,0.12); color: var(--teal); border: 1px solid var(--teal-border); }
+.emp-status.out { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
+.emp-status.break { background: rgba(255,209,102,0.1); color: var(--amber); border: 1px solid rgba(255,209,102,0.2); }
+
+.emp-time { font-family: var(--font-mono); font-size: 10px; color: var(--white-muted); }
+
+/* ═══════════════════════════════════════════
+   SECTION: SOCIAL PROOF
+═══════════════════════════════════════════ */
+.proof-section {
+  padding: 100px 0;
+  background: var(--navy);
+}
+
+.proof-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 2px;
+  background: rgba(240,244,255,0.06);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 64px;
+}
+
+.proof-card {
+  background: var(--navy-deep);
+  padding: 36px 32px;
+}
+
+.proof-stars { font-size: 16px; margin-bottom: 16px; letter-spacing: 2px; }
+
+.proof-text {
+  font-size: 15px;
+  color: var(--white-dim);
+  line-height: 1.75;
+  font-style: italic;
+  margin-bottom: 24px;
+}
+
+.proof-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.proof-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--navy-deep);
+  flex-shrink: 0;
+}
+
+.proof-author-name { font-weight: 600; font-size: 14px; }
+.proof-author-role { font-size: 12px; color: var(--white-muted); }
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  background: rgba(240,244,255,0.06);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.stat-block {
+  background: var(--navy-deep);
+  padding: 36px;
+  text-align: center;
+}
+
+.stat-number {
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--teal);
+  letter-spacing: -2px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.stat-label { font-size: 13px; color: var(--white-muted); }
+
+/* ═══════════════════════════════════════════
+   SECTION: PRICING
+═══════════════════════════════════════════ */
+.pricing-section { padding: 100px 0; }
+
+.pricing-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 48px;
+}
+
+.toggle-label { font-size: 14px; color: var(--white-dim); }
+
+.toggle-track {
+  width: 44px; height: 24px;
+  background: var(--navy-mid);
+  border-radius: 12px;
+  border: 1px solid rgba(240,244,255,0.1);
+  cursor: pointer;
+  position: relative;
+  transition: background var(--transition);
+}
+
+.toggle-track.active { background: rgba(6,214,160,0.3); }
+
+.toggle-thumb {
+  width: 18px; height: 18px;
+  background: var(--teal);
+  border-radius: 50%;
+  position: absolute;
+  top: 2px; left: 2px;
+  transition: transform var(--transition);
+}
+
+.toggle-track.active .toggle-thumb { transform: translateX(20px); }
+
+.toggle-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  background: rgba(255,209,102,0.15);
+  color: var(--amber);
+  border: 1px solid rgba(255,209,102,0.3);
+  padding: 3px 8px;
+  border-radius: 2px;
+  letter-spacing: 1px;
+}
+
+.pricing-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  background: rgba(240,244,255,0.06);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.pricing-card {
+  background: var(--navy);
+  padding: 36px 28px;
+  position: relative;
+  transition: background var(--transition);
+}
+
+.pricing-card:hover { background: var(--navy-mid); }
+
+.pricing-card.featured {
+  background: var(--navy-mid);
+  border: 1px solid var(--teal-border);
+  border-radius: var(--radius);
+  margin: -1px;
+  position: relative;
+  z-index: 1;
+}
+
+.pricing-card.featured::before {
+  content: '★ MAIS VENDIDO';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--teal);
+  color: var(--navy-deep);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  padding: 4px 12px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+.plan-name {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+
+.plan-for { font-size: 12px; color: var(--white-muted); margin-bottom: 24px; }
+
+.plan-price {
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 800;
+  color: var(--teal);
+  letter-spacing: -2px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.plan-price-detail { font-size: 12px; color: var(--white-muted); margin-bottom: 24px; }
+
+.plan-example {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--blue-accent);
+  background: rgba(66,153,225,0.08);
+  border: 1px solid rgba(66,153,225,0.2);
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 24px;
+}
+
+.plan-features { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+
+.plan-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--white-dim);
+}
+
+.plan-feature-check {
+  color: var(--teal);
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 14px;
+}
+
+.plan-cta {
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+  border: 1px solid rgba(240,244,255,0.15);
+  background: transparent;
+  color: var(--white-dim);
+}
+
+.plan-cta:hover {
+  border-color: rgba(240,244,255,0.3);
+  color: var(--white);
+}
+
+.plan-cta.primary {
+  background: var(--teal);
+  color: var(--navy-deep);
+  border-color: transparent;
+}
+
+.plan-cta.primary:hover {
+  background: #07ebb2;
+  box-shadow: 0 4px 20px rgba(6,214,160,0.3);
+}
+
+/* ═══════════════════════════════════════════
+   SECTION: FAQ
+═══════════════════════════════════════════ */
+.faq-section {
+  padding: 100px 0;
+  background: var(--navy);
+}
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  background: rgba(240,244,255,0.06);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.faq-item {
+  background: var(--navy-deep);
+  padding: 32px;
+  cursor: pointer;
+  transition: background var(--transition);
+  border-left: 3px solid transparent;
+}
+
+.faq-item:hover {
+  background: var(--navy);
+  border-left-color: var(--teal);
+}
+
+.faq-q {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.faq-q-text {
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.faq-icon {
+  color: var(--teal);
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.faq-a {
+  font-size: 14px;
+  color: var(--white-muted);
+  line-height: 1.7;
+}
+
+/* ═══════════════════════════════════════════
+   CTA FINAL
+═══════════════════════════════════════════ */
+.cta-section {
+  padding: 120px 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(6,214,160,0.07) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.cta-inner { position: relative; z-index: 1; }
+
+.cta-title {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 5vw, 64px);
+  font-weight: 800;
+  letter-spacing: -2px;
+  line-height: 1.05;
+  margin-bottom: 20px;
+}
+
+.cta-title .accent { color: var(--teal); }
+
+.cta-sub {
+  font-size: 18px;
+  color: var(--white-dim);
+  font-weight: 300;
+  margin-bottom: 40px;
+}
+
+.cta-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.cta-note {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--white-muted);
+  letter-spacing: 1px;
+}
+
+/* ═══════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════ */
+footer {
+  padding: 48px 0 32px;
+  border-top: 1px solid rgba(240,244,255,0.06);
+}
+
+.footer-inner {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  gap: 48px;
+  margin-bottom: 48px;
+}
+
+.footer-brand p {
+  font-size: 14px;
+  color: var(--white-muted);
+  line-height: 1.7;
+  margin-top: 12px;
+  max-width: 240px;
+}
+
+.footer-col h5 {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--white-muted);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+
+.footer-col ul li a {
+  font-size: 14px;
+  color: var(--white-muted);
+  transition: color var(--transition);
+}
+
+.footer-col ul li a:hover { color: var(--white); }
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 24px;
+  border-top: 1px solid rgba(240,244,255,0.06);
+}
+
+.footer-legal {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--white-muted);
+  letter-spacing: 1px;
+}
+
+.footer-made {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--white-muted);
+  letter-spacing: 1px;
+}
+
+.footer-made span { color: var(--teal); }
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .hero-inner { grid-template-columns: 1fr; gap: 48px; }
+  .notif-float { right: 0; }
+  .dashboard-float { left: 0; }
+  .features-grid { grid-template-columns: 1fr; }
+  .pricing-cards { grid-template-columns: repeat(2, 1fr); }
+  .footer-inner { grid-template-columns: 1fr 1fr; gap: 32px; }
+}
+
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .pain-grid { grid-template-columns: 1fr; }
+  .how-steps { grid-template-columns: 1fr; }
+  .how-steps::before { display: none; }
+  .proof-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .pricing-cards { grid-template-columns: 1fr; }
+  .faq-grid { grid-template-columns: 1fr; }
+  .footer-inner { grid-template-columns: 1fr; }
+  .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     NAVBAR
+═══════════════════════════════════════ -->
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <div class="nav-logo-mark"><img src="assets/logo-mark.svg" alt="StaFlow"></div>
+      <div class="nav-logo-text"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#como-funciona">Como funciona</a></li>
+      <li><a href="#features">Funcionalidades</a></li>
+      <li><a href="#preco">Preço</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="auth/login.html" class="nav-login">Entrar</a>
+      <a href="auth/cadastro.html" class="btn-primary" style="padding:10px 22px; font-size:13px;">Começar grátis</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════
+     HERO
+═══════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-bg">
+    <div class="hero-orb orb-1"></div>
+    <div class="hero-orb orb-2"></div>
+    <div class="hero-orb orb-3"></div>
+    <div class="hero-grid"></div>
+  </div>
+
+  <div class="hero-inner">
+    <div class="hero-content">
+      <div class="hero-tag">
+        <span class="live-dot"></span>
+        EM DESENVOLVIMENTO — RIO DE JANEIRO
+      </div>
+
+      <h1>
+        Seu porteiro bateu<br>
+        ponto às <span class="accent">07h58.</span>
+        <span class="line-indent">Você viu.</span>
+      </h1>
+
+      <p class="hero-sub">
+        Ponto digital com geolocalização, tarefas por turno e justificativas de falta — tudo em tempo real. <strong>Sem papel. Sem WhatsApp. Sem desculpa.</strong>
+      </p>
+
+      <div class="hero-actions">
+        <a href="#preco" class="btn-primary">
+          Começar 14 dias grátis
+          <span>→</span>
+        </a>
+        <a href="#como-funciona" class="btn-ghost">
+          Ver como funciona
+        </a>
+      </div>
+
+      <div class="hero-trust">
+        <div class="hero-trust-avatars">
+          <div class="avatar">M</div>
+          <div class="avatar" style="background:var(--navy-light);">R</div>
+          <div class="avatar" style="background:rgba(6,214,160,0.15);">J</div>
+          <div class="avatar" style="background:rgba(66,153,225,0.15); color:var(--blue-accent);">A</div>
+        </div>
+        <div class="hero-trust-text">
+          <strong>Beta em andamento</strong> no RJ<br>
+          primeiros síndicos já testando
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="phone-wrap">
+        <!-- floating notification -->
+        <div class="notif-float">
+          <div class="notif-header">
+            <div class="notif-icon">📍</div>
+            <div class="notif-app">STAFLOW</div>
+          </div>
+          <div class="notif-msg">Carlos entrou no trabalho — Portaria Sul</div>
+          <div class="notif-time">agora mesmo</div>
+        </div>
+
+        <!-- phone -->
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-status-bar">
+            <span>07:58</span>
+            <span>● ● ●</span>
+          </div>
+          <div class="phone-screen">
+            <div class="phone-greeting">bom dia,</div>
+            <div class="phone-name">Carlos.</div>
+
+            <div class="punch-btn">
+              <span class="punch-btn-icon">👆</span>
+              <span class="punch-btn-label">ENTRADA</span>
+            </div>
+
+            <div class="phone-time">📍 Portaria Sul · raio: 50m ✓</div>
+
+            <div class="phone-mini-log">
+              <div class="log-item">
+                <div class="log-dot green"></div>
+                <div class="log-text">Entrada registrada</div>
+                <div class="log-time">07:58</div>
+              </div>
+              <div class="log-item">
+                <div class="log-dot amber"></div>
+                <div class="log-text">Limpeza hall — pendente</div>
+                <div class="log-time">turno</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- dashboard mini card -->
+        <div class="dashboard-float">
+          <div class="dash-label">ONLINE AGORA</div>
+          <div class="dash-number">4/6</div>
+          <div class="dash-sub">funcionários no turno</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     PROBLEMA
+═══════════════════════════════════════ -->
+<section class="section" id="problema">
+  <div class="container">
+    <div class="reveal">
+      <div class="tag section-tag">O problema</div>
+      <h2 class="section-title">A realidade de quem gerencia<br>funcionários de condomínio hoje</h2>
+      <p class="section-sub">Síndico não é RH. Mas acaba tendo que resolver tudo isso manualmente, todo dia, sem nenhuma ferramenta feita para o seu caso.</p>
+    </div>
+
+    <div class="pain-grid reveal">
+      <div class="pain-card">
+        <div class="pain-number">01</div>
+        <span class="pain-emoji">📋</span>
+        <h3 class="pain-title">Folha de ponto em papel</h3>
+        <p class="pain-desc">A folha fica na portaria. O porteiro assina quando lembra. Ou quando o síndico cobra. Ou não assina. No fim do mês, metade está errada e ninguém sabe o que é verdade.</p>
+        <div class="pain-quote">"Eu tenho uma pasta com dois anos de folha de ponto que nunca consegui organizar."</div>
+      </div>
+      <div class="pain-card">
+        <span class="pain-emoji">📱</span>
+        <div class="pain-number">02</div>
+        <h3 class="pain-title">Tudo no WhatsApp pessoal</h3>
+        <p class="pain-desc">Atestado chega por foto no WhatsApp. Tarefa vira mensagem de voz. Aviso de falta chega no domingo à noite. Não tem histórico, não tem organização, não tem prova de nada se precisar.</p>
+        <div class="pain-quote">"Já perdi processo trabalhista porque o atestado do funcionário sumiu no WhatsApp."</div>
+      </div>
+      <div class="pain-card">
+        <span class="pain-emoji">⚖️</span>
+        <div class="pain-number">03</div>
+        <h3 class="pain-title">Zero prova em uma ação trabalhista</h3>
+        <p class="pain-desc">Funcionário entra com ação alegando hora extra não paga. Você sabe que ele faltou três vezes. Mas não tem como provar. Folha assinada à mão não tem valor sem testemunha. Você perde.</p>
+        <div class="pain-quote">"A ação custou R$ 12.000 por falta que eu sabia que tinha acontecido mas não consegui provar."</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     COMO FUNCIONA
+═══════════════════════════════════════ -->
+<section class="how-section" id="como-funciona">
+  <div class="container">
+    <div class="reveal" style="text-align:center; margin-bottom:64px;">
+      <div class="tag section-tag" style="justify-content:center;">Como funciona</div>
+      <h2 class="section-title">Três passos. Dois lados. Uma solução.</h2>
+      <p class="section-sub" style="margin:0 auto; text-align:center;">O StaFlow funciona em paralelo: o funcionário usa o app mobile, o síndico vê tudo no dashboard web, em tempo real.</p>
+    </div>
+
+    <div class="how-steps reveal">
+      <div class="how-step">
+        <div class="how-step-num"><span class="how-step-icon">👆</span></div>
+        <h3 class="how-step-title">Funcionário bate o ponto</h3>
+        <p class="how-step-desc">Com geolocalização ativa. O app valida que ele está dentro do raio do condomínio. Dois toques. Menos de 10 segundos. Funciona offline e sincroniza depois.</p>
+      </div>
+      <div class="how-step">
+        <div class="how-step-num"><span class="how-step-icon">✅</span></div>
+        <h3 class="how-step-title">Sistema registra e alerta</h3>
+        <p class="how-step-desc">O ponto é gravado com horário, localização e ID do dispositivo. Imutável — não dá para editar sem deixar rastro. O síndico recebe notificação push imediata.</p>
+      </div>
+      <div class="how-step">
+        <div class="how-step-num"><span class="how-step-icon">📊</span></div>
+        <h3 class="how-step-title">Síndico vê tudo em tempo real</h3>
+        <p class="how-step-desc">Dashboard web com quem está no turno, tarefas concluídas, faltas do mês e atestados já categorizados. Relatório em PDF com um clique. Exportável como prova.</p>
+      </div>
+    </div>
+
+    <div class="persona-pills reveal">
+      <div class="persona-pill"><span class="pill-icon">🧹</span> Faxineiros</div>
+      <div class="persona-pill"><span class="pill-icon">🚪</span> Porteiros</div>
+      <div class="persona-pill"><span class="pill-icon">🌿</span> Jardineiros</div>
+      <div class="persona-pill"><span class="pill-icon">🔧</span> Zeladores</div>
+      <div class="persona-pill"><span class="pill-icon">🏢</span> Administrativos</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     FEATURES
+═══════════════════════════════════════ -->
+<section class="features-section" id="features">
+  <div class="container">
+    <div class="features-grid">
+      <div class="reveal">
+        <div class="tag section-tag">Funcionalidades</div>
+        <h2 class="section-title" style="margin-bottom:40px;">Tudo que você precisa.<br>Nada que você não usa.</h2>
+
+        <div class="feature-list">
+          <div class="feature-item active">
+            <div class="feature-icon">📍</div>
+            <div class="feature-text">
+              <h4>Ponto com geolocalização</h4>
+              <p>Só registra dentro do raio do condomínio. Detecção de GPS falso (mock location) no Android. Fallback por QR Code em locais com sinal fraco.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">✅</div>
+            <div class="feature-text">
+              <h4>Checklist de tarefas por turno</h4>
+              <p>Síndico cria tarefas do turno (limpeza, inspeção, portaria). Funcionário marca como feito. Horário de conclusão registrado automaticamente.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">📎</div>
+            <div class="feature-text">
+              <h4>Justificativa de falta com anexo</h4>
+              <p>Atestado chega direto no app, já categorizado. PDF ou foto. Armazenado com criptografia. Acessível só pelo síndico. Nunca mais perde no WhatsApp.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">🔔</div>
+            <div class="feature-text">
+              <h4>Notificações em tempo real</h4>
+              <p>Push quando o funcionário entra, sai, marca falta ou envia atestado. Síndico sabe de tudo sem precisar perguntar. Funciona com o app em background.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">📄</div>
+            <div class="feature-text">
+              <h4>Relatório exportável (PDF/CSV)</h4>
+              <p>Relatório mensal de ponto, faltas e tarefas em um clique. Válido como documento em convenção de condomínio e como prova em processos trabalhistas.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="dashboard-mock">
+          <div class="dash-topbar">
+            <div class="dash-dots">
+              <div class="dash-dot r"></div>
+              <div class="dash-dot y"></div>
+              <div class="dash-dot g"></div>
+            </div>
+            <div class="dash-url">app.staflow.com.br/dashboard</div>
+          </div>
+          <div class="dash-body">
+            <div class="dash-header-row">
+              <div class="dash-title-sm">Edifício Beira Mar — Turno Manhã</div>
+              <div class="dash-status-pill">AO VIVO</div>
+            </div>
+
+            <div class="dash-stats-row">
+              <div class="dash-stat">
+                <div class="dash-stat-val">5/6</div>
+                <div class="dash-stat-lbl">No turno</div>
+              </div>
+              <div class="dash-stat">
+                <div class="dash-stat-val" style="color:var(--amber);">1</div>
+                <div class="dash-stat-lbl">Falta</div>
+              </div>
+              <div class="dash-stat">
+                <div class="dash-stat-val">8/10</div>
+                <div class="dash-stat-lbl">Tarefas</div>
+              </div>
+            </div>
+
+            <div class="dash-employee-list">
+              <div class="dash-employee">
+                <div class="emp-avatar" style="background:var(--teal);">C</div>
+                <div class="emp-info">
+                  <div class="emp-name">Carlos Silva</div>
+                  <div class="emp-role">Porteiro</div>
+                </div>
+                <div class="emp-status in">ATIVO</div>
+                <div class="emp-time">07:58</div>
+              </div>
+              <div class="dash-employee">
+                <div class="emp-avatar" style="background:var(--amber);">M</div>
+                <div class="emp-info">
+                  <div class="emp-name">Maria Santos</div>
+                  <div class="emp-role">Faxineira</div>
+                </div>
+                <div class="emp-status break">ALMOÇO</div>
+                <div class="emp-time">12:05</div>
+              </div>
+              <div class="dash-employee">
+                <div class="emp-avatar" style="background:rgba(239,68,68,0.3); color:#ef4444;">J</div>
+                <div class="emp-info">
+                  <div class="emp-name">João Mendes</div>
+                  <div class="emp-role">Zelador</div>
+                </div>
+                <div class="emp-status out">FALTA</div>
+                <div class="emp-time">atestado ✓</div>
+              </div>
+              <div class="dash-employee">
+                <div class="emp-avatar" style="background:rgba(66,153,225,0.3); color:var(--blue-accent);">A</div>
+                <div class="emp-info">
+                  <div class="emp-name">Ana Costa</div>
+                  <div class="emp-role">Jardineira</div>
+                </div>
+                <div class="emp-status in">ATIVO</div>
+                <div class="emp-time">08:02</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     PROVA SOCIAL
+═══════════════════════════════════════ -->
+<section class="proof-section">
+  <div class="container">
+    <div class="reveal" style="text-align:center; margin-bottom:56px;">
+      <div class="tag section-tag" style="justify-content:center;">Quem está usando</div>
+      <h2 class="section-title">Beta testando no RJ</h2>
+    </div>
+
+    <div class="proof-grid reveal">
+      <div class="proof-card">
+        <div class="proof-stars">★★★★★</div>
+        <p class="proof-text">"Eu recebi a notificação no celular enquanto estava no trabalho às 8h da manhã. Sabia que o porteiro tinha chegado sem precisar ligar pra ninguém. Foi isso que me vendeu."</p>
+        <div class="proof-author">
+          <div class="proof-avatar" style="background:var(--teal);">D</div>
+          <div>
+            <div class="proof-author-name">Dona Marta R.</div>
+            <div class="proof-author-role">Síndica — Ed. Beira Mar, Barra da Tijuca</div>
+          </div>
+        </div>
+      </div>
+      <div class="proof-card">
+        <div class="proof-stars">★★★★★</div>
+        <p class="proof-text">"Meu porteiro tem 54 anos e nunca usou nada além de WhatsApp. Ele aprendeu a bater o ponto no StaFlow em dois minutos. O botão é grande. Não tem como errar."</p>
+        <div class="proof-author">
+          <div class="proof-avatar" style="background:var(--blue-accent);">R</div>
+          <div>
+            <div class="proof-author-name">Roberto A.</div>
+            <div class="proof-author-role">Síndico — Ed. Flor do Campo, Méier</div>
+          </div>
+        </div>
+      </div>
+      <div class="proof-card">
+        <div class="proof-stars">★★★★★</div>
+        <p class="proof-text">"Antes eu tinha uma pasta física com folhas de ponto. Agora tenho um histórico de 3 meses exportável em PDF, com geolocalização e horário. Não tem comparação."</p>
+        <div class="proof-author">
+          <div class="proof-avatar" style="background:var(--amber);">L</div>
+          <div>
+            <div class="proof-author-name">Lídia M.</div>
+            <div class="proof-author-role">Síndica Profissional — 4 condomínios, Zona Norte RJ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-row reveal">
+      <div class="stat-block">
+        <div class="stat-number">2min</div>
+        <div class="stat-label">Tempo médio de onboarding do funcionário</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-number">R$0</div>
+        <div class="stat-label">Custo de papel, pasta e impressão por mês</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-number">100%</div>
+        <div class="stat-label">Dos registros têm prova digital com localização</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-number">14</div>
+        <div class="stat-label">Dias grátis. Sem cartão de crédito.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     PRICING
+═══════════════════════════════════════ -->
+<section class="pricing-section" id="preco">
+  <div class="container">
+    <div class="reveal" style="text-align:center; margin-bottom:16px;">
+      <div class="tag section-tag" style="justify-content:center;">Preço</div>
+      <h2 class="section-title">Transparente. Sem surpresa.</h2>
+      <p class="section-sub" style="margin:0 auto 32px; text-align:center;">R$ 27 por funcionário por mês. Quanto maior a equipe, mais sentido faz.</p>
+    </div>
+
+    <div class="pricing-toggle reveal">
+      <span class="toggle-label">Mensal</span>
+      <div class="toggle-track" id="billingToggle">
+        <div class="toggle-thumb"></div>
+      </div>
+      <span class="toggle-label">Anual</span>
+      <div class="toggle-badge">-17% — 2 meses grátis</div>
+    </div>
+
+    <div class="pricing-cards reveal">
+      <div class="pricing-card">
+        <div class="plan-name">Starter</div>
+        <div class="plan-for">Até 3 funcionários</div>
+        <div class="plan-price">R$97</div>
+        <div class="plan-price-detail">mínimo / mês</div>
+        <div class="plan-features">
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Ponto digital com geolocalização</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Checklist de tarefas</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Justificativa de falta</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Dashboard web do síndico</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Exportação CSV mensal</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Suporte via e-mail</div>
+        </div>
+        <button class="plan-cta">Começar grátis</button>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="plan-name">Pro</div>
+        <div class="plan-for">4–15 funcionários</div>
+        <div class="plan-price">R$27</div>
+        <div class="plan-price-detail">por funcionário / mês</div>
+        <div class="plan-example">Ex: 8 func. → R$ 216/mês</div>
+        <div class="plan-features">
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Tudo do Starter</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Relatórios automáticos mensais</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Alertas de irregularidade</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Múltiplos responsáveis</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Histórico de 5 anos (CLT)</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Suporte via WhatsApp</div>
+        </div>
+        <button class="plan-cta primary">Começar grátis</button>
+      </div>
+
+      <div class="pricing-card">
+        <div class="plan-name">Scale</div>
+        <div class="plan-for">16–40 funcionários</div>
+        <div class="plan-price">R$25</div>
+        <div class="plan-price-detail">por funcionário / mês</div>
+        <div class="plan-example">Ex: 25 func. → R$ 625/mês</div>
+        <div class="plan-features">
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Tudo do Pro</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Escala de turnos</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Controle de horas extras</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> SLA 99.5% uptime</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Onboarding dedicado</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Gerente de conta</div>
+        </div>
+        <button class="plan-cta">Começar grátis</button>
+      </div>
+
+      <div class="pricing-card">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-for">Administradoras</div>
+        <div class="plan-price">R$23</div>
+        <div class="plan-price-detail">por funcionário / mês</div>
+        <div class="plan-example">Mín. 10 condomínios. 1 fatura.</div>
+        <div class="plan-features">
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Tudo do Scale</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Painel central da carteira</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> White-label disponível</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> SLA 99.9% uptime</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Suporte 24/7</div>
+          <div class="plan-feature"><span class="plan-feature-check">✓</span> Contrato anual</div>
+        </div>
+        <button class="plan-cta">Falar com vendas</button>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:24px;" class="reveal">
+      <p style="font-size:13px; color:var(--white-muted);">14 dias gratuitos em qualquer plano · Sem cartão de crédito · Cancele quando quiser</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     FAQ
+═══════════════════════════════════════ -->
+<section class="faq-section" id="faq">
+  <div class="container">
+    <div class="reveal" style="text-align:center; margin-bottom:48px;">
+      <div class="tag section-tag" style="justify-content:center;">FAQ</div>
+      <h2 class="section-title">Perguntas diretas.<br>Respostas diretas.</h2>
+    </div>
+
+    <div class="faq-grid reveal">
+      <div class="faq-item">
+        <div class="faq-q">
+          <div class="faq-q-text">Meu porteiro tem 55 anos e mal usa smartphone. Vai conseguir usar?</div>
+          <div class="faq-icon">+</div>
+        </div>
+        <div class="faq-a">O app do funcionário foi desenhado para isso. Uma tela. Um botão grande. Se ele usa WhatsApp, ele consegue bater o ponto. Testamos com funcionários de 50+ anos antes de lançar. Tempo médio de aprendizado: 2 minutos.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <div class="faq-q-text">O registro tem validade jurídica em um processo trabalhista?</div>
+          <div class="faq-icon">+</div>
+        </div>
+        <div class="faq-a">Cada registro contém timestamp imutável, coordenadas GPS, ID do dispositivo e hash de autenticação. Pode ser exportado como PDF para juntada em processo. Recomendamos confirmar com seu advogado trabalhista como complemento ao seu controle interno.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <div class="faq-q-text">E se o funcionário estiver sem internet na hora de bater o ponto?</div>
+          <div class="faq-icon">+</div>
+        </div>
+        <div class="faq-a">O app funciona offline. O ponto é armazenado localmente com GPS e horário. Quando a internet voltar, sincroniza automaticamente. O síndico vê um aviso de "ponto offline" com o horário real e o horário de sincronização.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <div class="faq-q-text">O que acontece com os dados se eu cancelar?</div>
+          <div class="faq-icon">+</div>
+        </div>
+        <div class="faq-a">Você pode exportar todo o histórico em CSV ou PDF antes de cancelar. Após o cancelamento, os dados ficam disponíveis por 30 dias para exportação. Depois são removidos permanentemente. Os dados são seus — sempre foram.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <div class="faq-q-text">Precisa aprovação em assembleia para contratar?</div>
+          <div class="faq-icon">+</div>
+        </div>
+        <div class="faq-a">Depende do regimento do condomínio. Para facilitar, fornecemos uma apresentação de 2 slides com o custo por unidade e as funcionalidades, pronta para você levar à assembleia. Só pedir.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <div class="faq-q-text">Funciona para condomínio comercial também?</div>
+          <div class="faq-icon">+</div>
+        </div>
+        <div class="faq-a">Sim. A plataforma foi desenvolvida pensando em residenciais, mas funciona igualmente bem para comerciais que têm porteiros, limpeza, segurança e manutenção. O setup é o mesmo.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <div class="faq-q-text">O StaFlow substitui o REP-C exigido pela Portaria 671?</div>
+          <div class="faq-icon">+</div>
+        </div>
+        <div class="faq-a">O StaFlow atua como sistema de controle alternativo, adequado para condomínios com menos de 10 funcionários ou onde o acordo coletivo permite ponto alternativo. Para obrigações específicas de REP certificado, recomendamos consultar um advogado trabalhista.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <div class="faq-q-text">Sou administradora com 30 condomínios. Tem plano para mim?</div>
+          <div class="faq-icon">+</div>
+        </div>
+        <div class="faq-a">Temos um plano Enterprise com painel centralizado para ver toda a carteira em um lugar, faturamento unificado e desconto de volume (R$ 23/funcionário/mês). Entre em contato diretamente — criamos uma proposta personalizada.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     CTA FINAL
+═══════════════════════════════════════ -->
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-inner reveal">
+      <div class="tag" style="justify-content:center; margin-bottom:24px; display:inline-flex;">Comece hoje</div>
+      <h2 class="cta-title">
+        Chega de papel.<br>
+        Chega de WhatsApp.<br>
+        <span class="accent">Chega de perder prova.</span>
+      </h2>
+      <p class="cta-sub">14 dias para testar. Sem cartão. Sem compromisso.</p>
+      <div class="cta-actions">
+        <a href="#" class="btn-primary" style="font-size:16px; padding:18px 40px;">
+          Começar gratuitamente → 
+        </a>
+        <a href="#" class="btn-ghost">
+          Falar com a equipe
+        </a>
+      </div>
+      <p class="cta-note">SEM CARTÃO DE CRÉDITO · CANCELE QUANDO QUISER · 14 DIAS GRÁTIS</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="nav-logo">
+          <div class="nav-logo-mark"><img src="assets/logo-mark.svg" alt="StaFlow"></div>
+          <div class="nav-logo-text"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+        </div>
+        <p>A equipe do seu condomínio, organizada. Ponto digital, tarefas e faltas — tudo em um lugar.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Produto</h5>
+        <ul>
+          <li><a href="#">Como funciona</a></li>
+          <li><a href="#">Funcionalidades</a></li>
+          <li><a href="#">Preço</a></li>
+          <li><a href="#">Changelog</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Empresa</h5>
+        <ul>
+          <li><a href="#">Sobre nós</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Parceiros</a></li>
+          <li><a href="#">Contato</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Legal</h5>
+        <ul>
+          <li><a href="#">Termos de Uso</a></li>
+          <li><a href="#">Privacidade (LGPD)</a></li>
+          <li><a href="#">Segurança</a></li>
+          <li><a href="#">Status</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="footer-legal">© 2025 STAFLOW TECNOLOGIA LTDA · RIO DE JANEIRO, RJ</span>
+      <span class="footer-made">FEITO NO RJ COM <span>♥</span> POR RAPHAEL & BRENO</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════════════════════════════
+     SCRIPTS
+═══════════════════════════════════════ -->
+<script>
+/* Navbar scroll effect */
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 40);
+});
+
+/* Scroll reveal */
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => entry.target.classList.add('visible'), i * 80);
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.12 });
+reveals.forEach(el => observer.observe(el));
+
+/* Billing toggle */
+const toggle = document.getElementById('billingToggle');
+let annual = false;
+const prices = {
+  starter: [97, 81],
+  pro:     [27, 22],
+  scale:   [25, 21],
+  enterprise: [23, 19]
+};
+
+toggle.addEventListener('click', () => {
+  annual = !annual;
+  toggle.classList.toggle('active', annual);
+});
+
+/* FAQ accordion feel */
+document.querySelectorAll('.faq-item').forEach(item => {
+  item.addEventListener('click', () => {
+    item.style.borderLeftColor = 'var(--teal)';
+  });
+});
+
+/* Feature hover highlight */
+document.querySelectorAll('.feature-item').forEach(item => {
+  item.addEventListener('mouseenter', () => {
+    document.querySelectorAll('.feature-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+
+/* Punch button interaction */
+const punchBtn = document.querySelector('.punch-btn');
+if (punchBtn) {
+  punchBtn.addEventListener('click', () => {
+    punchBtn.style.transform = 'scale(0.95)';
+    setTimeout(() => punchBtn.style.transform = '', 150);
+  });
+}
+</script>
+</body>
+</html>

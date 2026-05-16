@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Processando — StaFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./auth.css">
+</head>
+<body>
+
+<main class="auth-shell">
+  <section class="auth-card" style="text-align:center;">
+    <div class="brand">
+      <img class="mark" src="../assets/logo-mark.svg" alt="StaFlow">
+      <div class="wordmark"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+    </div>
+    <div class="spinner" style="display:inline-block; width:28px; height:28px; border-width:3px; margin:8px auto 14px; border-top-color: var(--teal); border-color: rgba(255,255,255,0.15); border-top-color: var(--teal);"></div>
+    <h1 class="auth-title" id="msg">Processando…</h1>
+    <p class="auth-sub" id="sub">Validando seu link.</p>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+(async () => {
+  // O Supabase processa o token automaticamente via detectSessionInUrl.
+  // Aqui decidimos para onde redirecionar com base no tipo (signup, recovery...).
+  const params = new URLSearchParams(location.search);
+  const hash   = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const type   = params.get('type') || hash.get('type');
+
+  // Dá um instante para Supabase persistir a sessão
+  await new Promise(r => setTimeout(r, 700));
+
+  const session = await staflowAuth.getCurrentSession();
+
+  if (type === 'recovery') {
+    location.replace('./nova-senha.html');
+    return;
+  }
+
+  if (type === 'signup' || session) {
+    document.getElementById('msg').textContent = 'Conta confirmada!';
+    document.getElementById('sub').textContent = 'Redirecionando para o painel…';
+    setTimeout(() => location.replace(session ? '/dashboard.html' : './login.html'), 900);
+    return;
+  }
+
+  // Fallback: volta para o login
+  document.getElementById('msg').textContent = 'Não foi possível concluir';
+  document.getElementById('sub').innerHTML   = 'O link pode ter expirado. <a href="./login.html" style="color:var(--teal);">Voltar ao login</a>';
+})();
+</script>
+</body>
+</html>

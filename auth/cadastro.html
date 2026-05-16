@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Criar conta — StaFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./auth.css">
+</head>
+<body>
+
+<main class="auth-shell">
+  <section class="auth-card wide">
+
+    <div class="brand">
+      <img class="mark" src="../assets/logo-mark.svg" alt="StaFlow">
+      <div class="wordmark"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+    </div>
+
+    <!-- Stepper -->
+    <div class="stepper">
+      <div class="step active" id="dot-1"></div>
+      <div class="step" id="dot-2"></div>
+    </div>
+    <div class="step-label" id="step-label">Etapa 1 de 2 · Seus dados</div>
+
+    <!-- ETAPA 1 -->
+    <section id="etapa-1">
+      <h1 class="auth-title">Crie sua conta</h1>
+      <p class="auth-sub">Comece pelo essencial.</p>
+
+      <form id="form-1" novalidate>
+        <div class="field" id="f-nome">
+          <label for="nome">Nome completo</label>
+          <input class="input" id="nome" type="text" autocomplete="name" placeholder="Maria Oliveira" required>
+          <span class="field-error">Mínimo 3 caracteres.</span>
+        </div>
+
+        <div class="field" id="f-email">
+          <label for="email">E-mail</label>
+          <input class="input" id="email" type="email" autocomplete="email" placeholder="voce@condominio.com.br" required>
+          <span class="field-error">E-mail inválido.</span>
+        </div>
+
+        <div class="field" id="f-senha">
+          <label for="senha">Senha</label>
+          <div class="input-wrap">
+            <input class="input" id="senha" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres" required>
+            <button class="toggle-pass" type="button" id="tp1">VER</button>
+          </div>
+          <div class="strength" id="strength"><i></i><i></i><i></i><i></i></div>
+          <div class="strength-text" id="strength-text">FORÇA: —</div>
+          <span class="field-error">Senha precisa ter ao menos 8 caracteres.</span>
+        </div>
+
+        <div class="field" id="f-conf">
+          <label for="conf">Confirmar senha</label>
+          <input class="input" id="conf" type="password" autocomplete="new-password" placeholder="Repita a senha" required>
+          <span class="field-error">As senhas não coincidem.</span>
+        </div>
+
+        <button class="btn" id="btn-next" type="submit">
+          <span class="btn-label">Continuar</span>
+        </button>
+
+        <div class="aux-center">Já tem conta? <a href="./login.html">Entrar</a></div>
+      </form>
+    </section>
+
+    <!-- ETAPA 2 -->
+    <section id="etapa-2" style="display:none;">
+      <h1 class="auth-title">Sobre o condomínio</h1>
+      <p class="auth-sub">Personalizamos sua experiência com base nisso.</p>
+
+      <form id="form-2" novalidate>
+        <div class="field" id="f-condo">
+          <label for="condo">Nome do condomínio</label>
+          <input class="input" id="condo" type="text" placeholder="Ed. Vista Mar" required>
+          <span class="field-error">Obrigatório.</span>
+        </div>
+
+        <div class="field">
+          <label for="end">Endereço (opcional)</label>
+          <input class="input" id="end" type="text" placeholder="R. das Flores, 123 — Rio de Janeiro/RJ">
+        </div>
+
+        <div class="field">
+          <label>Seu cargo</label>
+          <div class="radio-row">
+            <label class="radio-card selected" data-role="sindico">
+              <input type="radio" name="role" value="sindico" checked>
+              <div class="rc-title">Síndico</div>
+              <div class="rc-desc">Gerencia todo o condomínio</div>
+            </label>
+            <label class="radio-card" data-role="admin">
+              <input type="radio" name="role" value="admin">
+              <div class="rc-title">Administrador</div>
+              <div class="rc-desc">Apoia a gestão</div>
+            </label>
+          </div>
+        </div>
+
+        <div class="field" id="f-fone">
+          <label for="fone">Telefone</label>
+          <input class="input" id="fone" type="tel" autocomplete="tel" placeholder="(21) 99999-9999" required>
+          <span class="field-error">Telefone inválido.</span>
+        </div>
+
+        <button class="btn" id="btn-submit" type="submit">
+          <span class="spinner"></span>
+          <span class="btn-label">Criar conta</span>
+        </button>
+
+        <button class="btn btn-ghost" id="btn-back" type="button" style="margin-top:8px;">
+          <span class="btn-label">Voltar</span>
+        </button>
+      </form>
+    </section>
+
+    <!-- ETAPA 3 (sucesso / verificar e-mail) -->
+    <section id="etapa-3" style="display:none;">
+      <div class="success-box">
+        <div class="check">✓</div>
+        <h1 class="auth-title">Verifique seu e-mail</h1>
+        <p class="auth-sub">
+          Enviamos um link de confirmação para <strong id="sent-email"></strong>.
+          Clique no link para ativar sua conta. Não esqueça de checar o spam.
+        </p>
+        <button class="btn btn-ghost" id="btn-resend" type="button" disabled>
+          <span class="btn-label">Reenviar e-mail</span>
+        </button>
+        <div class="countdown" id="cd">Você poderá reenviar em <b>60</b>s</div>
+        <div class="aux-center" style="margin-top:18px;">
+          <a href="./login.html">Voltar ao login</a>
+        </div>
+      </div>
+    </section>
+
+  </section>
+</main>
+
+<footer class="auth-footer">© 2026 STAFLOW · UMA JORNADA MAIS PRÁTICA</footer>
+<div class="toast" id="toast"><span class="ico"></span><span class="msg"></span></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+// Estado em memória entre as etapas
+const state = { nome:'', email:'', senha:'', condo:'', end:'', role:'sindico', fone:'' };
+
+function toast(msg, type='error') {
+  const t = document.getElementById('toast');
+  t.className = 'toast show ' + type;
+  t.querySelector('.ico').textContent = type === 'success' ? '✓' : '⚠';
+  t.querySelector('.msg').textContent = msg;
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => t.className = 'toast', 4500);
+}
+
+function validEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
+
+// ---- Força de senha ----
+function passStrength(pw) {
+  let score = 0;
+  if (!pw) return 0;
+  if (pw.length >= 8)   score++;
+  if (pw.length >= 12)  score++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+  if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) score++;
+  return Math.min(score, 4);
+}
+const strengthLabels = ['—','FRACA','MÉDIA','BOA','FORTE'];
+
+const senhaEl    = document.getElementById('senha');
+const strBar     = document.getElementById('strength');
+const strText    = document.getElementById('strength-text');
+senhaEl.addEventListener('input', () => {
+  const s = passStrength(senhaEl.value);
+  strBar.className = 'strength s' + s;
+  strText.textContent = 'FORÇA: ' + strengthLabels[s];
+});
+
+// Toggle senha
+document.getElementById('tp1').addEventListener('click', () => {
+  const t = senhaEl.type === 'password' ? 'text' : 'password';
+  senhaEl.type = t;
+  document.getElementById('tp1').textContent = t === 'text' ? 'OCULTAR' : 'VER';
+});
+
+// Confirmação em tempo real
+const confEl = document.getElementById('conf');
+const fConf  = document.getElementById('f-conf');
+confEl.addEventListener('input', () => {
+  if (confEl.value && confEl.value !== senhaEl.value) fConf.classList.add('has-error');
+  else fConf.classList.remove('has-error');
+});
+
+// Máscara telefone BR
+const foneEl = document.getElementById('fone');
+foneEl.addEventListener('input', () => {
+  let v = foneEl.value.replace(/\D/g,'').slice(0,11);
+  if (v.length > 10)      v = v.replace(/(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+  else if (v.length > 6)  v = v.replace(/(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3');
+  else if (v.length > 2)  v = v.replace(/(\d{2})(\d{0,5}).*/, '($1) $2');
+  else if (v.length > 0)  v = v.replace(/(\d*)/, '($1');
+  foneEl.value = v;
+});
+
+// Radio visual
+document.querySelectorAll('.radio-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.radio-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    card.querySelector('input').checked = true;
+  });
+});
+
+// ---- Etapa 1 → 2 ----
+document.getElementById('form-1').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const nome = document.getElementById('nome').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const senha = senhaEl.value;
+  const conf  = confEl.value;
+
+  ['f-nome','f-email','f-senha','f-conf'].forEach(id => document.getElementById(id).classList.remove('has-error'));
+  let bad = false;
+  if (nome.length < 3)        { document.getElementById('f-nome').classList.add('has-error'); bad = true; }
+  if (!validEmail(email))     { document.getElementById('f-email').classList.add('has-error'); bad = true; }
+  if (senha.length < 8)       { document.getElementById('f-senha').classList.add('has-error'); bad = true; }
+  if (senha !== conf)         { document.getElementById('f-conf').classList.add('has-error'); bad = true; }
+  if (bad) return;
+
+  state.nome = nome; state.email = email; state.senha = senha;
+  irPara(2);
+});
+
+// ---- Voltar ----
+document.getElementById('btn-back').addEventListener('click', () => irPara(1));
+
+// ---- Etapa 2 → submit ----
+document.getElementById('form-2').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const condo = document.getElementById('condo').value.trim();
+  const end   = document.getElementById('end').value.trim();
+  const role  = document.querySelector('input[name=role]:checked').value;
+  const fone  = foneEl.value.trim();
+
+  document.getElementById('f-condo').classList.remove('has-error');
+  document.getElementById('f-fone').classList.remove('has-error');
+
+  let bad = false;
+  if (!condo)                              { document.getElementById('f-condo').classList.add('has-error'); bad = true; }
+  if (fone.replace(/\D/g,'').length < 10)  { document.getElementById('f-fone').classList.add('has-error');  bad = true; }
+  if (bad) return;
+
+  state.condo = condo; state.end = end; state.role = role; state.fone = fone;
+
+  const btn = document.getElementById('btn-submit');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const res = await staflowAuth.signUp(state.email, state.senha, {
+    full_name: state.nome,
+    phone: state.fone,
+    role: state.role,
+    condominio_nome: state.condo,
+    condominio_endereco: state.end
+  });
+
+  btn.classList.remove('loading'); btn.disabled = false;
+
+  if (!res.ok) { toast(res.error, 'error'); return; }
+  document.getElementById('sent-email').textContent = state.email;
+  irPara(3);
+  iniciarReenvio();
+});
+
+// ---- Navegação entre etapas ----
+function irPara(n) {
+  document.getElementById('etapa-1').style.display = (n === 1 ? 'block' : 'none');
+  document.getElementById('etapa-2').style.display = (n === 2 ? 'block' : 'none');
+  document.getElementById('etapa-3').style.display = (n === 3 ? 'block' : 'none');
+  document.getElementById('dot-1').className = 'step ' + (n === 1 ? 'active' : (n > 1 ? 'done' : ''));
+  document.getElementById('dot-2').className = 'step ' + (n === 2 ? 'active' : (n > 2 ? 'done' : ''));
+  const labels = { 1: 'Etapa 1 de 2 · Seus dados', 2: 'Etapa 2 de 2 · Condomínio', 3: 'Pronto!' };
+  document.getElementById('step-label').textContent = labels[n];
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ---- Countdown de reenvio ----
+function iniciarReenvio() {
+  const btn = document.getElementById('btn-resend');
+  const cd  = document.getElementById('cd');
+  let s = 60;
+  btn.disabled = true;
+  const tick = setInterval(() => {
+    s--;
+    cd.innerHTML = 'Você poderá reenviar em <b>'+s+'</b>s';
+    if (s <= 0) {
+      clearInterval(tick);
+      btn.disabled = false;
+      cd.textContent = 'Pronto para reenviar.';
+    }
+  }, 1000);
+}
+document.getElementById('btn-resend').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-resend');
+  btn.disabled = true;
+  const res = await staflowAuth.resendConfirmation(state.email);
+  if (!res.ok) { toast(res.error, 'error'); btn.disabled = false; return; }
+  toast('E-mail reenviado.', 'success');
+  iniciarReenvio();
+});
+</script>
+</body>
+</html>

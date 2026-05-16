@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configurações — StaFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="auth/auth.css">
+<link rel="stylesheet" href="app.css">
+<style>
+  .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 880px) { .grid-two { grid-template-columns: 1fr; } }
+  .card + .card { margin-top: 16px; }
+  .card .head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .card .head h2 { margin-bottom: 2px; }
+  .card .head p { font-size: 13px; color: var(--white-dim); }
+</style>
+</head>
+<body>
+
+<div class="splash" id="splash"><div class="dot"></div></div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main">
+    <button class="menu-toggle" id="menu-toggle" aria-label="Menu">☰</button>
+
+    <div class="topbar">
+      <div>
+        <h1>Configurações</h1>
+        <p class="sub">Seus dados pessoais e do condomínio.</p>
+      </div>
+    </div>
+
+    <div class="grid-two">
+      <!-- Perfil -->
+      <section class="card">
+        <div class="head">
+          <div>
+            <h2>Meu perfil</h2>
+            <p>Estes dados aparecem em outras telas.</p>
+          </div>
+        </div>
+
+        <form id="form-profile" novalidate>
+          <div class="field">
+            <label for="p-nome">Nome completo</label>
+            <input class="input" id="p-nome" type="text" required>
+          </div>
+          <div class="field">
+            <label for="p-email">E-mail</label>
+            <input class="input" id="p-email" type="email" disabled>
+            <div class="field-hint">Para mudar o e-mail entre em contato com o suporte.</div>
+          </div>
+          <div class="field">
+            <label for="p-fone">Telefone</label>
+            <input class="input" id="p-fone" type="tel" placeholder="(21) 99999-9999">
+          </div>
+          <div class="field">
+            <label for="p-role">Cargo</label>
+            <select class="input" id="p-role">
+              <option value="sindico">Síndico</option>
+              <option value="admin">Administrador</option>
+              <option value="funcionario">Funcionário</option>
+            </select>
+          </div>
+
+          <button class="btn" id="btn-save-profile" type="submit" style="width:auto; padding:11px 22px;">
+            <span class="spinner"></span>
+            <span class="btn-label">Salvar perfil</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- Condomínio -->
+      <section class="card">
+        <div class="head">
+          <div>
+            <h2>Condomínio</h2>
+            <p>Dados que aparecem nos relatórios e cabeçalhos.</p>
+          </div>
+        </div>
+
+        <form id="form-condo" novalidate>
+          <div class="field">
+            <label for="c-nome">Nome do condomínio</label>
+            <input class="input" id="c-nome" type="text" required>
+          </div>
+          <div class="field">
+            <label for="c-end">Endereço</label>
+            <input class="input" id="c-end" type="text" placeholder="Rua, número — Cidade/UF">
+          </div>
+          <div class="field">
+            <label for="c-plano">Plano</label>
+            <select class="input" id="c-plano" disabled>
+              <option value="starter">Starter</option>
+              <option value="pro">Pro</option>
+              <option value="scale">Scale</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+            <div class="field-hint">Para mudar o plano use a área de cobrança (em breve).</div>
+          </div>
+
+          <button class="btn" id="btn-save-condo" type="submit" style="width:auto; padding:11px 22px;">
+            <span class="spinner"></span>
+            <span class="btn-label">Salvar condomínio</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- Sessão / segurança -->
+      <section class="card" style="grid-column: 1 / -1;">
+        <div class="head">
+          <div>
+            <h2>Segurança</h2>
+            <p>Sessão atual e ações da conta.</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn btn-ghost" id="btn-reset-pass" style="width:auto; padding:11px 22px;">
+            <span class="btn-label">Trocar minha senha</span>
+          </button>
+          <button class="btn btn-ghost" id="btn-signout-here" style="width:auto; padding:11px 22px;">
+            <span class="btn-label">Sair desta sessão</span>
+          </button>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app-shell.js"></script>
+
+<script>
+const sb = window.staflowSupabase;
+const T  = window.staflowApp.toast;
+let profile = null;
+let condo   = null;
+
+// máscara telefone
+function maskTel(v){
+  v=(v||'').replace(/\D/g,'').slice(0,11);
+  if (v.length>10) return v.replace(/(\d{2})(\d{5})(\d{4}).*/,'($1) $2-$3');
+  if (v.length>6)  return v.replace(/(\d{2})(\d{4})(\d{0,4}).*/,'($1) $2-$3');
+  if (v.length>2)  return v.replace(/(\d{2})(\d{0,5}).*/,'($1) $2');
+  if (v.length>0)  return '('+v;
+  return '';
+}
+document.getElementById('p-fone').addEventListener('input', e => e.target.value = maskTel(e.target.value));
+
+// ---------- carregar condomínio ----------
+async function loadCondominio() {
+  if (!profile.condominio_id) return;
+  const { data, error } = await sb.from('condominios').select('*').eq('id', profile.condominio_id).single();
+  if (error) { T(error.message, 'error'); return; }
+  condo = data;
+  document.getElementById('c-nome').value  = data.nome || '';
+  document.getElementById('c-end').value   = data.endereco || '';
+  document.getElementById('c-plano').value = data.plano || 'starter';
+}
+
+// ---------- salvar perfil ----------
+document.getElementById('form-profile').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nome = document.getElementById('p-nome').value.trim();
+  if (nome.length < 3) { T('Informe um nome válido.', 'error'); return; }
+
+  const btn = document.getElementById('btn-save-profile');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const patch = {
+    full_name: nome,
+    phone:     document.getElementById('p-fone').value.trim() || null,
+    role:      document.getElementById('p-role').value
+  };
+  const { ok, data, error } = await window.staflowAuth.updateProfile(profile.id, patch);
+
+  btn.classList.remove('loading'); btn.disabled = false;
+  if (!ok) { T(error, 'error'); return; }
+  profile = data;
+  T('Perfil atualizado.', 'success');
+  // atualiza nome na sidebar
+  document.getElementById('u-name').textContent = data.full_name;
+  document.getElementById('u-avatar').textContent = window.staflowApp.iniciais(data.full_name);
+});
+
+// ---------- salvar condomínio ----------
+document.getElementById('form-condo').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nome = document.getElementById('c-nome').value.trim();
+  if (nome.length < 2) { T('Informe um nome para o condomínio.', 'error'); return; }
+
+  const btn = document.getElementById('btn-save-condo');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const patch = {
+    nome,
+    endereco: document.getElementById('c-end').value.trim() || null
+  };
+
+  let resp;
+  if (profile.condominio_id) {
+    resp = await sb.from('condominios').update(patch).eq('id', profile.condominio_id).select().single();
+  } else {
+    patch.sindico_id = profile.id;
+    resp = await sb.from('condominios').insert(patch).select().single();
+    if (!resp.error) {
+      // vincula no perfil
+      await sb.from('profiles').update({ condominio_id: resp.data.id }).eq('id', profile.id);
+      profile.condominio_id = resp.data.id;
+    }
+  }
+
+  btn.classList.remove('loading'); btn.disabled = false;
+  if (resp.error) { T(resp.error.message, 'error'); return; }
+
+  condo = resp.data;
+  // também sincroniza profiles.condominio_nome para coerência visual
+  await sb.from('profiles').update({
+    condominio_nome:     condo.nome,
+    condominio_endereco: condo.endereco
+  }).eq('id', profile.id);
+
+  T('Condomínio salvo.', 'success');
+});
+
+// ---------- segurança ----------
+document.getElementById('btn-reset-pass').addEventListener('click', async () => {
+  if (!profile?.email) return;
+  const res = await window.staflowAuth.resetPassword(profile.email);
+  if (!res.ok) { T(res.error, 'error'); return; }
+  T('Enviamos um link de redefinição para o seu e-mail.', 'success');
+});
+
+document.getElementById('btn-signout-here').addEventListener('click', async () => {
+  const res = await window.staflowAuth.signOut();
+  if (!res.ok) { T(res.error, 'error'); return; }
+  location.replace('/auth/login.html');
+});
+
+// ---------- boot ----------
+(async () => {
+  window.staflowApp.renderSidebar('sidebar');
+  profile = await window.staflowApp.bootstrapShell({ route: 'configuracoes' });
+  if (!profile) return;
+
+  // popula perfil
+  document.getElementById('p-nome').value  = profile.full_name || '';
+  document.getElementById('p-email').value = profile.email || '';
+  document.getElementById('p-fone').value  = profile.phone || '';
+  document.getElementById('p-role').value  = profile.role || 'sindico';
+
+  // popula condomínio
+  await loadCondominio();
+})();
+</script>
+</body>
+</html>

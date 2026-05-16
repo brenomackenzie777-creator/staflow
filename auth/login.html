@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrar — StaFlow</title>
+<meta name="description" content="Acesse sua conta StaFlow.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./auth.css">
+</head>
+<body>
+
+<main class="auth-shell">
+  <section class="auth-card">
+
+    <!-- Brand -->
+    <div class="brand">
+      <img class="mark" src="../assets/logo-mark.svg" alt="StaFlow">
+      <div class="wordmark"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+      <div class="tagline">Uma jornada mais prática</div>
+    </div>
+
+    <h1 class="auth-title">Entrar</h1>
+    <p class="auth-sub">Acesse o painel do seu condomínio.</p>
+
+    <form id="form-login" novalidate>
+      <div class="field" id="f-email">
+        <label for="email">E-mail</label>
+        <input class="input" id="email" type="email" autocomplete="email"
+               placeholder="voce@condominio.com.br" required>
+        <span class="field-error">E-mail inválido.</span>
+      </div>
+
+      <div class="field" id="f-pass">
+        <label for="senha">Senha</label>
+        <div class="input-wrap">
+          <input class="input" id="senha" type="password" autocomplete="current-password"
+                 placeholder="••••••••" required>
+          <button class="toggle-pass" type="button" id="toggle-senha" aria-label="Mostrar senha">VER</button>
+        </div>
+        <span class="field-error">Informe sua senha.</span>
+      </div>
+
+      <button class="btn" id="btn-login" type="submit">
+        <span class="spinner"></span>
+        <span class="btn-label">Entrar</span>
+      </button>
+
+      <div class="aux-links">
+        <a href="./recuperar-senha.html">Esqueci minha senha</a>
+        <a href="./cadastro.html">Criar conta</a>
+      </div>
+    </form>
+  </section>
+</main>
+
+<footer class="auth-footer">© 2026 STAFLOW · UMA JORNADA MAIS PRÁTICA</footer>
+
+<!-- Toast -->
+<div class="toast" id="toast"><span class="ico"></span><span class="msg"></span></div>
+
+<!-- Supabase SDK + StaFlow auth -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/auth.js"></script>
+
+<script>
+(async () => {
+  // Se já está logado, vai direto pro dashboard
+  const session = await staflowAuth.getCurrentSession();
+  if (session) location.replace('/dashboard.html');
+})();
+
+const form     = document.getElementById('form-login');
+const btn      = document.getElementById('btn-login');
+const emailEl  = document.getElementById('email');
+const passEl   = document.getElementById('senha');
+const fEmail   = document.getElementById('f-email');
+const fPass    = document.getElementById('f-pass');
+
+// Toggle visualização da senha
+document.getElementById('toggle-senha').addEventListener('click', () => {
+  const t = passEl.type === 'password' ? 'text' : 'password';
+  passEl.type = t;
+  document.getElementById('toggle-senha').textContent = (t === 'text' ? 'OCULTAR' : 'VER');
+});
+
+// Toast helper
+function toast(msg, type = 'error') {
+  const t = document.getElementById('toast');
+  t.className = 'toast show ' + type;
+  t.querySelector('.ico').textContent = type === 'success' ? '✓' : '⚠';
+  t.querySelector('.msg').textContent = msg;
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => t.className = 'toast', 4500);
+}
+
+// Validação simples
+function validEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  fEmail.classList.remove('has-error');
+  fPass.classList.remove('has-error');
+
+  const email = emailEl.value.trim();
+  const pass  = passEl.value;
+
+  let bad = false;
+  if (!validEmail(email)) { fEmail.classList.add('has-error'); bad = true; }
+  if (!pass)              { fPass.classList.add('has-error');  bad = true; }
+  if (bad) return;
+
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  const res = await staflowAuth.signIn(email, pass);
+
+  btn.classList.remove('loading');
+  btn.disabled = false;
+
+  if (!res.ok) {
+    toast(res.error, 'error');
+    return;
+  }
+  toast('Login efetuado. Redirecionando…', 'success');
+  setTimeout(() => location.replace('/dashboard.html'), 600);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+.claude/
+sql/
+files.zip
+.env
+.env.*
+*.log
+node_modules/

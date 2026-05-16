@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nova senha — StaFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./auth.css">
+</head>
+<body>
+
+<main class="auth-shell">
+  <section class="auth-card">
+    <div class="brand">
+      <img class="mark" src="../assets/logo-mark.svg" alt="StaFlow">
+      <div class="wordmark"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+    </div>
+
+    <section id="state-form">
+      <h1 class="auth-title">Defina sua nova senha</h1>
+      <p class="auth-sub">Escolha uma senha forte. Pelo menos 8 caracteres.</p>
+
+      <form id="form-new" novalidate>
+        <div class="field" id="f-p1">
+          <label for="p1">Nova senha</label>
+          <div class="input-wrap">
+            <input class="input" id="p1" type="password" autocomplete="new-password" placeholder="••••••••" required>
+            <button class="toggle-pass" type="button" id="tp1">VER</button>
+          </div>
+          <div class="strength" id="strength"><i></i><i></i><i></i><i></i></div>
+          <div class="strength-text" id="strength-text">FORÇA: —</div>
+          <span class="field-error">Mínimo 8 caracteres.</span>
+        </div>
+
+        <div class="field" id="f-p2">
+          <label for="p2">Confirmar senha</label>
+          <input class="input" id="p2" type="password" autocomplete="new-password" placeholder="Repita a senha" required>
+          <span class="field-error">As senhas não coincidem.</span>
+        </div>
+
+        <button class="btn" id="btn-save" type="submit">
+          <span class="spinner"></span>
+          <span class="btn-label">Atualizar senha</span>
+        </button>
+      </form>
+    </section>
+
+    <section id="state-invalid" style="display:none;">
+      <div class="success-box">
+        <div class="check" style="color:var(--red); background:rgba(239,68,68,0.12);">⚠</div>
+        <h1 class="auth-title">Link inválido ou expirado</h1>
+        <p class="auth-sub">O link de redefinição expirou. Solicite um novo para continuar.</p>
+        <a class="btn" href="./recuperar-senha.html"><span class="btn-label">Solicitar novo link</span></a>
+      </div>
+    </section>
+  </section>
+</main>
+
+<footer class="auth-footer">© 2026 STAFLOW · UMA JORNADA MAIS PRÁTICA</footer>
+<div class="toast" id="toast"><span class="ico"></span><span class="msg"></span></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+function toast(msg, type='error'){
+  const t = document.getElementById('toast');
+  t.className = 'toast show ' + type;
+  t.querySelector('.ico').textContent = type === 'success' ? '✓' : '⚠';
+  t.querySelector('.msg').textContent = msg;
+  clearTimeout(window.__tt); window.__tt = setTimeout(()=>t.className='toast', 4500);
+}
+
+// Verifica se o usuário chegou aqui com sessão de recovery
+// (Supabase auto-processa o hash da URL e dispara PASSWORD_RECOVERY)
+let recoveryReady = false;
+
+staflowAuth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') recoveryReady = true;
+});
+
+(async () => {
+  // Aguarda um instante para Supabase processar o hash
+  setTimeout(async () => {
+    const session = await staflowAuth.getCurrentSession();
+    if (!session && !recoveryReady) {
+      document.getElementById('state-form').style.display    = 'none';
+      document.getElementById('state-invalid').style.display = 'block';
+    }
+  }, 600);
+})();
+
+// Força de senha
+function passStrength(pw){
+  let s = 0; if (!pw) return 0;
+  if (pw.length >= 8)  s++;
+  if (pw.length >= 12) s++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
+  if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) s++;
+  return Math.min(s,4);
+}
+const labels = ['—','FRACA','MÉDIA','BOA','FORTE'];
+const p1 = document.getElementById('p1');
+const p2 = document.getElementById('p2');
+p1.addEventListener('input', () => {
+  const s = passStrength(p1.value);
+  document.getElementById('strength').className = 'strength s' + s;
+  document.getElementById('strength-text').textContent = 'FORÇA: ' + labels[s];
+});
+document.getElementById('tp1').addEventListener('click', () => {
+  const t = p1.type === 'password' ? 'text' : 'password';
+  p1.type = t;
+  document.getElementById('tp1').textContent = t === 'text' ? 'OCULTAR' : 'VER';
+});
+
+document.getElementById('form-new').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  document.getElementById('f-p1').classList.remove('has-error');
+  document.getElementById('f-p2').classList.remove('has-error');
+
+  let bad = false;
+  if (p1.value.length < 8)         { document.getElementById('f-p1').classList.add('has-error'); bad = true; }
+  if (p1.value !== p2.value)       { document.getElementById('f-p2').classList.add('has-error'); bad = true; }
+  if (bad) return;
+
+  const btn = document.getElementById('btn-save');
+  btn.classList.add('loading'); btn.disabled = true;
+  const res = await staflowAuth.updatePassword(p1.value);
+  btn.classList.remove('loading'); btn.disabled = false;
+
+  if (!res.ok) { toast(res.error, 'error'); return; }
+  toast('Senha atualizada com sucesso.', 'success');
+  setTimeout(() => location.replace('./login.html'), 900);
+});
+</script>
+</body>
+</html>

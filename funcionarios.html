@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funcionários — StaFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="auth/auth.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div class="splash" id="splash"><div class="dot"></div></div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main">
+    <button class="menu-toggle" id="menu-toggle" aria-label="Menu">☰</button>
+
+    <div class="topbar">
+      <div>
+        <h1>Funcionários</h1>
+        <p class="sub" id="topbar-sub">Sua equipe.</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn" id="btn-new-func">＋ Novo funcionário</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <div class="search">
+          <input id="q" type="search" placeholder="Buscar por nome, cargo ou e-mail…" autocomplete="off">
+        </div>
+        <select id="f-cargo" class="filter">
+          <option value="">Todos os cargos</option>
+          <option value="porteiro">Porteiro</option>
+          <option value="zelador">Zelador</option>
+          <option value="faxineira">Faxineira</option>
+          <option value="jardineiro">Jardineiro</option>
+          <option value="seguranca">Segurança</option>
+          <option value="outro">Outro</option>
+        </select>
+        <select id="f-status" class="filter">
+          <option value="all">Todos</option>
+          <option value="ativo" selected>Ativos</option>
+          <option value="inativo">Inativos</option>
+        </select>
+      </div>
+
+      <div id="list-area">
+        <div class="empty" id="empty" style="display:none;">
+          <div class="icon">◐</div>
+          <div class="title">Nenhum funcionário ainda</div>
+          <div class="desc">Cadastre o primeiro membro da equipe para começar a usar ponto e tarefas.</div>
+          <button class="btn" id="btn-first-func">＋ Cadastrar funcionário</button>
+        </div>
+
+        <div class="table-wrap" id="tbl-wrap" style="display:none;">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Cargo</th>
+                <th>Turno</th>
+                <th>Telefone</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ========== Modal: cadastro/edição ========== -->
+<div class="modal-backdrop" id="modal-func">
+  <div class="modal">
+    <h2 id="m-title">Novo funcionário</h2>
+    <p class="modal-sub">Dados básicos. Você pode completar depois.</p>
+
+    <form id="form-func" novalidate>
+      <input type="hidden" id="f-id">
+
+      <div class="field" id="ff-nome">
+        <label for="f-nome">Nome completo</label>
+        <input class="input" id="f-nome" type="text" placeholder="Nome do funcionário" required>
+        <span class="field-error">Mínimo 3 caracteres.</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="f-cargo-i">Cargo</label>
+          <select class="input" id="f-cargo-i">
+            <option value="porteiro">Porteiro</option>
+            <option value="zelador">Zelador</option>
+            <option value="faxineira">Faxineira</option>
+            <option value="jardineiro">Jardineiro</option>
+            <option value="seguranca">Segurança</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-turno-i">Turno</label>
+          <select class="input" id="f-turno-i">
+            <option value="integral">Integral</option>
+            <option value="manha">Manhã</option>
+            <option value="tarde">Tarde</option>
+            <option value="noite">Noite</option>
+            <option value="escala">Escala</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="f-tel">Telefone</label>
+          <input class="input" id="f-tel" type="tel" placeholder="(21) 99999-9999">
+        </div>
+        <div class="field">
+          <label for="f-cpf">CPF</label>
+          <input class="input" id="f-cpf" type="text" placeholder="000.000.000-00">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="f-email-i">E-mail (opcional)</label>
+        <input class="input" id="f-email-i" type="email" placeholder="funcionario@email.com">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="f-adm">Data de admissão</label>
+          <input class="input" id="f-adm" type="date">
+        </div>
+        <div class="field">
+          <label for="f-ativo">Status</label>
+          <select class="input" id="f-ativo">
+            <option value="true">Ativo</option>
+            <option value="false">Inativo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="f-obs">Observações</label>
+        <input class="input" id="f-obs" type="text" placeholder="Anotações internas (opcional)">
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="m-cancel"><span class="btn-label">Cancelar</span></button>
+        <button type="submit" class="btn" id="m-save">
+          <span class="spinner"></span>
+          <span class="btn-label">Salvar</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========== Modal: confirmar exclusão ========== -->
+<div class="modal-backdrop" id="modal-del">
+  <div class="modal" style="max-width:420px;">
+    <h2>Excluir funcionário?</h2>
+    <p class="modal-sub">
+      Esta ação removerá <strong id="del-nome">—</strong> da sua equipe.
+      Não pode ser desfeita.
+    </p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="d-cancel"><span class="btn-label">Cancelar</span></button>
+      <button type="button" class="btn" id="d-confirm" style="background: var(--red); color:#fff;">
+        <span class="spinner"></span>
+        <span class="btn-label">Excluir</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app-shell.js"></script>
+
+<script>
+const sb = window.staflowSupabase;
+const T  = window.staflowApp.toast;
+
+let allRows = [];      // cache total
+let profile = null;
+
+// ---------- helpers de máscara ----------
+function maskTel(v) {
+  v = (v||'').replace(/\D/g,'').slice(0,11);
+  if (v.length > 10) return v.replace(/(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+  if (v.length > 6)  return v.replace(/(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3');
+  if (v.length > 2)  return v.replace(/(\d{2})(\d{0,5}).*/, '($1) $2');
+  if (v.length > 0)  return '(' + v;
+  return '';
+}
+function maskCPF(v) {
+  v = (v||'').replace(/\D/g,'').slice(0,11);
+  return v.replace(/(\d{3})(\d{3})?(\d{3})?(\d{2})?/, (_,a,b,c,d) =>
+    [a,b,c].filter(Boolean).join('.') + (d ? '-'+d : '')
+  );
+}
+document.getElementById('f-tel').addEventListener('input', e => e.target.value = maskTel(e.target.value));
+document.getElementById('f-cpf').addEventListener('input', e => e.target.value = maskCPF(e.target.value));
+
+// ---------- cargos / turnos legíveis ----------
+const CARGO_LBL = { porteiro:'Porteiro', zelador:'Zelador', faxineira:'Faxineira', jardineiro:'Jardineiro', seguranca:'Segurança', outro:'Outro' };
+const TURNO_LBL = { manha:'Manhã', tarde:'Tarde', noite:'Noite', integral:'Integral', escala:'Escala' };
+
+// ---------- render lista ----------
+function renderRows() {
+  const q      = document.getElementById('q').value.trim().toLowerCase();
+  const cargo  = document.getElementById('f-cargo').value;
+  const status = document.getElementById('f-status').value;
+
+  const rows = allRows.filter(r => {
+    if (status === 'ativo'   && !r.ativo) return false;
+    if (status === 'inativo' &&  r.ativo) return false;
+    if (cargo && r.cargo !== cargo) return false;
+    if (q) {
+      const blob = [r.nome, r.cargo, r.email, r.telefone].filter(Boolean).join(' ').toLowerCase();
+      if (!blob.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const empty   = document.getElementById('empty');
+  const tblWrap = document.getElementById('tbl-wrap');
+  const tbody   = document.getElementById('tbody');
+
+  if (allRows.length === 0) {
+    empty.style.display = 'block';
+    tblWrap.style.display = 'none';
+    return;
+  }
+  if (rows.length === 0) {
+    empty.style.display = 'block';
+    empty.querySelector('.title').textContent = 'Nenhum resultado';
+    empty.querySelector('.desc').textContent  = 'Ajuste os filtros para ver outros funcionários.';
+    empty.querySelector('#btn-first-func').style.display = 'none';
+    tblWrap.style.display = 'none';
+    return;
+  }
+
+  empty.style.display = 'none';
+  tblWrap.style.display = 'block';
+
+  tbody.innerHTML = rows.map(r => `
+    <tr data-id="${r.id}">
+      <td>
+        <div style="font-weight:600;">${escapeHtml(r.nome)}</div>
+        ${r.email ? `<div style="font-size:12px;color:var(--white-dim);">${escapeHtml(r.email)}</div>` : ''}
+      </td>
+      <td>${CARGO_LBL[r.cargo] || r.cargo}</td>
+      <td>${TURNO_LBL[r.turno] || r.turno}</td>
+      <td>${r.telefone ? escapeHtml(r.telefone) : '<span style="color:var(--white-muted);">—</span>'}</td>
+      <td>${r.ativo
+        ? '<span class="badge">ATIVO</span>'
+        : '<span class="badge muted">INATIVO</span>'}</td>
+      <td>
+        <div class="row-actions">
+          <button data-act="edit">Editar</button>
+          <button data-act="del" class="danger">Excluir</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- carregar do banco ----------
+async function loadAll() {
+  const { data, error } = await sb.from('funcionarios')
+    .select('*').order('nome', { ascending: true });
+  if (error) { T(error.message, 'error'); return; }
+  allRows = data || [];
+  renderRows();
+}
+
+// ---------- modal ----------
+const modal = document.getElementById('modal-func');
+function openNew() {
+  document.getElementById('m-title').textContent = 'Novo funcionário';
+  document.getElementById('form-func').reset();
+  document.getElementById('f-id').value = '';
+  document.getElementById('f-ativo').value = 'true';
+  modal.classList.add('show');
+  setTimeout(() => document.getElementById('f-nome').focus(), 100);
+}
+function openEdit(row) {
+  document.getElementById('m-title').textContent = 'Editar funcionário';
+  document.getElementById('f-id').value      = row.id;
+  document.getElementById('f-nome').value    = row.nome || '';
+  document.getElementById('f-cargo-i').value = row.cargo || 'porteiro';
+  document.getElementById('f-turno-i').value = row.turno || 'integral';
+  document.getElementById('f-tel').value     = row.telefone || '';
+  document.getElementById('f-cpf').value     = row.cpf || '';
+  document.getElementById('f-email-i').value = row.email || '';
+  document.getElementById('f-adm').value     = row.data_admissao || '';
+  document.getElementById('f-ativo').value   = row.ativo ? 'true' : 'false';
+  document.getElementById('f-obs').value     = row.observacoes || '';
+  modal.classList.add('show');
+}
+function closeModal() { modal.classList.remove('show'); }
+document.getElementById('m-cancel').addEventListener('click', closeModal);
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+// ---------- salvar ----------
+document.getElementById('form-func').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const ffNome = document.getElementById('ff-nome');
+  ffNome.classList.remove('has-error');
+
+  const nome = document.getElementById('f-nome').value.trim();
+  if (nome.length < 3) { ffNome.classList.add('has-error'); return; }
+
+  const payload = {
+    nome,
+    cargo:         document.getElementById('f-cargo-i').value,
+    turno:         document.getElementById('f-turno-i').value,
+    telefone:      document.getElementById('f-tel').value.trim() || null,
+    cpf:           document.getElementById('f-cpf').value.trim() || null,
+    email:         document.getElementById('f-email-i').value.trim() || null,
+    data_admissao: document.getElementById('f-adm').value || null,
+    ativo:         document.getElementById('f-ativo').value === 'true',
+    observacoes:   document.getElementById('f-obs').value.trim() || null
+  };
+
+  const btn = document.getElementById('m-save');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const id = document.getElementById('f-id').value;
+  let resp;
+  if (id) {
+    resp = await sb.from('funcionarios').update(payload).eq('id', id).select().single();
+  } else {
+    payload.condominio_id = profile.condominio_id;
+    payload.created_by    = profile.id;
+    resp = await sb.from('funcionarios').insert(payload).select().single();
+  }
+
+  btn.classList.remove('loading'); btn.disabled = false;
+
+  if (resp.error) { T(resp.error.message, 'error'); return; }
+
+  T(id ? 'Funcionário atualizado.' : 'Funcionário cadastrado.', 'success');
+  closeModal();
+  await loadAll();
+});
+
+// ---------- excluir ----------
+const modalDel = document.getElementById('modal-del');
+let delTarget = null;
+function askDelete(row) {
+  delTarget = row;
+  document.getElementById('del-nome').textContent = row.nome;
+  modalDel.classList.add('show');
+}
+document.getElementById('d-cancel').addEventListener('click', () => modalDel.classList.remove('show'));
+modalDel.addEventListener('click', (e) => { if (e.target === modalDel) modalDel.classList.remove('show'); });
+document.getElementById('d-confirm').addEventListener('click', async () => {
+  if (!delTarget) return;
+  const btn = document.getElementById('d-confirm');
+  btn.classList.add('loading'); btn.disabled = true;
+  const { error } = await sb.from('funcionarios').delete().eq('id', delTarget.id);
+  btn.classList.remove('loading'); btn.disabled = false;
+  if (error) { T(error.message, 'error'); return; }
+  T('Funcionário excluído.', 'success');
+  modalDel.classList.remove('show');
+  await loadAll();
+});
+
+// ---------- delegação de cliques nas linhas ----------
+document.getElementById('tbody').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const tr = e.target.closest('tr');
+  const id = tr.dataset.id;
+  const row = allRows.find(r => r.id === id);
+  if (!row) return;
+  if (btn.dataset.act === 'edit') openEdit(row);
+  if (btn.dataset.act === 'del')  askDelete(row);
+});
+
+// ---------- filtros / busca ----------
+['q','f-cargo','f-status'].forEach(id =>
+  document.getElementById(id).addEventListener('input', renderRows)
+);
+
+// ---------- new buttons ----------
+document.getElementById('btn-new-func').addEventListener('click', openNew);
+document.getElementById('btn-first-func').addEventListener('click', openNew);
+
+// ---------- boot ----------
+(async () => {
+  window.staflowApp.renderSidebar('sidebar');
+  profile = await window.staflowApp.bootstrapShell({ route: 'funcionarios' });
+  if (!profile) return;
+
+  if (!profile.condominio_id) {
+    T('Configure seu condomínio em Configurações antes de adicionar funcionários.', 'error');
+    document.getElementById('btn-new-func').disabled = true;
+  }
+
+  const sub = document.getElementById('topbar-sub');
+  sub.textContent = profile.condominio_nome ? `Equipe do ${profile.condominio_nome}.` : 'Sua equipe.';
+
+  await loadAll();
+})();
+</script>
+</body>
+</html>

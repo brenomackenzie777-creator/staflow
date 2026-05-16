@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- StaFlow — símbolo: hexágono navy com S estilizado em branco -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="StaFlow">
+  <defs>
+    <linearGradient id="staflow-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#3B3FB8"/>
+      <stop offset="100%" stop-color="#2E3192"/>
+    </linearGradient>
+  </defs>
+  <!-- Hexágono apontando para cima/baixo (pointy-top) -->
+  <path d="M32 2 L58 17 L58 47 L32 62 L6 47 L6 17 Z"
+        fill="url(#staflow-grad)"
+        stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+  <!-- S estilizado em branco — composto por duas curvas para passar a ideia de "flow" -->
+  <path d="M42 22
+           C 42 18, 38 16, 32 16
+           C 24 16, 20 19, 20 24
+           C 20 29, 24 30, 32 31
+           C 40 32, 44 33, 44 39
+           C 44 45, 39 48, 32 48
+           C 25 48, 22 45, 22 41"
+        fill="none"
+        stroke="#FFFFFF"
+        stroke-width="4.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+</svg>

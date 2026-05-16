@@ -1,0 +1,22 @@
+# Dependências
+node_modules/
+
+# Vercel
+.vercel/
+
+# Editor / SO
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Build / temp
+dist/
+build/
+*.log
+.env
+.env.*
+
+# Claude internals (não vão pro repo)
+.claude/
+files.zip
