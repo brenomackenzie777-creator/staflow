@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Processando — StaFlow</title>
+<title>Confirmando conta — StaFlow</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./auth.css">
@@ -16,9 +16,9 @@
       <img class="mark" src="../assets/logo-mark.svg" alt="StaFlow">
       <div class="wordmark"><span class="sta">STA</span><span class="flow">FLOW</span></div>
     </div>
-    <div class="spinner" style="display:inline-block; width:28px; height:28px; border-width:3px; margin:8px auto 14px; border-top-color: var(--teal); border-color: rgba(255,255,255,0.15); border-top-color: var(--teal);"></div>
-    <h1 class="auth-title" id="msg">Processando…</h1>
-    <p class="auth-sub" id="sub">Validando seu link.</p>
+    <div class="spinner" id="spinner" style="display:inline-block; width:28px; height:28px; border-width:3px; margin:8px auto 14px; border-color: rgba(255,255,255,0.15); border-top-color: var(--teal);"></div>
+    <h1 class="auth-title" id="msg">Confirmando conta…</h1>
+    <p class="auth-sub" id="sub">Validando seu link, aguarde um instante.</p>
   </section>
 </main>
 
@@ -27,32 +27,56 @@
 <script src="../js/auth.js"></script>
 <script>
 (async () => {
-  // O Supabase processa o token automaticamente via detectSessionInUrl.
-  // Aqui decidimos para onde redirecionar com base no tipo (signup, recovery...).
+  const sb     = window.staflowSupabase;
   const params = new URLSearchParams(location.search);
   const hash   = new URLSearchParams(location.hash.replace(/^#/, ''));
-  const type   = params.get('type') || hash.get('type');
 
-  // Dá um instante para Supabase persistir a sessão
-  await new Promise(r => setTimeout(r, 700));
-
-  const session = await staflowAuth.getCurrentSession();
-
+  // ── 1. Reset de senha (recovery) ─────────────────────────────────────
+  const type = params.get('type') || hash.get('type');
   if (type === 'recovery') {
     location.replace('./nova-senha.html');
     return;
   }
 
-  if (type === 'signup' || session) {
-    document.getElementById('msg').textContent = 'Conta confirmada!';
-    document.getElementById('sub').textContent = 'Redirecionando para escolha do plano…';
-    setTimeout(() => location.replace(session ? '/planos.html' : './login.html'), 900);
-    return;
+  function showSuccess() {
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('msg').textContent = '✓ Conta confirmada!';
+    document.getElementById('sub').textContent = 'Redirecionando para o login…';
+    setTimeout(() => location.replace('/auth/login.html?confirmed=1'), 1000);
   }
 
-  // Fallback: volta para o login
-  document.getElementById('msg').textContent = 'Não foi possível concluir';
-  document.getElementById('sub').innerHTML   = 'O link pode ter expirado. <a href="./login.html" style="color:var(--teal);">Voltar ao login</a>';
+  function showError(detail) {
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('msg').textContent = 'Não foi possível confirmar';
+    document.getElementById('sub').innerHTML =
+      (detail || 'O link pode ter expirado ou já foi usado.') +
+      ' <a href="./login.html" style="color:var(--teal);">Voltar ao login</a>';
+  }
+
+  // ── 2. Fluxo PKCE: URL contém ?code= ─────────────────────────────────
+  const code = params.get('code');
+  if (code) {
+    try {
+      const { data, error } = await sb.auth.exchangeCodeForSession(location.href);
+      if (error) throw error;
+      if (data?.session) { showSuccess(); return; }
+    } catch (err) {
+      // Se o code já foi trocado antes (double-click), verifica a sessão existente
+      const existing = await staflowAuth.getCurrentSession();
+      if (existing) { showSuccess(); return; }
+      showError('O link de confirmação expirou ou já foi utilizado.');
+      return;
+    }
+  }
+
+  // ── 3. Fluxo legado (implicit / token_hash) ───────────────────────────
+  // Aguarda o SDK processar o token na URL automaticamente
+  await new Promise(r => setTimeout(r, 1500));
+  const session = await staflowAuth.getCurrentSession();
+  if (session) { showSuccess(); return; }
+
+  // ── 4. Erro ───────────────────────────────────────────────────────────
+  showError('O link pode ter expirado ou já foi usado.');
 })();
 </script>
 </body>

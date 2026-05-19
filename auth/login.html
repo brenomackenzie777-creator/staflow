@@ -67,10 +67,36 @@
 <script src="../js/auth.js"></script>
 
 <script>
+// Toast helper
+function toast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.className = 'toast show ' + type;
+  t.querySelector('.ico').textContent = type === 'success' ? '✓' : '⚠';
+  t.querySelector('.msg').textContent = msg;
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => t.className = 'toast', 5000);
+}
+
+// Confirmação de e-mail: mostra toast e redireciona automaticamente
 (async () => {
-  // Se já está logado, vai direto pro dashboard
+  const urlParams = new URLSearchParams(location.search);
+  const confirmed = urlParams.get('confirmed') === '1';
+
+  if (confirmed) {
+    toast('✓ Conta confirmada! Entrando…', 'success');
+  }
+
+  // Se já tem sessão ativa, redireciona para o dashboard/planos
   const session = await staflowAuth.getCurrentSession();
-  if (session) location.replace('/dashboard.html');
+  if (session) {
+    setTimeout(() => location.replace('/dashboard.html'), confirmed ? 1200 : 0);
+    return;
+  }
+
+  if (confirmed) {
+    // Sessão não estabelecida ainda — mostra o form para login manual
+    toast('✓ Conta confirmada! Faça login para continuar.', 'success');
+  }
 })();
 
 const form     = document.getElementById('form-login');
