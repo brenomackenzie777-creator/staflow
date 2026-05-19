@@ -56,12 +56,19 @@ window.staflowApp = window.staflowApp || {};
     const session = await window.staflowAuth.checkAuth('/auth/login.html');
     if (!session) return null;
 
-    // 2. Garante condomínio vinculado ao perfil (RPC)
+    // 2. Verificar assinatura ativa — redireciona para /planos.html se não tiver
+    const sub = await window.staflowAuth.checkSubscription();
+    if (!sub) {
+      location.replace('/planos.html');
+      return null;
+    }
+
+    // 3. Garante condomínio vinculado ao perfil (RPC)
     try {
       await window.staflowSupabase.rpc('ensure_condominio');
     } catch (e) { /* silencioso — usuário pode não ser sindico/admin */ }
 
-    // 3. Perfil
+    // 4. Perfil
     const { ok, data: profile, error } = await window.staflowAuth.getProfile();
     if (!ok) {
       toast(error, 'error');
@@ -133,9 +140,9 @@ window.staflowApp = window.staflowApp || {};
 
       <div class="sb-section">Geral</div>
       <a class="sb-link" data-route="dashboard"    href="/dashboard.html"><span class="ico">▦</span> Dashboard</a>
-      <a class="sb-link" data-route="ponto"        href="#"><span class="ico">●</span> Ponto</a>
-      <a class="sb-link" data-route="tarefas"      href="#"><span class="ico">✓</span> Tarefas</a>
-      <a class="sb-link" data-route="faltas"       href="#"><span class="ico">⚠</span> Faltas</a>
+      <a class="sb-link" data-route="ponto"        href="/ponto.html"><span class="ico">●</span> Ponto</a>
+      <a class="sb-link" data-route="tarefas"      href="/tarefas.html"><span class="ico">✓</span> Tarefas</a>
+      <a class="sb-link" data-route="faltas"       href="/faltas.html"><span class="ico">⚠</span> Faltas</a>
 
       <div class="sb-section">Equipe</div>
       <a class="sb-link" data-route="funcionarios" href="/funcionarios.html"><span class="ico">◐</span> Funcionários</a>

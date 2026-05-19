@@ -45,8 +45,8 @@
 
   if (type === 'signup' || session) {
     document.getElementById('msg').textContent = 'Conta confirmada!';
-    document.getElementById('sub').textContent = 'Redirecionando para o painel…';
-    setTimeout(() => location.replace(session ? '/dashboard.html' : './login.html'), 900);
+    document.getElementById('sub').textContent = 'Redirecionando para escolha do plano…';
+    setTimeout(() => location.replace(session ? '/planos.html' : './login.html'), 900);
     return;
   }
 

@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faltas — StaFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="auth/auth.css">
+<link rel="stylesheet" href="app.css">
+<style>
+/* ---- Stats de faltas ---- */
+.faltas-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.fstat {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  transition: var(--transition);
+}
+.fstat:hover { border-color: var(--border-strong); }
+.fstat-val {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--teal);
+  line-height: 1.1;
+}
+.fstat-lbl {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--white-muted);
+  margin-top: 6px;
+}
+
+/* toolbar month input */
+.toolbar input[type="month"] {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--white);
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  color-scheme: dark;
+}
+.toolbar input[type="month"]:focus {
+  outline: none;
+  border-color: var(--teal);
+}
+
+/* modal checkbox */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+}
+.check-row input[type="checkbox"] {
+  width: 18px; height: 18px;
+  accent-color: var(--teal);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.check-row label {
+  font-size: 14px;
+  color: var(--white);
+  cursor: pointer;
+  margin: 0;
+}
+
+/* textarea */
+textarea.input {
+  resize: vertical;
+  min-height: 80px;
+}
+
+@media (max-width: 720px) {
+  .faltas-stats { grid-template-columns: 1fr; }
+}
+@media (max-width: 980px) {
+  .faltas-stats { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="splash" id="splash"><div class="dot"></div></div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main">
+    <button class="menu-toggle" id="menu-toggle" aria-label="Menu">☰</button>
+
+    <div class="topbar">
+      <div>
+        <h1>Faltas</h1>
+        <p class="sub">Registro e histórico de faltas da equipe.</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost" id="btn-export" style="width:auto;padding:10px 18px">⤓ Exportar CSV</button>
+        <button class="btn" id="btn-nova" style="width:auto;padding:10px 18px">＋ Registrar falta</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="faltas-stats">
+      <div class="fstat">
+        <div class="fstat-val" id="st-total">—</div>
+        <div class="fstat-lbl">Total no mês</div>
+      </div>
+      <div class="fstat">
+        <div class="fstat-val" id="st-njust">—</div>
+        <div class="fstat-lbl">Não justificadas</div>
+      </div>
+      <div class="fstat">
+        <div class="fstat-val" id="st-atestado">—</div>
+        <div class="fstat-lbl">Atestados</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <div class="search">
+          <input id="q" type="search" placeholder="Buscar por funcionário…" autocomplete="off">
+        </div>
+        <select id="f-func" class="filter">
+          <option value="">Todos os funcionários</option>
+        </select>
+        <select id="f-tipo" class="filter">
+          <option value="">Todos os tipos</option>
+          <option value="falta">Falta</option>
+          <option value="atestado">Atestado</option>
+          <option value="ferias">Férias</option>
+          <option value="licenca">Licença</option>
+        </select>
+        <input id="f-mes" type="month" title="Filtrar por mês">
+      </div>
+
+      <div id="list-area">
+        <div class="empty" id="empty" style="display:none;">
+          <div class="icon">◐</div>
+          <div class="title" id="empty-title">Nenhuma falta registrada</div>
+          <div class="desc" id="empty-desc">Registre a primeira falta ou ajuste os filtros acima.</div>
+          <button class="btn" id="btn-first" style="display:none;">＋ Registrar falta</button>
+        </div>
+
+        <div class="table-wrap" id="tbl-wrap" style="display:none;">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Funcionário</th>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Justificada</th>
+                <th>Observação</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ========== Modal: registrar/editar falta ========== -->
+<div class="modal-backdrop" id="modal-falta">
+  <div class="modal">
+    <h2 id="m-title">Registrar falta</h2>
+    <p class="modal-sub">Preencha os dados da ocorrência abaixo.</p>
+
+    <form id="form-falta" novalidate>
+      <input type="hidden" id="f-id">
+
+      <div class="field" id="ff-func">
+        <label for="f-func-i">Funcionário</label>
+        <select class="input" id="f-func-i" required>
+          <option value="">Selecione um funcionário…</option>
+        </select>
+        <span class="field-error">Selecione um funcionário.</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field" id="ff-data">
+          <label for="f-data">Data</label>
+          <input class="input" id="f-data" type="date" required>
+          <span class="field-error">Informe a data.</span>
+        </div>
+        <div class="field">
+          <label for="f-tipo-i">Tipo</label>
+          <select class="input" id="f-tipo-i">
+            <option value="falta">Falta</option>
+            <option value="atestado">Atestado</option>
+            <option value="ferias">Férias</option>
+            <option value="licenca">Licença</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="check-row">
+        <input type="checkbox" id="f-just">
+        <label for="f-just">Justificada</label>
+      </div>
+
+      <div class="field">
+        <label for="f-obs-i">Observação <span style="color:var(--white-muted);font-size:12px;">(opcional)</span></label>
+        <textarea class="input" id="f-obs-i" placeholder="Detalhes ou anotações sobre a ocorrência…"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="m-cancel"><span class="btn-label">Cancelar</span></button>
+        <button type="submit" class="btn" id="m-save">
+          <span class="spinner"></span>
+          <span class="btn-label">Salvar</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========== Modal: confirmar exclusão ========== -->
+<div class="modal-backdrop" id="modal-del">
+  <div class="modal" style="max-width:420px;">
+    <h2>Excluir registro?</h2>
+    <p class="modal-sub">
+      Esta ação removerá o registro de falta de <strong id="del-nome">—</strong> em <strong id="del-data">—</strong>.
+      Não pode ser desfeita.
+    </p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="d-cancel"><span class="btn-label">Cancelar</span></button>
+      <button type="button" class="btn" id="d-confirm" style="background:var(--red);color:#fff;">
+        <span class="spinner"></span>
+        <span class="btn-label">Excluir</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app-shell.js"></script>
+
+<script>
+const sb = window.staflowSupabase;
+const T  = window.staflowApp.toast;
+
+let allRows      = [];  // todos os registros carregados
+let allFuncs     = [];  // lista de funcionários ativos
+let profile      = null;
+
+// ---- Labels e badges ----
+const TIPO_LBL = { falta: 'Falta', atestado: 'Atestado', ferias: 'Férias', licenca: 'Licença' };
+
+function tipoBadge(tipo) {
+  const label = TIPO_LBL[tipo] || tipo;
+  switch (tipo) {
+    case 'falta':    return `<span class="badge red">${label}</span>`;
+    case 'atestado': return `<span class="badge amber">${label}</span>`;
+    case 'ferias':   return `<span class="badge">${label}</span>`;
+    case 'licenca':  return `<span class="badge muted">${label}</span>`;
+    default:         return `<span class="badge muted">${label}</span>`;
+  }
+}
+
+function justBadge(v) {
+  return v
+    ? '<span class="badge">SIM</span>'
+    : '<span class="badge red">NÃO</span>';
+}
+
+// ---- Formatação de data ----
+function fmtData(d) {
+  if (!d) return '—';
+  const [y, m, day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+// ---- Mês atual no formato yyyy-MM ----
+function mesAtual() {
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  return `${now.getFullYear()}-${mm}`;
+}
+
+// ---- Filtros ----
+function getFilters() {
+  return {
+    q:    document.getElementById('q').value.trim().toLowerCase(),
+    func: document.getElementById('f-func').value,
+    tipo: document.getElementById('f-tipo').value,
+    mes:  document.getElementById('f-mes').value
+  };
+}
+
+function applyFilters(rows, { q, func, tipo, mes }) {
+  return rows.filter(r => {
+    const nome = (r.funcionarios?.nome || '').toLowerCase();
+    if (q && !nome.includes(q)) return false;
+    if (func && r.funcionario_id !== func) return false;
+    if (tipo && r.tipo !== tipo) return false;
+    if (mes && !r.data.startsWith(mes)) return false;
+    return true;
+  });
+}
+
+// ---- Stats ----
+function updateStats(rows, mes) {
+  const doMes = mes ? rows.filter(r => r.data.startsWith(mes)) : rows;
+  document.getElementById('st-total').textContent    = doMes.length;
+  document.getElementById('st-njust').textContent    = doMes.filter(r => !r.justificada).length;
+  document.getElementById('st-atestado').textContent = doMes.filter(r => r.tipo === 'atestado').length;
+}
+
+// ---- Render tabela ----
+function renderRows() {
+  const filters = getFilters();
+  const rows = applyFilters(allRows, filters);
+
+  const empty   = document.getElementById('empty');
+  const tblWrap = document.getElementById('tbl-wrap');
+  const tbody   = document.getElementById('tbody');
+  const btnFirst = document.getElementById('btn-first');
+
+  // Atualiza stats sempre com base no mês selecionado e sem demais filtros (exceto mês)
+  updateStats(allRows, filters.mes);
+
+  if (allRows.length === 0) {
+    empty.style.display = 'block';
+    tblWrap.style.display = 'none';
+    document.getElementById('empty-title').textContent = 'Nenhuma falta registrada';
+    document.getElementById('empty-desc').textContent  = 'Registre a primeira falta da equipe.';
+    btnFirst.style.display = 'inline-flex';
+    return;
+  }
+
+  if (rows.length === 0) {
+    empty.style.display = 'block';
+    tblWrap.style.display = 'none';
+    document.getElementById('empty-title').textContent = 'Nenhum resultado';
+    document.getElementById('empty-desc').textContent  = 'Ajuste os filtros para ver outros registros.';
+    btnFirst.style.display = 'none';
+    return;
+  }
+
+  empty.style.display = 'none';
+  tblWrap.style.display = 'block';
+
+  tbody.innerHTML = rows.map(r => {
+    const nome = r.funcionarios?.nome || '—';
+    const cargo = r.funcionarios?.cargo || '';
+    const obs = r.observacao ? escapeHtml(r.observacao) : '<span style="color:var(--white-muted);">—</span>';
+    return `
+      <tr data-id="${r.id}">
+        <td>
+          <div style="font-weight:600;">${escapeHtml(nome)}</div>
+          ${cargo ? `<div style="font-size:12px;color:var(--white-dim);">${escapeHtml(cargo)}</div>` : ''}
+        </td>
+        <td style="font-family:var(--font-mono);font-size:13px;">${fmtData(r.data)}</td>
+        <td>${tipoBadge(r.tipo)}</td>
+        <td>${justBadge(r.justificada)}</td>
+        <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;color:var(--white-dim);">${obs}</td>
+        <td>
+          <div class="row-actions">
+            <button data-act="edit">Editar</button>
+            <button data-act="del" class="danger">Excluir</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ---- Carregar dados ----
+async function loadAll() {
+  const { data, error } = await sb
+    .from('faltas')
+    .select('*, funcionarios(id, nome, cargo)')
+    .order('data', { ascending: false });
+
+  if (error) { T(error.message, 'error'); return; }
+  allRows = data || [];
+  renderRows();
+}
+
+async function loadFuncionarios() {
+  const { data } = await sb
+    .from('funcionarios')
+    .select('id, nome, cargo')
+    .eq('ativo', true)
+    .order('nome', { ascending: true });
+
+  allFuncs = data || [];
+
+  // Popula select do filtro
+  const fFunc = document.getElementById('f-func');
+  const existing = Array.from(fFunc.options).map(o => o.value);
+  allFuncs.forEach(f => {
+    if (!existing.includes(f.id)) {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.nome;
+      fFunc.appendChild(opt);
+    }
+  });
+
+  // Popula select do modal
+  const mFunc = document.getElementById('f-func-i');
+  mFunc.innerHTML = '<option value="">Selecione um funcionário…</option>';
+  allFuncs.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = `${f.nome}${f.cargo ? ` — ${f.cargo}` : ''}`;
+    mFunc.appendChild(opt);
+  });
+}
+
+// ---- Modal falta ----
+const modal = document.getElementById('modal-falta');
+
+function openNew() {
+  document.getElementById('m-title').textContent = 'Registrar falta';
+  document.getElementById('form-falta').reset();
+  document.getElementById('f-id').value = '';
+  // default data = hoje
+  const hoje = new Date().toISOString().slice(0, 10);
+  document.getElementById('f-data').value = hoje;
+  document.getElementById('f-tipo-i').value = 'falta';
+  document.getElementById('f-just').checked = false;
+  clearFieldErrors();
+  modal.classList.add('show');
+  setTimeout(() => document.getElementById('f-func-i').focus(), 100);
+}
+
+function openEdit(row) {
+  document.getElementById('m-title').textContent = 'Editar falta';
+  document.getElementById('f-id').value        = row.id;
+  document.getElementById('f-func-i').value    = row.funcionario_id || '';
+  document.getElementById('f-data').value      = row.data || '';
+  document.getElementById('f-tipo-i').value    = row.tipo || 'falta';
+  document.getElementById('f-just').checked    = !!row.justificada;
+  document.getElementById('f-obs-i').value     = row.observacao || '';
+  clearFieldErrors();
+  modal.classList.add('show');
+}
+
+function closeModal() { modal.classList.remove('show'); }
+
+function clearFieldErrors() {
+  document.getElementById('ff-func').classList.remove('has-error');
+  document.getElementById('ff-data').classList.remove('has-error');
+}
+
+document.getElementById('m-cancel').addEventListener('click', closeModal);
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+// ---- Salvar ----
+document.getElementById('form-falta').addEventListener('submit', async e => {
+  e.preventDefault();
+  clearFieldErrors();
+
+  let valid = true;
+  const funcId = document.getElementById('f-func-i').value;
+  const data   = document.getElementById('f-data').value;
+
+  if (!funcId) {
+    document.getElementById('ff-func').classList.add('has-error');
+    valid = false;
+  }
+  if (!data) {
+    document.getElementById('ff-data').classList.add('has-error');
+    valid = false;
+  }
+  if (!valid) return;
+
+  const payload = {
+    funcionario_id: funcId,
+    data,
+    tipo:        document.getElementById('f-tipo-i').value,
+    justificada: document.getElementById('f-just').checked,
+    observacao:  document.getElementById('f-obs-i').value.trim() || null
+  };
+
+  const btn = document.getElementById('m-save');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const id = document.getElementById('f-id').value;
+  let resp;
+  if (id) {
+    resp = await sb.from('faltas').update(payload).eq('id', id).select().single();
+  } else {
+    payload.condominio_id = profile.condominio_id;
+    payload.created_by    = profile.id;
+    resp = await sb.from('faltas').insert(payload).select().single();
+  }
+
+  btn.classList.remove('loading'); btn.disabled = false;
+
+  if (resp.error) { T(resp.error.message, 'error'); return; }
+
+  T(id ? 'Registro atualizado.' : 'Falta registrada.', 'success');
+  closeModal();
+  await loadAll();
+});
+
+// ---- Delete modal ----
+const modalDel = document.getElementById('modal-del');
+let delTarget = null;
+
+function askDelete(row) {
+  delTarget = row;
+  document.getElementById('del-nome').textContent = row.funcionarios?.nome || '—';
+  document.getElementById('del-data').textContent = fmtData(row.data);
+  modalDel.classList.add('show');
+}
+
+document.getElementById('d-cancel').addEventListener('click', () => modalDel.classList.remove('show'));
+modalDel.addEventListener('click', e => { if (e.target === modalDel) modalDel.classList.remove('show'); });
+
+document.getElementById('d-confirm').addEventListener('click', async () => {
+  if (!delTarget) return;
+  const btn = document.getElementById('d-confirm');
+  btn.classList.add('loading'); btn.disabled = true;
+  const { error } = await sb.from('faltas').delete().eq('id', delTarget.id);
+  btn.classList.remove('loading'); btn.disabled = false;
+  if (error) { T(error.message, 'error'); return; }
+  T('Registro excluído.', 'success');
+  modalDel.classList.remove('show');
+  delTarget = null;
+  await loadAll();
+});
+
+// ---- Delegação de cliques na tabela ----
+document.getElementById('tbody').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const tr = e.target.closest('tr');
+  const id = tr?.dataset.id;
+  const row = allRows.find(r => r.id === id);
+  if (!row) return;
+  if (btn.dataset.act === 'edit') openEdit(row);
+  if (btn.dataset.act === 'del')  askDelete(row);
+});
+
+// ---- Filtros / busca ----
+['q', 'f-func', 'f-tipo', 'f-mes'].forEach(id =>
+  document.getElementById(id).addEventListener('input', renderRows)
+);
+
+// ---- Botões "nova" ----
+document.getElementById('btn-nova').addEventListener('click', openNew);
+document.getElementById('btn-first').addEventListener('click', openNew);
+
+// ---- Export CSV ----
+document.getElementById('btn-export').addEventListener('click', () => {
+  const filters = getFilters();
+  const rows = applyFilters(allRows, filters);
+
+  if (rows.length === 0) {
+    T('Nenhum dado para exportar com os filtros atuais.', 'error');
+    return;
+  }
+
+  const header = ['Funcionário', 'Cargo', 'Data', 'Tipo', 'Justificada', 'Observação'];
+  const lines = rows.map(r => [
+    r.funcionarios?.nome || '',
+    r.funcionarios?.cargo || '',
+    fmtData(r.data),
+    TIPO_LBL[r.tipo] || r.tipo,
+    r.justificada ? 'Sim' : 'Não',
+    r.observacao || ''
+  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+
+  const csv = '﻿' + [header.join(','), ...lines].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  const mes  = filters.mes || mesAtual();
+  a.download = `faltas_${mes}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  T('CSV exportado com sucesso.', 'success');
+});
+
+// ---- Menu toggle (mobile) ----
+document.getElementById('menu-toggle').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('open');
+});
+
+// ---- Boot ----
+(async () => {
+  window.staflowApp.renderSidebar('sidebar');
+  profile = await window.staflowApp.bootstrapShell({ route: 'faltas' });
+  if (!profile) return;
+
+  // Define mês padrão = atual
+  document.getElementById('f-mes').value = mesAtual();
+
+  await Promise.all([loadFuncionarios(), loadAll()]);
+})();
+</script>
+</body>
+</html>

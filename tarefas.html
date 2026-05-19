@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tarefas — StaFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="auth/auth.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div class="splash" id="splash"><div class="dot"></div></div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main">
+    <button class="menu-toggle" id="menu-toggle" aria-label="Menu">☰</button>
+
+    <div class="topbar">
+      <div>
+        <h1>Tarefas</h1>
+        <p class="sub">Gerencie as tarefas da equipe.</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost" id="btn-export" style="width:auto;padding:10px 18px">⤓ Exportar CSV</button>
+        <button class="btn" id="btn-nova" style="width:auto;padding:10px 18px">＋ Nova tarefa</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <div class="search">
+          <input id="q" type="search" placeholder="Buscar por título…" autocomplete="off">
+        </div>
+        <select id="f-status" class="filter">
+          <option value="">Todos os status</option>
+          <option value="pendente">Pendente</option>
+          <option value="em_andamento">Em andamento</option>
+          <option value="concluida">Concluída</option>
+          <option value="cancelada">Cancelada</option>
+        </select>
+        <select id="f-prioridade" class="filter">
+          <option value="">Todas as prioridades</option>
+          <option value="baixa">Baixa</option>
+          <option value="media">Média</option>
+          <option value="alta">Alta</option>
+          <option value="urgente">Urgente</option>
+        </select>
+      </div>
+
+      <div id="list-area">
+        <div class="empty" id="empty" style="display:none;">
+          <div class="icon">✓</div>
+          <div class="title">Nenhuma tarefa cadastrada</div>
+          <div class="desc">Crie tarefas para organizar o trabalho da equipe.</div>
+          <button class="btn" id="btn-empty-nova">＋ Criar primeira tarefa</button>
+        </div>
+
+        <div class="table-wrap" id="tbl-wrap" style="display:none;">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Título</th>
+                <th>Responsável</th>
+                <th>Prioridade</th>
+                <th>Prazo</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ========== Modal: criar/editar tarefa ========== -->
+<div class="modal-backdrop" id="modal-tarefa">
+  <div class="modal">
+    <h2 id="m-title">Nova tarefa</h2>
+    <p class="modal-sub">Preencha os dados da tarefa.</p>
+
+    <form id="form-tarefa" novalidate>
+      <input type="hidden" id="t-id">
+
+      <div class="field" id="ff-titulo">
+        <label for="t-titulo">Título</label>
+        <input class="input" id="t-titulo" type="text" placeholder="Descreva a tarefa" required>
+        <span class="field-error">O título é obrigatório.</span>
+      </div>
+
+      <div class="field">
+        <label for="t-descricao">Descrição (opcional)</label>
+        <textarea class="input" id="t-descricao" rows="3" placeholder="Detalhes adicionais sobre a tarefa…" style="resize:vertical;"></textarea>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="t-funcionario">Responsável</label>
+          <select class="input" id="t-funcionario">
+            <option value="">Sem responsável</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="t-prioridade">Prioridade</label>
+          <select class="input" id="t-prioridade">
+            <option value="baixa">Baixa</option>
+            <option value="media" selected>Média</option>
+            <option value="alta">Alta</option>
+            <option value="urgente">Urgente</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field" id="ff-status-wrap" style="display:none;">
+          <label for="t-status">Status</label>
+          <select class="input" id="t-status">
+            <option value="pendente">Pendente</option>
+            <option value="em_andamento">Em andamento</option>
+            <option value="concluida">Concluída</option>
+            <option value="cancelada">Cancelada</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="t-prazo">Prazo (opcional)</label>
+          <input class="input" id="t-prazo" type="date">
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="m-cancel"><span class="btn-label">Cancelar</span></button>
+        <button type="submit" class="btn" id="m-save">
+          <span class="spinner"></span>
+          <span class="btn-label">Salvar</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========== Modal: confirmar exclusão ========== -->
+<div class="modal-backdrop" id="modal-del">
+  <div class="modal" style="max-width:420px;">
+    <h2>Excluir tarefa?</h2>
+    <p class="modal-sub">
+      Esta ação removerá a tarefa <strong id="del-titulo">—</strong> permanentemente.
+      Não pode ser desfeita.
+    </p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="d-cancel"><span class="btn-label">Cancelar</span></button>
+      <button type="button" class="btn" id="d-confirm" style="background: var(--red); color:#fff;">
+        <span class="spinner"></span>
+        <span class="btn-label">Excluir</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app-shell.js"></script>
+
+<script>
+const sb = window.staflowSupabase;
+const T  = window.staflowApp.toast;
+
+let allTarefas     = [];   // cache completo de tarefas
+let allFuncionarios = [];  // cache de funcionários ativos
+let profile        = null;
+
+// ---------- labels ----------
+const STATUS_LBL = {
+  pendente:     'Pendente',
+  em_andamento: 'Em andamento',
+  concluida:    'Concluída',
+  cancelada:    'Cancelada'
+};
+const PRIO_LBL = {
+  baixa:   'Baixa',
+  media:   'Média',
+  alta:    'Alta',
+  urgente: 'Urgente'
+};
+
+// Ciclo de status ao clicar no badge
+const STATUS_CYCLE = {
+  pendente:     'em_andamento',
+  em_andamento: 'concluida',
+  concluida:    'pendente'
+  // cancelada não faz parte do ciclo
+};
+
+// ---------- helpers ----------
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '<span style="color:var(--white-muted);">—</span>';
+  const [y, m, d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function statusBadge(status) {
+  const label = STATUS_LBL[status] || status;
+  const extraStyle = status === 'concluida' ? ' style="text-decoration:line-through;"' : '';
+  switch (status) {
+    case 'pendente':     return `<span class="badge amber status-badge" data-status="${status}"${extraStyle}>${label}</span>`;
+    case 'em_andamento': return `<span class="badge status-badge" data-status="${status}"${extraStyle}>${label}</span>`;
+    case 'concluida':    return `<span class="badge muted status-badge" data-status="${status}"${extraStyle}>${label}</span>`;
+    case 'cancelada':    return `<span class="badge red status-badge" data-status="${status}"${extraStyle}>${label}</span>`;
+    default:             return `<span class="badge muted status-badge" data-status="${status}">${label}</span>`;
+  }
+}
+
+function prioBadge(prioridade) {
+  const label = PRIO_LBL[prioridade] || prioridade;
+  switch (prioridade) {
+    case 'baixa':   return `<span class="badge muted">${label}</span>`;
+    case 'media':   return `<span class="badge amber">${label}</span>`;
+    case 'alta':    return `<span class="badge">${label}</span>`;
+    case 'urgente': return `<span class="badge red">${label}</span>`;
+    default:        return `<span class="badge muted">${label}</span>`;
+  }
+}
+
+function funcionarioNome(id) {
+  if (!id) return '<span style="color:var(--white-muted);">—</span>';
+  const f = allFuncionarios.find(f => f.id === id);
+  return f ? escapeHtml(f.nome) : '<span style="color:var(--white-muted);">—</span>';
+}
+
+// ---------- renderização ----------
+function renderRows() {
+  const q       = document.getElementById('q').value.trim().toLowerCase();
+  const fStatus = document.getElementById('f-status').value;
+  const fPrio   = document.getElementById('f-prioridade').value;
+
+  const rows = allTarefas.filter(r => {
+    if (fStatus && r.status !== fStatus) return false;
+    if (fPrio   && r.prioridade !== fPrio) return false;
+    if (q && !r.titulo.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  const empty   = document.getElementById('empty');
+  const tblWrap = document.getElementById('tbl-wrap');
+  const tbody   = document.getElementById('tbody');
+
+  if (allTarefas.length === 0) {
+    empty.style.display = 'block';
+    empty.querySelector('.title').textContent = 'Nenhuma tarefa cadastrada';
+    empty.querySelector('.desc').textContent  = 'Crie tarefas para organizar o trabalho da equipe.';
+    document.getElementById('btn-empty-nova').style.display = '';
+    tblWrap.style.display = 'none';
+    return;
+  }
+
+  if (rows.length === 0) {
+    empty.style.display = 'block';
+    empty.querySelector('.title').textContent = 'Nenhum resultado';
+    empty.querySelector('.desc').textContent  = 'Ajuste os filtros para encontrar outras tarefas.';
+    document.getElementById('btn-empty-nova').style.display = 'none';
+    tblWrap.style.display = 'none';
+    return;
+  }
+
+  empty.style.display = 'none';
+  tblWrap.style.display = 'block';
+
+  tbody.innerHTML = rows.map(r => `
+    <tr data-id="${r.id}">
+      <td>
+        <div style="font-weight:600;">${escapeHtml(r.titulo)}</div>
+        ${r.descricao ? `<div style="font-size:12px;color:var(--white-dim);margin-top:2px;max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(r.descricao)}</div>` : ''}
+      </td>
+      <td>${funcionarioNome(r.funcionario_id)}</td>
+      <td>${prioBadge(r.prioridade)}</td>
+      <td style="font-family:var(--font-mono);font-size:13px;">${formatDate(r.prazo)}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td>
+        <div class="row-actions">
+          <button data-act="edit">Editar</button>
+          <button data-act="del" class="danger">Excluir</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  // Adicionar cursor pointer nos badges de status clicáveis
+  tbody.querySelectorAll('.status-badge').forEach(badge => {
+    const status = badge.dataset.status;
+    if (STATUS_CYCLE[status]) {
+      badge.style.cursor = 'pointer';
+      badge.title = `Clique para avançar para: ${STATUS_LBL[STATUS_CYCLE[status]]}`;
+    }
+  });
+}
+
+// ---------- carregar dados ----------
+async function loadFuncionarios() {
+  const { data, error } = await sb.from('funcionarios')
+    .select('id, nome, cargo')
+    .eq('ativo', true)
+    .order('nome', { ascending: true });
+  if (error) { console.error('Erro ao carregar funcionários:', error.message); return; }
+  allFuncionarios = data || [];
+  populateFuncionarioSelect();
+}
+
+function populateFuncionarioSelect() {
+  const sel = document.getElementById('t-funcionario');
+  sel.innerHTML = '<option value="">Sem responsável</option>';
+  allFuncionarios.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = f.nome;
+    sel.appendChild(opt);
+  });
+}
+
+async function loadAll() {
+  const { data, error } = await sb.from('tarefas')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) { T(error.message, 'error'); return; }
+  allTarefas = data || [];
+  renderRows();
+}
+
+// ---------- modal criar/editar ----------
+const modal = document.getElementById('modal-tarefa');
+
+function openNew() {
+  document.getElementById('m-title').textContent = 'Nova tarefa';
+  document.getElementById('form-tarefa').reset();
+  document.getElementById('t-id').value = '';
+  document.getElementById('t-prioridade').value = 'media';
+  document.getElementById('ff-status-wrap').style.display = 'none';
+  // reset field errors
+  document.getElementById('ff-titulo').classList.remove('has-error');
+  modal.classList.add('show');
+  setTimeout(() => document.getElementById('t-titulo').focus(), 100);
+}
+
+function openEdit(row) {
+  document.getElementById('m-title').textContent = 'Editar tarefa';
+  document.getElementById('t-id').value          = row.id;
+  document.getElementById('t-titulo').value      = row.titulo || '';
+  document.getElementById('t-descricao').value   = row.descricao || '';
+  document.getElementById('t-funcionario').value = row.funcionario_id || '';
+  document.getElementById('t-prioridade').value  = row.prioridade || 'media';
+  document.getElementById('t-status').value      = row.status || 'pendente';
+  document.getElementById('t-prazo').value       = row.prazo || '';
+  document.getElementById('ff-status-wrap').style.display = '';
+  document.getElementById('ff-titulo').classList.remove('has-error');
+  modal.classList.add('show');
+}
+
+function closeModal() { modal.classList.remove('show'); }
+
+document.getElementById('m-cancel').addEventListener('click', closeModal);
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+// ---------- salvar ----------
+document.getElementById('form-tarefa').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const ffTitulo = document.getElementById('ff-titulo');
+  ffTitulo.classList.remove('has-error');
+
+  const titulo = document.getElementById('t-titulo').value.trim();
+  if (!titulo) { ffTitulo.classList.add('has-error'); return; }
+
+  const id = document.getElementById('t-id').value;
+
+  const payload = {
+    titulo,
+    descricao:      document.getElementById('t-descricao').value.trim() || null,
+    funcionario_id: document.getElementById('t-funcionario').value || null,
+    prioridade:     document.getElementById('t-prioridade').value,
+    prazo:          document.getElementById('t-prazo').value || null,
+    updated_at:     new Date().toISOString()
+  };
+
+  // status só no modo edição
+  if (id) {
+    payload.status = document.getElementById('t-status').value;
+  }
+
+  const btn = document.getElementById('m-save');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  let resp;
+  if (id) {
+    resp = await sb.from('tarefas').update(payload).eq('id', id).select().single();
+  } else {
+    payload.condominio_id = profile.condominio_id;
+    payload.created_by    = profile.id;
+    payload.status        = 'pendente';
+    resp = await sb.from('tarefas').insert(payload).select().single();
+  }
+
+  btn.classList.remove('loading'); btn.disabled = false;
+
+  if (resp.error) { T(resp.error.message, 'error'); return; }
+
+  T(id ? 'Tarefa atualizada.' : 'Tarefa criada.', 'success');
+  closeModal();
+  await loadAll();
+});
+
+// ---------- excluir ----------
+const modalDel = document.getElementById('modal-del');
+let delTarget = null;
+
+function askDelete(row) {
+  delTarget = row;
+  document.getElementById('del-titulo').textContent = row.titulo;
+  modalDel.classList.add('show');
+}
+
+document.getElementById('d-cancel').addEventListener('click', () => modalDel.classList.remove('show'));
+modalDel.addEventListener('click', (e) => { if (e.target === modalDel) modalDel.classList.remove('show'); });
+
+document.getElementById('d-confirm').addEventListener('click', async () => {
+  if (!delTarget) return;
+  const btn = document.getElementById('d-confirm');
+  btn.classList.add('loading'); btn.disabled = true;
+  const { error } = await sb.from('tarefas').delete().eq('id', delTarget.id);
+  btn.classList.remove('loading'); btn.disabled = false;
+  if (error) { T(error.message, 'error'); return; }
+  T('Tarefa excluída.', 'success');
+  modalDel.classList.remove('show');
+  delTarget = null;
+  await loadAll();
+});
+
+// ---------- ciclo de status rápido ----------
+async function cycleStatus(row) {
+  const next = STATUS_CYCLE[row.status];
+  if (!next) return; // cancelada não cicleia
+
+  const { error } = await sb.from('tarefas')
+    .update({ status: next, updated_at: new Date().toISOString() })
+    .eq('id', row.id);
+
+  if (error) { T(error.message, 'error'); return; }
+  T(`Status alterado para "${STATUS_LBL[next]}".`, 'success');
+  await loadAll();
+}
+
+// ---------- delegação de cliques na tabela ----------
+document.getElementById('tbody').addEventListener('click', async (e) => {
+  // clique nos botões de ação
+  const btn = e.target.closest('button[data-act]');
+  if (btn) {
+    const tr = e.target.closest('tr');
+    const id = tr?.dataset.id;
+    const row = allTarefas.find(r => r.id === id);
+    if (!row) return;
+    if (btn.dataset.act === 'edit') openEdit(row);
+    if (btn.dataset.act === 'del')  askDelete(row);
+    return;
+  }
+
+  // clique no badge de status para cicliar
+  const badge = e.target.closest('.status-badge');
+  if (badge) {
+    const tr = e.target.closest('tr');
+    const id = tr?.dataset.id;
+    const row = allTarefas.find(r => r.id === id);
+    if (row && STATUS_CYCLE[row.status]) {
+      await cycleStatus(row);
+    }
+  }
+});
+
+// ---------- filtros / busca ----------
+['q', 'f-status', 'f-prioridade'].forEach(id =>
+  document.getElementById(id).addEventListener('input', renderRows)
+);
+
+// ---------- botões "nova tarefa" ----------
+document.getElementById('btn-nova').addEventListener('click', openNew);
+document.getElementById('btn-empty-nova').addEventListener('click', openNew);
+
+// ---------- exportar CSV ----------
+document.getElementById('btn-export').addEventListener('click', () => {
+  const q       = document.getElementById('q').value.trim().toLowerCase();
+  const fStatus = document.getElementById('f-status').value;
+  const fPrio   = document.getElementById('f-prioridade').value;
+
+  const rows = allTarefas.filter(r => {
+    if (fStatus && r.status !== fStatus) return false;
+    if (fPrio   && r.prioridade !== fPrio) return false;
+    if (q && !r.titulo.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  if (rows.length === 0) {
+    T('Nenhuma tarefa para exportar com os filtros atuais.', 'error');
+    return;
+  }
+
+  const header = ['Título', 'Responsável', 'Prioridade', 'Prazo', 'Status'];
+  const lines = rows.map(r => {
+    const resp = r.funcionario_id
+      ? (allFuncionarios.find(f => f.id === r.funcionario_id)?.nome || '')
+      : '';
+    const prazo = r.prazo
+      ? (() => { const [y,m,d] = r.prazo.split('-'); return `${d}/${m}/${y}`; })()
+      : '';
+    return [
+      r.titulo,
+      resp,
+      PRIO_LBL[r.prioridade] || r.prioridade,
+      prazo,
+      STATUS_LBL[r.status] || r.status
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+  });
+
+  const csv = [header.join(','), ...lines].join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `tarefas_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  T('CSV exportado com sucesso.', 'success');
+});
+
+// ---------- boot ----------
+(async () => {
+  window.staflowApp.renderSidebar('sidebar');
+  profile = await window.staflowApp.bootstrapShell({ route: 'tarefas' });
+  if (!profile) return;
+
+  if (!profile.condominio_id) {
+    T('Configure seu condomínio em Configurações antes de criar tarefas.', 'error');
+    document.getElementById('btn-nova').disabled = true;
+  }
+
+  await Promise.all([loadFuncionarios(), loadAll()]);
+})();
+</script>
+</body>
+</html>

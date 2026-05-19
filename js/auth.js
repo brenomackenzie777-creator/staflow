@@ -167,12 +167,30 @@
     return session;
   }
 
+  // ---------- SUBSCRIPTION ----------
+  async function checkSubscription() {
+    try {
+      const user = await getCurrentUser();
+      if (!user) return null;
+      const { data, error } = await sb
+        .from('subscriptions')
+        .select('*')
+        .eq('profile_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+      if (error || !data) return null;
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
   // ---------- API GLOBAL ----------
   window.staflowAuth = {
     signIn, signUp, signOut,
     resetPassword, updatePassword, resendConfirmation,
     getCurrentUser, getCurrentSession, onAuthStateChange,
     getProfile, updateProfile,
-    checkAuth, traduzirErro
+    checkAuth, checkSubscription, traduzirErro
   };
 })();

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Escolha seu plano — StaFlow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="auth/auth.css">
+<style>
+  body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 40px 16px 60px; }
+
+  .planos-header { text-align: center; margin-bottom: 40px; max-width: 520px; }
+  .planos-header .brand {
+    display: inline-flex; align-items: center; gap: 10px;
+    margin-bottom: 32px;
+  }
+  .planos-header h1 {
+    font-family: var(--font-display);
+    font-weight: 800; font-size: 32px;
+    color: var(--white);
+    letter-spacing: -0.5px;
+    margin-bottom: 10px;
+  }
+  .planos-header p {
+    font-size: 15px; color: var(--white-dim);
+    line-height: 1.6;
+  }
+
+  /* Cupom */
+  .cupom-box {
+    width: 100%; max-width: 440px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 36px;
+    display: flex; gap: 10px; align-items: flex-start;
+    flex-direction: column;
+  }
+  .cupom-box label {
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--white-muted);
+  }
+  .cupom-row { display: flex; gap: 10px; width: 100%; }
+  .cupom-input {
+    flex: 1;
+    background: var(--surface-dim, rgba(255,255,255,0.04));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    color: var(--white);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: var(--transition);
+  }
+  .cupom-input:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(6,214,160,0.18); }
+  .cupom-input.valid { border-color: var(--teal); background: rgba(6,214,160,0.06); }
+  .cupom-input.invalid { border-color: var(--red); }
+  .btn-cupom {
+    background: var(--surface-dim, rgba(255,255,255,0.06));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 18px;
+    color: var(--white);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+  }
+  .btn-cupom:hover { border-color: var(--border-strong); background: rgba(255,255,255,0.08); }
+  .btn-cupom.loading { opacity: 0.6; pointer-events: none; }
+  .cupom-feedback {
+    font-size: 13px; display: none;
+  }
+  .cupom-feedback.ok  { display: block; color: var(--teal); }
+  .cupom-feedback.err { display: block; color: var(--red); }
+
+  /* Cards de plano */
+  .planos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    max-width: 860px;
+    width: 100%;
+  }
+
+  .plano-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 28px 24px;
+    display: flex; flex-direction: column;
+    gap: 0;
+    position: relative;
+    transition: var(--transition);
+  }
+  .plano-card.featured {
+    border-color: var(--teal-border);
+    background: rgba(6,214,160,0.04);
+  }
+  .plano-card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+  .plano-card.featured:hover { border-color: var(--teal); }
+
+  .plano-badge {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: var(--teal);
+    color: #0F1624;
+    font-family: var(--font-mono);
+    font-size: 9px; letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .plano-nome {
+    font-family: var(--font-display);
+    font-weight: 800; font-size: 18px;
+    color: var(--white);
+    margin-bottom: 6px;
+  }
+  .plano-desc {
+    font-size: 12px; color: var(--white-dim);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .plano-preco {
+    margin-bottom: 20px;
+  }
+  .plano-preco .valor-original {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--white-muted);
+    text-decoration: line-through;
+    display: none;
+    margin-bottom: 2px;
+  }
+  .plano-preco .valor-original.show { display: block; }
+  .plano-preco .valor {
+    font-family: var(--font-display);
+    font-weight: 800; font-size: 30px;
+    color: var(--white);
+    letter-spacing: -1px;
+  }
+  .plano-preco .valor .moeda { font-size: 16px; vertical-align: super; }
+  .plano-preco .valor .periodo {
+    font-family: var(--font-body);
+    font-weight: 400; font-size: 13px;
+    color: var(--white-dim);
+    letter-spacing: 0;
+  }
+  .plano-preco.desconto .valor { color: var(--teal); }
+
+  .plano-features {
+    list-style: none;
+    padding: 0; margin: 0 0 24px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .plano-features li {
+    font-size: 13px; color: var(--white-dim);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .plano-features li::before {
+    content: '✓';
+    color: var(--teal);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .plano-features li.off { color: var(--white-muted); }
+  .plano-features li.off::before { content: '—'; color: var(--white-muted); }
+
+  .plano-card .spacer { flex: 1; }
+
+  .btn-ativar {
+    width: 100%;
+    padding: 13px;
+    border-radius: var(--radius);
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    background: var(--navy-brand);
+    color: #fff;
+    letter-spacing: 0.3px;
+  }
+  .btn-ativar:hover { background: #3a3ec7; }
+  .btn-ativar.featured-btn {
+    background: var(--teal);
+    color: #0F1624;
+  }
+  .btn-ativar.featured-btn:hover { background: #04c090; }
+  .btn-ativar.loading { opacity: 0.7; pointer-events: none; cursor: wait; }
+
+  /* Rodapé */
+  .planos-footer {
+    margin-top: 40px;
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 1px;
+    color: var(--white-muted);
+    text-align: center;
+  }
+
+  @media (max-width: 760px) {
+    .planos-grid { grid-template-columns: 1fr; max-width: 420px; }
+    .planos-header h1 { font-size: 26px; }
+  }
+  @media (max-width: 480px) {
+    body { padding: 24px 12px 40px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="planos-header">
+  <div class="brand">
+    <img class="mark" src="/assets/logo-mark.svg" alt="StaFlow" style="width:36px;height:36px;">
+    <div class="wordmark" style="font-family:var(--font-display);font-weight:800;font-size:20px;">
+      <span class="sta" style="color:var(--white)">STA</span><span class="flow" style="color:var(--teal)">FLOW</span>
+    </div>
+  </div>
+  <h1>Escolha o seu plano</h1>
+  <p>Comece com o plano ideal para o seu condomínio. Cancele a qualquer momento.</p>
+</div>
+
+<!-- Cupom -->
+<div class="cupom-box">
+  <label>Tem um cupom de desconto?</label>
+  <div class="cupom-row">
+    <input class="cupom-input" id="cupom-input" type="text" placeholder="INSIRA O CÓDIGO" maxlength="32" autocomplete="off" spellcheck="false">
+    <button class="btn-cupom" id="btn-cupom">Aplicar</button>
+  </div>
+  <div class="cupom-feedback" id="cupom-feedback"></div>
+</div>
+
+<!-- Cards -->
+<div class="planos-grid">
+
+  <!-- Starter -->
+  <div class="plano-card" id="card-starter">
+    <div class="plano-nome">Starter</div>
+    <div class="plano-desc">Para condomínios pequenos que estão começando.</div>
+    <div class="plano-preco" id="preco-starter">
+      <div class="valor-original" id="orig-starter">R$ 0<span class="periodo">/mês</span></div>
+      <div class="valor"><span class="moeda">R$</span> 0<span class="periodo">/mês</span></div>
+    </div>
+    <ul class="plano-features">
+      <li>Até 5 funcionários</li>
+      <li>Módulo Ponto</li>
+      <li>Módulo Faltas</li>
+      <li class="off">Módulo Tarefas</li>
+      <li class="off">Exportação CSV/PDF</li>
+      <li class="off">Suporte prioritário</li>
+    </ul>
+    <div class="spacer"></div>
+    <button class="btn-ativar" id="btn-starter">Começar grátis</button>
+  </div>
+
+  <!-- Pro (featured) -->
+  <div class="plano-card featured" id="card-pro">
+    <div class="plano-badge">Mais popular</div>
+    <div class="plano-nome">Pro</div>
+    <div class="plano-desc">Para condomínios em crescimento com equipe maior.</div>
+    <div class="plano-preco" id="preco-pro">
+      <div class="valor-original" id="orig-pro">R$ 99<span class="periodo">/mês</span></div>
+      <div class="valor"><span class="moeda">R$</span> 99<span class="periodo">/mês</span></div>
+    </div>
+    <ul class="plano-features">
+      <li>Até 20 funcionários</li>
+      <li>Módulo Ponto</li>
+      <li>Módulo Faltas</li>
+      <li>Módulo Tarefas</li>
+      <li>Exportação CSV/PDF</li>
+      <li class="off">Suporte prioritário</li>
+    </ul>
+    <div class="spacer"></div>
+    <button class="btn-ativar featured-btn" id="btn-pro">Assinar Pro</button>
+  </div>
+
+  <!-- Scale -->
+  <div class="plano-card" id="card-scale">
+    <div class="plano-nome">Scale</div>
+    <div class="plano-desc">Para administradoras com múltiplos condomínios.</div>
+    <div class="plano-preco" id="preco-scale">
+      <div class="valor-original" id="orig-scale">R$ 249<span class="periodo">/mês</span></div>
+      <div class="valor"><span class="moeda">R$</span> 249<span class="periodo">/mês</span></div>
+    </div>
+    <ul class="plano-features">
+      <li>Funcionários ilimitados</li>
+      <li>Módulo Ponto</li>
+      <li>Módulo Faltas</li>
+      <li>Módulo Tarefas</li>
+      <li>Exportação CSV/PDF</li>
+      <li>Suporte prioritário</li>
+    </ul>
+    <div class="spacer"></div>
+    <button class="btn-ativar" id="btn-scale">Assinar Scale</button>
+  </div>
+
+</div>
+
+<div class="planos-footer">
+  © 2026 STAFLOW · SEGURO · SEM FIDELIDADE · CANCELE QUANDO QUISER
+</div>
+
+<div class="toast" id="toast"><span class="ico"></span><span class="msg"></span></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/supabase-client.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+const sb  = window.staflowSupabase;
+const auth = window.staflowAuth;
+
+let cupomAtivo = null;     // { code, discount_percent }
+let perfilAtual = null;
+let ativando = false;
+
+function toast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.className = 'toast show ' + type;
+  t.querySelector('.ico').textContent = type === 'success' ? '✓' : '⚠';
+  t.querySelector('.msg').textContent = msg;
+  clearTimeout(window.__tt);
+  window.__tt = setTimeout(() => t.className = 'toast', 4500);
+}
+
+// ---------- Cupom ----------
+const precos = { starter: 0, pro: 99, scale: 249 };
+
+function aplicarDesconto(discount) {
+  ['starter','pro','scale'].forEach(plan => {
+    const preco  = document.getElementById('preco-' + plan);
+    const orig   = document.getElementById('orig-' + plan);
+    const valDiv = preco.querySelector('.valor');
+    const base   = precos[plan];
+    const novo   = Math.round(base * (1 - discount / 100));
+
+    if (discount > 0 && base > 0) {
+      orig.innerHTML = `R$ ${base}<span class="periodo">/mês</span>`;
+      orig.classList.add('show');
+      preco.classList.add('desconto');
+    } else {
+      orig.classList.remove('show');
+      preco.classList.remove('desconto');
+    }
+    valDiv.innerHTML = novo === 0
+      ? `<span class="moeda">R$</span> 0<span class="periodo">/mês</span>`
+      : `<span class="moeda">R$</span> ${novo}<span class="periodo">/mês</span>`;
+
+    const btn = document.getElementById('btn-' + plan);
+    if (novo === 0) {
+      btn.textContent = plan === 'starter' ? 'Começar grátis' : 'Ativar gratuitamente';
+    } else {
+      const labels = { starter:'Começar grátis', pro:'Assinar Pro', scale:'Assinar Scale' };
+      btn.textContent = labels[plan];
+    }
+  });
+}
+
+document.getElementById('btn-cupom').addEventListener('click', async () => {
+  const code = document.getElementById('cupom-input').value.trim().toUpperCase();
+  const input = document.getElementById('cupom-input');
+  const feedback = document.getElementById('cupom-feedback');
+  const btn = document.getElementById('btn-cupom');
+
+  if (!code) { feedback.className = 'cupom-feedback err'; feedback.textContent = 'Insira um código de cupom.'; return; }
+
+  btn.textContent = 'Validando…'; btn.classList.add('loading');
+
+  const { data, error } = await sb.from('cupons')
+    .select('code, discount_percent, max_uses, uses_count, expires_at, active')
+    .eq('code', code)
+    .eq('active', true)
+    .maybeSingle();
+
+  btn.textContent = 'Aplicar'; btn.classList.remove('loading');
+
+  if (error || !data) {
+    input.classList.remove('valid'); input.classList.add('invalid');
+    feedback.className = 'cupom-feedback err';
+    feedback.textContent = 'Cupom inválido ou expirado.';
+    cupomAtivo = null;
+    aplicarDesconto(0);
+    return;
+  }
+
+  // Verifica expiração
+  if (data.expires_at && new Date(data.expires_at) < new Date()) {
+    input.classList.remove('valid'); input.classList.add('invalid');
+    feedback.className = 'cupom-feedback err';
+    feedback.textContent = 'Este cupom expirou.';
+    cupomAtivo = null;
+    aplicarDesconto(0);
+    return;
+  }
+
+  // Verifica limite de usos
+  if (data.max_uses !== null && data.uses_count >= data.max_uses) {
+    input.classList.remove('valid'); input.classList.add('invalid');
+    feedback.className = 'cupom-feedback err';
+    feedback.textContent = 'Este cupom atingiu o limite de usos.';
+    cupomAtivo = null;
+    aplicarDesconto(0);
+    return;
+  }
+
+  // Cupom válido!
+  input.classList.remove('invalid'); input.classList.add('valid');
+  feedback.className = 'cupom-feedback ok';
+  feedback.textContent = `✓ Cupom aplicado — ${data.discount_percent}% de desconto em todos os planos.`;
+  cupomAtivo = data;
+  aplicarDesconto(data.discount_percent);
+});
+
+// Enter no input de cupom
+document.getElementById('cupom-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('btn-cupom').click();
+});
+
+// ---------- Ativar plano ----------
+async function ativarPlano(plan) {
+  if (ativando) return;
+
+  // Starter é sempre gratuito (sem precisar de cupom)
+  if (plan !== 'starter' && !cupomAtivo) {
+    toast('Para planos pagos, insira um cupom de desconto ou aguarde a integração de pagamento.', 'error');
+    return;
+  }
+
+  ativando = true;
+  const btns = ['btn-starter','btn-pro','btn-scale'].map(id => document.getElementById(id));
+  btns.forEach(b => { b.disabled = true; b.classList.add('loading'); });
+
+  try {
+    const user = await auth.getCurrentUser();
+    if (!user) { location.replace('/auth/login.html'); return; }
+
+    const discount = cupomAtivo?.discount_percent ?? (plan === 'starter' ? 100 : 0);
+    const precoFinal = Math.round(precos[plan] * (1 - discount / 100));
+
+    // Cria a assinatura
+    const { error: subErr } = await sb.from('subscriptions').upsert({
+      profile_id:           user.id,
+      condominio_id:        perfilAtual?.condominio_id || null,
+      plan,
+      status:               'active',
+      coupon_used:          cupomAtivo?.code || null,
+      discount_percent:     discount,
+      current_period_start: new Date().toISOString(),
+      current_period_end:   null
+    }, { onConflict: 'profile_id' });
+
+    if (subErr) throw subErr;
+
+    // Incrementa uso do cupom (se aplicado)
+    if (cupomAtivo) {
+      await sb.from('cupons').update({ uses_count: (cupomAtivo.uses_count || 0) + 1 }).eq('code', cupomAtivo.code);
+    }
+
+    toast(`Plano ${plan.charAt(0).toUpperCase()+plan.slice(1)} ativado! Bem-vindo ao StaFlow.`, 'success');
+    setTimeout(() => location.replace('/dashboard.html'), 1200);
+
+  } catch (err) {
+    toast('Erro ao ativar plano. Tente novamente.', 'error');
+    btns.forEach(b => { b.disabled = false; b.classList.remove('loading'); });
+    ativando = false;
+  }
+}
+
+document.getElementById('btn-starter').addEventListener('click', () => ativarPlano('starter'));
+document.getElementById('btn-pro').addEventListener('click',     () => ativarPlano('pro'));
+document.getElementById('btn-scale').addEventListener('click',   () => ativarPlano('scale'));
+
+// ---------- Boot ----------
+(async () => {
+  // Verifica autenticação
+  const session = await auth.checkAuth('/auth/login.html');
+  if (!session) return;
+
+  const { ok, data: profile } = await auth.getProfile();
+  if (ok) perfilAtual = profile;
+
+  // Se já tem assinatura ativa, vai direto pro dashboard
+  const sub = await auth.checkSubscription();
+  if (sub) {
+    location.replace('/dashboard.html');
+    return;
+  }
+})();
+</script>
+</body>
+</html>

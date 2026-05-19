@@ -145,20 +145,20 @@
         <div class="stat-value" id="s-funcionarios">—</div>
         <div class="stat-foot">Toque para ver equipe</div>
       </a>
-      <a href="#" class="stat" data-route="ponto">
+      <a href="/ponto.html" class="stat">
         <div class="stat-label">Presentes hoje</div>
-        <div class="stat-value" id="s-presentes">0</div>
-        <div class="stat-foot"><span class="pill">EM BREVE</span> Módulo Ponto</div>
+        <div class="stat-value" id="s-presentes">—</div>
+        <div class="stat-foot">Ver registro de ponto</div>
       </a>
-      <a href="#" class="stat" data-route="tarefas">
+      <a href="/tarefas.html" class="stat">
         <div class="stat-label">Tarefas pendentes</div>
-        <div class="stat-value" id="s-tarefas">0</div>
-        <div class="stat-foot"><span class="pill">EM BREVE</span> Módulo Tarefas</div>
+        <div class="stat-value" id="s-tarefas">—</div>
+        <div class="stat-foot">Ver todas as tarefas</div>
       </a>
-      <a href="#" class="stat" data-route="faltas">
+      <a href="/faltas.html" class="stat">
         <div class="stat-label">Faltas na semana</div>
-        <div class="stat-value" id="s-faltas">0</div>
-        <div class="stat-foot"><span class="pill amber">EM BREVE</span> Módulo Faltas</div>
+        <div class="stat-value" id="s-faltas">—</div>
+        <div class="stat-foot">Ver registro de faltas</div>
       </a>
     </section>
 
@@ -180,9 +180,9 @@
         <h2>Acesso rápido</h2>
         <div class="quick-actions">
           <a class="qa" href="/funcionarios.html"><span class="qa-ico">＋</span><span class="qa-title">Novo funcionário</span><span class="qa-desc">Cadastre alguém</span></a>
-          <a class="qa" href="#" data-soon="Módulo Tarefas em desenvolvimento."><span class="qa-ico">▣</span><span class="qa-title">Criar tarefa</span><span class="qa-desc">Em breve</span></a>
+          <a class="qa" href="/tarefas.html"><span class="qa-ico">▣</span><span class="qa-title">Criar tarefa</span><span class="qa-desc">Organizar a equipe</span></a>
           <a class="qa" href="/configuracoes.html"><span class="qa-ico">⌂</span><span class="qa-title">Editar condomínio</span><span class="qa-desc">Dados da gestão</span></a>
-          <a class="qa" href="#" data-soon="Exportação em CSV/PDF em desenvolvimento."><span class="qa-ico">⤓</span><span class="qa-title">Baixar relatório</span><span class="qa-desc">Em breve</span></a>
+          <a class="qa" href="/faltas.html"><span class="qa-ico">⤓</span><span class="qa-title">Registrar falta</span><span class="qa-desc">Histórico da equipe</span></a>
         </div>
       </section>
     </div>
@@ -213,36 +213,49 @@ function tempoAtras(d) {
   return new Date(d).toLocaleDateString('pt-BR');
 }
 
-// "Em breve" toast nos cards de módulos não construídos
-document.querySelectorAll('[data-soon]').forEach(el => {
-  el.addEventListener('click', (e) => {
-    e.preventDefault();
-    T(el.dataset.soon || 'Em breve.', 'success');
-  });
-});
-document.querySelectorAll('.stat[data-route]').forEach(el => {
-  el.addEventListener('click', (e) => {
-    e.preventDefault();
-    T('Módulo em desenvolvimento.', 'success');
-  });
-});
-
 // Carrega estatísticas e equipe recente
 async function loadStats() {
-  // total de funcionários ativos
-  const { count: totalAtivos, error: e1 } = await sb
-    .from('funcionarios')
-    .select('id', { count: 'exact', head: true })
-    .eq('ativo', true);
-  if (!e1) document.getElementById('s-funcionarios').textContent = totalAtivos ?? 0;
+  const hoje = new Date();
+  const inicioDia  = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
+  const fimDia     = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1).toISOString();
 
-  // últimos 5 funcionários cadastrados (para a coluna "Equipe recente")
-  const { data: ultimos } = await sb
-    .from('funcionarios')
-    .select('id, nome, cargo, created_at, ativo')
-    .order('created_at', { ascending: false })
-    .limit(5);
+  // Início da semana (segunda-feira)
+  const dow = hoje.getDay() === 0 ? 6 : hoje.getDay() - 1;
+  const inicioSemana = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - dow).toISOString();
 
+  // Queries paralelas
+  const [
+    { count: totalAtivos },
+    { data: pontosHoje },
+    { count: tarefasPendentes },
+    { count: faltasSemana },
+    { data: ultimos }
+  ] = await Promise.all([
+    sb.from('funcionarios').select('id', { count:'exact', head:true }).eq('ativo', true),
+    sb.from('registros_ponto').select('funcionario_id, tipo').gte('registrado_em', inicioDia).lt('registrado_em', fimDia),
+    sb.from('tarefas').select('id', { count:'exact', head:true }).in('status', ['pendente','em_andamento']),
+    sb.from('faltas').select('id', { count:'exact', head:true }).gte('data', inicioSemana.split('T')[0]),
+    sb.from('funcionarios').select('id, nome, cargo, created_at, ativo').order('created_at', { ascending:false }).limit(5)
+  ]);
+
+  // Presentes hoje: funcionários com entrada mas sem saída depois dela
+  let presentes = 0;
+  if (pontosHoje) {
+    const porFunc = {};
+    pontosHoje.forEach(r => {
+      if (!porFunc[r.funcionario_id]) porFunc[r.funcionario_id] = { entrada: false, saida: false };
+      if (r.tipo === 'entrada') porFunc[r.funcionario_id].entrada = true;
+      if (r.tipo === 'saida')  porFunc[r.funcionario_id].saida  = true;
+    });
+    presentes = Object.values(porFunc).filter(v => v.entrada && !v.saida).length;
+  }
+
+  document.getElementById('s-funcionarios').textContent = totalAtivos ?? 0;
+  document.getElementById('s-presentes').textContent    = presentes;
+  document.getElementById('s-tarefas').textContent      = tarefasPendentes ?? 0;
+  document.getElementById('s-faltas').textContent       = faltasSemana ?? 0;
+
+  // Equipe recente
   const empty = document.getElementById('empty-funcs');
   const area  = document.getElementById('recent-area');
 
