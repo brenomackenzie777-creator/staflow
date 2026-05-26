@@ -11,7 +11,9 @@
 <link rel="stylesheet" href="auth/auth.css">
 <link rel="stylesheet" href="app.css">
 <style>
-/* Stats e quick actions específicos do dashboard */
+/* ─────────────────────────────────────────────
+   Stats operacionais (4 cards no topo)
+───────────────────────────────────────────── */
 .stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -55,6 +57,220 @@
 .stat-foot .pill.red   { background: rgba(255,107,107,0.12); color: var(--red); }
 .stat-foot .pill.teal  { background: var(--teal-dim); color: var(--teal); }
 
+/* ─────────────────────────────────────────────
+   Section divider — título de seção + helper
+───────────────────────────────────────────── */
+.section-divider {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin: 4px 0 14px;
+  gap: 12px;
+}
+.section-divider h2 {
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 18px;
+  letter-spacing: -0.3px;
+  color: var(--white);
+}
+.section-divider .helper {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 1.5px;
+  color: var(--white-muted);
+  text-transform: uppercase;
+}
+
+/* ─────────────────────────────────────────────
+   Provisões financeiras (cards com mini barras)
+───────────────────────────────────────────── */
+.provisao-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.provisao {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px 18px 20px;
+  position: relative;
+  transition: var(--transition);
+}
+.provisao:hover { border-color: var(--border-strong); }
+.provisao .lbl {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--white-muted);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px;
+}
+.provisao .lbl .legal {
+  font-family: var(--font-mono);
+  font-size: 8px; letter-spacing: 1px;
+  padding: 2px 6px; border-radius: 2px;
+  background: rgba(66,153,225,0.10);
+  color: #6bb1f0;
+  border: 1px solid rgba(66,153,225,0.22);
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+.provisao .val {
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 26px;
+  color: var(--white); line-height: 1.1;
+  margin-top: 12px;
+  letter-spacing: -0.5px;
+}
+.provisao .val .moeda {
+  font-family: var(--font-mono);
+  font-size: 12px; color: var(--white-muted);
+  margin-right: 6px;
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+.provisao .progress {
+  margin-top: 16px;
+  height: 4px;
+  background: rgba(240,244,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.provisao .progress .fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 2px;
+  background: var(--teal);
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.provisao .progress .fill.amber { background: var(--amber); }
+.provisao .progress .fill.red   { background: var(--red); }
+.provisao .meta {
+  margin-top: 8px;
+  font-size: 11px; color: var(--white-dim);
+  line-height: 1.45;
+}
+
+/* ─────────────────────────────────────────────
+   Alertas Críticos
+───────────────────────────────────────────── */
+.alertas-card { margin-bottom: 28px; }
+.alertas-card h2 {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.alertas-card h2 .tag {
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 3px 8px; border-radius: 2px;
+}
+.alertas-card h2 .tag.red {
+  background: rgba(255,107,107,0.12);
+  color: var(--red);
+  border: 1px solid rgba(255,107,107,0.3);
+}
+.alertas-card h2 .tag.amber {
+  background: rgba(255,209,102,0.12);
+  color: var(--amber);
+  border: 1px solid rgba(255,209,102,0.3);
+}
+.alertas-card h2 .tag.green {
+  background: var(--teal-dim);
+  color: var(--teal);
+  border: 1px solid var(--teal-border);
+}
+.alertas-card h2 .tag.muted {
+  background: rgba(240,244,255,0.05);
+  color: var(--white-muted);
+  border: 1px solid var(--border);
+}
+
+.alerta-item {
+  display: flex; gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.alerta-item:last-child { border-bottom: none; padding-bottom: 4px; }
+.alerta-item:first-child { padding-top: 4px; }
+
+.alerta-item .ico {
+  width: 36px; height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--radius);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 16px;
+}
+.alerta-item .ico.red {
+  background: rgba(255,107,107,0.12);
+  color: var(--red);
+  border: 1px solid rgba(255,107,107,0.28);
+}
+.alerta-item .ico.amber {
+  background: rgba(255,209,102,0.12);
+  color: var(--amber);
+  border: 1px solid rgba(255,209,102,0.28);
+}
+
+.alerta-item .body { flex: 1; min-width: 0; }
+.alerta-item .body .head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.alerta-item .body .head .title {
+  font-weight: 600; font-size: 13px; color: var(--white);
+}
+.alerta-item .body .head .legal-pill {
+  font-family: var(--font-mono);
+  font-size: 8px; letter-spacing: 1px;
+  padding: 2px 6px; border-radius: 2px;
+  background: rgba(66,153,225,0.10);
+  color: #6bb1f0;
+  border: 1px solid rgba(66,153,225,0.22);
+  text-transform: uppercase;
+}
+.alerta-item .body .desc {
+  font-size: 12px; color: var(--white-dim);
+  line-height: 1.55;
+}
+.alerta-item .body .cta {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--teal);
+  text-decoration: none;
+}
+.alerta-item .body .cta:hover { text-decoration: underline; }
+
+.alertas-empty {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 0 4px;
+  color: var(--teal);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.alertas-empty.muted { color: var(--white-dim); }
+.alertas-empty .ico {
+  width: 36px; height: 36px;
+  border-radius: var(--radius);
+  background: var(--teal-dim);
+  border: 1px solid var(--teal-border);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 16px;
+  flex-shrink: 0;
+}
+.alertas-empty.muted .ico {
+  background: rgba(240,244,255,0.04);
+  border-color: var(--border);
+  color: var(--white-muted);
+}
+
+/* ─────────────────────────────────────────────
+   Row inferior — equipe + acesso rápido
+───────────────────────────────────────────── */
 .row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
 .card h2 {
   display: flex; align-items: center; justify-content: space-between;
@@ -99,24 +315,27 @@
   font-family: var(--font-display); font-weight: 800; font-size: 12px;
   flex-shrink: 0;
 }
-.activity-item .meta {
-  flex: 1; min-width: 0;
-}
-.activity-item .meta .who {
-  font-weight: 600; font-size: 13px; color: var(--white);
-}
-.activity-item .meta .what {
-  font-size: 12px; color: var(--white-dim);
-}
+.activity-item .meta { flex: 1; min-width: 0; }
+.activity-item .meta .who { font-weight: 600; font-size: 13px; color: var(--white); }
+.activity-item .meta .what { font-size: 12px; color: var(--white-dim); }
 .activity-item .when {
   font-family: var(--font-mono); font-size: 10px;
   letter-spacing: 1px; color: var(--white-muted);
   white-space: nowrap;
 }
 
+/* ─────────────────────────────────────────────
+   Responsivo
+───────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .provisao-grid { grid-template-columns: repeat(2, 1fr); }
+}
 @media (max-width: 980px) {
   .stats { grid-template-columns: repeat(2, 1fr); }
   .row { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .provisao-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -140,7 +359,7 @@
       </div>
     </div>
 
-    <!-- Stats — cada card vira link -->
+    <!-- ═══════ STATS OPERACIONAIS ═══════ -->
     <section class="stats">
       <a href="/funcionarios.html" class="stat">
         <div class="stat-label">Funcionários ativos</div>
@@ -164,7 +383,53 @@
       </a>
     </section>
 
-    <!-- Conteúdo -->
+    <!-- ═══════ COMPLIANCE FINANCEIRO — PROVISÕES ═══════ -->
+    <div class="section-divider">
+      <h2>Compliance financeiro</h2>
+      <span class="helper">PROVISÕES MENSAIS · CCT-RJ 2025</span>
+    </div>
+
+    <section class="provisao-grid">
+      <div class="provisao">
+        <div class="lbl">13º acumulado <span class="legal">CLT</span></div>
+        <div class="val"><span class="moeda">R$</span><span id="p-13">—</span></div>
+        <div class="progress"><div class="fill" id="p-13-bar"></div></div>
+        <div class="meta" id="p-13-meta">Calculando…</div>
+      </div>
+      <div class="provisao">
+        <div class="lbl">Férias + 1/3 <span class="legal">CF Art.7</span></div>
+        <div class="val"><span class="moeda">R$</span><span id="p-ferias">—</span></div>
+        <div class="progress"><div class="fill" id="p-ferias-bar"></div></div>
+        <div class="meta" id="p-ferias-meta">Calculando…</div>
+      </div>
+      <div class="provisao">
+        <div class="lbl">FGTS mensal <span class="legal">8%</span></div>
+        <div class="val"><span class="moeda">R$</span><span id="p-fgts">—</span></div>
+        <div class="progress"><div class="fill" id="p-fgts-bar"></div></div>
+        <div class="meta" id="p-fgts-meta">Calculando…</div>
+      </div>
+      <div class="provisao">
+        <div class="lbl">Passivo estimado <span class="legal">RISCO</span></div>
+        <div class="val"><span class="moeda">R$</span><span id="p-passivo">—</span></div>
+        <div class="progress"><div class="fill" id="p-passivo-bar"></div></div>
+        <div class="meta" id="p-passivo-meta">Calculando…</div>
+      </div>
+    </section>
+
+    <!-- ═══════ ALERTAS CRÍTICOS DE COMPLIANCE ═══════ -->
+    <div class="section-divider">
+      <h2>Alertas críticos</h2>
+      <span class="helper">CCT · CLT · NR-15</span>
+    </div>
+
+    <section class="card alertas-card">
+      <h2>Inconformidades detectadas <span class="tag muted" id="alertas-tag">VERIFICANDO…</span></h2>
+      <div id="alertas-area">
+        <div class="alertas-empty muted"><span class="ico">…</span>Analisando registros da equipe…</div>
+      </div>
+    </section>
+
+    <!-- ═══════ EQUIPE + ACESSO RÁPIDO ═══════ -->
     <div class="row">
       <section class="card">
         <h2>Equipe recente <span class="tag">FUNCIONÁRIOS</span></h2>
@@ -202,23 +467,56 @@
 const sb = window.staflowSupabase;
 const T  = window.staflowApp.toast;
 
+/* ════════════════════════════════════════════════════════════════
+   CONSTANTES DE COMPLIANCE TRABALHISTA — CCT-RJ 2025 (SindCondRJ)
+   ────────────────────────────────────────────────────────────────
+   Pisos salariais por cargo usados como base para projeção
+   financeira enquanto a coluna `funcionarios.salario_base` não
+   existe no schema. Quando essa coluna for adicionada (sprint
+   futura), basta priorizar `f.salario_base ?? PISO_CCT_RJ[cargo]`
+   na função folhaTotalDe(funcs).
+   ════════════════════════════════════════════════════════════════ */
+const PISO_CCT_RJ = {
+  porteiro:    2045.00,
+  zelador:     2700.00,
+  faxineira:   1890.00,
+  jardineiro:  1890.00,
+  seguranca:   2450.00,
+  outro:       1518.00   // fallback = salário mínimo nacional 2025
+};
+
+const HORAS_NORMAIS_MES = 220;   // jornada 44h/sem × 5 semanas (CLT Art.7 XIII)
+const HORA_EXTRA_MULT   = 1.5;   // multiplicador mínimo legal (CLT Art.7 XVI)
+const HE_LIMITE_DIARIO  = 2;     // limite legal de horas extras/dia (CLT Art.59)
+const PCT_FGTS          = 0.08;  // 8% sobre folha (Lei 8.036/90)
+const RISCO_TRABALHISTA = 0.05;  // 5% da folha — reserva de risco médio
+
+/* ───────── Helpers ───────── */
+function brl(v) {
+  return Number(v || 0).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
+  });
+}
+
 function tempoAtras(d) {
   const ms = Date.now() - new Date(d).getTime();
   const s = Math.floor(ms / 1000);
-  if (s < 60)      return s + 's atrás';
+  if (s < 60)  return s + 's atrás';
   const m = Math.floor(s/60);
-  if (m < 60)      return m + 'min atrás';
+  if (m < 60)  return m + 'min atrás';
   const h = Math.floor(m/60);
-  if (h < 24)      return h + 'h atrás';
+  if (h < 24)  return h + 'h atrás';
   const dd = Math.floor(h/24);
-  if (dd < 30)     return dd + 'd atrás';
+  if (dd < 30) return dd + 'd atrás';
   return new Date(d).toLocaleDateString('pt-BR');
 }
 
-// Carrega estatísticas e equipe recente
+/* ════════════════════════════════════════════════════════════════
+   loadStats — métricas operacionais e equipe recente
+   (lógica original mantida, apenas reorganizada para clareza)
+   ════════════════════════════════════════════════════════════════ */
 async function loadStats() {
-  // Skeleton enquanto Promise pendente
-  window.staflowApp.skeletonStats(['s-funcionarios', 's-presentes', 's-tarefas', 's-faltas']);
+  window.staflowApp.skeletonStats(['s-funcionarios','s-presentes','s-tarefas','s-faltas']);
   const recentArea = document.getElementById('recent-area');
   if (recentArea) {
     recentArea.innerHTML = Array.from({ length: 4 }).map(() => `
@@ -234,17 +532,12 @@ async function loadStats() {
   }
 
   const hoje = new Date();
-  const inicioDia  = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
-  const fimDia     = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1).toISOString();
-
-  // Início da semana (segunda-feira)
-  const dow = hoje.getDay() === 0 ? 6 : hoje.getDay() - 1;
+  const inicioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
+  const fimDia    = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1).toISOString();
+  const dow       = hoje.getDay() === 0 ? 6 : hoje.getDay() - 1;
   const inicioSemana = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - dow).toISOString();
+  const hojeISO   = inicioDia.split('T')[0];
 
-  const hojeISO = inicioDia.split('T')[0];
-
-  // Queries paralelas — agora também cruza faltas de HOJE para distinguir
-  // ausentes legítimos (atestado/férias/licença) de faltas injustificadas.
   const [
     { count: totalAtivos },
     { data: pontosHoje },
@@ -261,58 +554,45 @@ async function loadStats() {
     sb.from('funcionarios').select('id, nome, cargo, created_at, ativo').order('created_at', { ascending:false }).limit(5)
   ]);
 
-  // Presentes hoje: funcionários com entrada mas sem saída depois dela
+  // Presentes hoje
   let presentes = 0;
   if (pontosHoje) {
     const porFunc = {};
     pontosHoje.forEach(r => {
       if (!porFunc[r.funcionario_id]) porFunc[r.funcionario_id] = { entrada: false, saida: false };
       if (r.tipo === 'entrada') porFunc[r.funcionario_id].entrada = true;
-      if (r.tipo === 'saida')  porFunc[r.funcionario_id].saida  = true;
+      if (r.tipo === 'saida')   porFunc[r.funcionario_id].saida   = true;
     });
     presentes = Object.values(porFunc).filter(v => v.entrada && !v.saida).length;
   }
 
-  // ── Inteligência de faltas ─────────────────────────────────────────────────
-  // HOJE: separa "afastados legítimos" (atestado/férias/licença) de faltas injust.
   const TIPOS_AFASTAMENTO = new Set(['atestado','ferias','licenca']);
   const afastadosHojeIds  = new Set();
   let faltasInjustHoje    = 0;
-
   (faltasHoje || []).forEach(r => {
-    if (TIPOS_AFASTAMENTO.has(r.tipo)) {
-      afastadosHojeIds.add(r.funcionario_id);
-    } else if (r.tipo === 'falta' && !r.justificada) {
-      faltasInjustHoje++;
-    }
+    if (TIPOS_AFASTAMENTO.has(r.tipo)) afastadosHojeIds.add(r.funcionario_id);
+    else if (r.tipo === 'falta' && !r.justificada) faltasInjustHoje++;
   });
 
-  // SEMANA: total + breakdown
-  const semanaTotal      = (faltasSemanaRows || []).length;
-  const semanaAtestado   = (faltasSemanaRows || []).filter(r => r.tipo === 'atestado').length;
-  const semanaInjust     = (faltasSemanaRows || []).filter(r => r.tipo === 'falta' && !r.justificada).length;
+  const semanaTotal    = (faltasSemanaRows || []).length;
+  const semanaAtestado = (faltasSemanaRows || []).filter(r => r.tipo === 'atestado').length;
+  const semanaInjust   = (faltasSemanaRows || []).filter(r => r.tipo === 'falta' && !r.justificada).length;
 
   document.getElementById('s-funcionarios').textContent = totalAtivos ?? 0;
   document.getElementById('s-presentes').textContent    = presentes;
   document.getElementById('s-tarefas').textContent      = tarefasPendentes ?? 0;
   document.getElementById('s-faltas').textContent       = semanaTotal;
 
-  // Footer enriquecido: presentes mostra os em atestado/licença hoje
   const footPres = document.getElementById('s-presentes-foot');
-  if (afastadosHojeIds.size > 0) {
-    footPres.innerHTML = `<span class="pill amber">${afastadosHojeIds.size} em atestado/licença</span>`;
-  } else if (faltasInjustHoje > 0) {
-    footPres.innerHTML = `<span class="pill red">${faltasInjustHoje} falta(s) injustificada(s) hoje</span>`;
-  } else {
-    footPres.textContent = 'Ver registro de ponto';
-  }
+  if (afastadosHojeIds.size > 0)      footPres.innerHTML = `<span class="pill amber">${afastadosHojeIds.size} em atestado/licença</span>`;
+  else if (faltasInjustHoje > 0)      footPres.innerHTML = `<span class="pill red">${faltasInjustHoje} falta(s) injustificada(s) hoje</span>`;
+  else                                footPres.textContent = 'Ver registro de ponto';
 
-  // Footer enriquecido: faltas-semana mostra breakdown
   const footFaltas = document.getElementById('s-faltas-foot');
   if (semanaTotal > 0) {
     const parts = [];
-    if (semanaInjust > 0)    parts.push(`<span class="pill red">${semanaInjust} injust.</span>`);
-    if (semanaAtestado > 0)  parts.push(`<span class="pill amber">${semanaAtestado} atestado(s)</span>`);
+    if (semanaInjust > 0)   parts.push(`<span class="pill red">${semanaInjust} injust.</span>`);
+    if (semanaAtestado > 0) parts.push(`<span class="pill amber">${semanaAtestado} atestado(s)</span>`);
     footFaltas.innerHTML = parts.join(' ') || 'Ver registro de faltas';
   } else {
     footFaltas.textContent = 'Ver registro de faltas';
@@ -321,9 +601,10 @@ async function loadStats() {
   // Equipe recente
   const empty = document.getElementById('empty-funcs');
   const area  = document.getElementById('recent-area');
-
   if (!ultimos || ultimos.length === 0) {
     empty.style.display = 'block';
+    area.innerHTML = '';
+    area.appendChild(empty);
     return;
   }
   empty.style.display = 'none';
@@ -340,7 +621,199 @@ async function loadStats() {
   `).join('');
 }
 
-// Boot
+/* ════════════════════════════════════════════════════════════════
+   loadCompliance — provisões financeiras + alertas trabalhistas
+   ════════════════════════════════════════════════════════════════ */
+async function loadCompliance() {
+  // Janela de 30 dias para detectar horas extras dos porteiros
+  const hoje  = new Date();
+  const desde = new Date(hoje); desde.setDate(desde.getDate() - 30);
+
+  const [
+    { data: funcs },
+    { data: pontos30d }
+  ] = await Promise.all([
+    sb.from('funcionarios').select('id, nome, cargo').eq('ativo', true),
+    sb.from('registros_ponto').select('funcionario_id, tipo, registrado_em').gte('registrado_em', desde.toISOString())
+  ]);
+
+  // ── Estado vazio: nenhum funcionário ativo ──
+  if (!funcs || funcs.length === 0) {
+    ['p-13','p-ferias','p-fgts','p-passivo'].forEach(id => {
+      document.getElementById(id).textContent = '0,00';
+      const bar = document.getElementById(id + '-bar');
+      bar.style.width = '0%';
+      bar.className = 'fill';
+    });
+    document.getElementById('p-13-meta').textContent     = 'Sem funcionários cadastrados';
+    document.getElementById('p-ferias-meta').textContent = 'Sem funcionários cadastrados';
+    document.getElementById('p-fgts-meta').textContent   = 'Sem funcionários cadastrados';
+    document.getElementById('p-passivo-meta').textContent= 'Sem funcionários cadastrados';
+
+    const tag = document.getElementById('alertas-tag');
+    tag.textContent = 'AGUARDANDO DADOS';
+    tag.className   = 'tag muted';
+    document.getElementById('alertas-area').innerHTML = `
+      <div class="alertas-empty muted">
+        <span class="ico">○</span>
+        Cadastre funcionários para iniciar a análise de compliance.
+      </div>`;
+    return;
+  }
+
+  /* ── 1. FOLHA TOTAL (Σ piso CCT por cargo) ──────────────────── */
+  const folhaTotal = funcs.reduce(
+    (acc, f) => acc + (PISO_CCT_RJ[f.cargo] ?? PISO_CCT_RJ.outro),
+    0
+  );
+
+  /* ── 2. HORAS EXTRAS POR PORTEIRO (últimos 30 dias) ────────── */
+  const porteiros = funcs.filter(f => f.cargo === 'porteiro');
+  let horasExtrasTotalH  = 0;
+  const porteirosExcesso = [];  // [{ nome, dias, horas }]
+
+  porteiros.forEach(p => {
+    const meusRegistros = (pontos30d || []).filter(r => r.funcionario_id === p.id);
+    const porDia = {};
+    meusRegistros.forEach(r => {
+      const dia = r.registrado_em.slice(0, 10);
+      (porDia[dia] ||= []).push(r);
+    });
+
+    let heAcumulada = 0;
+    let diasExcesso = 0;
+    Object.values(porDia).forEach(eventos => {
+      eventos.sort((a, b) => a.registrado_em.localeCompare(b.registrado_em));
+      const entrada = eventos.find(e => e.tipo === 'entrada');
+      const saida   = [...eventos].reverse().find(e => e.tipo === 'saida');
+      if (!entrada || !saida) return;
+      const horasDia = (new Date(saida.registrado_em) - new Date(entrada.registrado_em)) / 3600000;
+      const he = Math.max(0, horasDia - 8);
+      if (he > HE_LIMITE_DIARIO) {
+        diasExcesso++;
+        heAcumulada += he;
+      }
+    });
+
+    horasExtrasTotalH += heAcumulada;
+    if (diasExcesso > 0) porteirosExcesso.push({ nome: p.nome, dias: diasExcesso, horas: heAcumulada });
+  });
+
+  /* ── 3. CÁLCULOS FINANCEIROS ─────────────────────────────────── */
+  const decimoMensal     = folhaTotal / 12;
+  const feriasMensal     = (folhaTotal / 12) * 1.333;
+  const fgtsMensal       = folhaTotal * PCT_FGTS;
+  const valorHora        = folhaTotal / HORAS_NORMAIS_MES;
+  const valorHeAcumulado = horasExtrasTotalH * valorHora * HORA_EXTRA_MULT;
+  const reservaRisco     = folhaTotal * RISCO_TRABALHISTA;
+  const passivoTotal     = valorHeAcumulado + reservaRisco;
+
+  /* ── 4. BARRAS DE PROGRESSO ──────────────────────────────────
+     • 13º e Férias  → % do exercício anual já acumulado
+     • FGTS          → 100% (encerra mensalmente, indicador fixo)
+     • Passivo       → severidade = passivo/folha (red se > 10%)
+  ──────────────────────────────────────────────────────────── */
+  const inicioAno  = new Date(hoje.getFullYear(), 0, 0);
+  const diaDoAno   = Math.floor((hoje - inicioAno) / 86400000);
+  const pctAno     = Math.min(100, (diaDoAno / 365) * 100);
+  const pctPassivo = Math.min(100, (passivoTotal / folhaTotal) * 100);
+  const corPassivo = pctPassivo > 10 ? 'red' : (pctPassivo > 5 ? 'amber' : '');
+
+  const cards = [
+    { id:'p-13',      val: decimoMensal,
+      meta:`1/12 da folha mensal (R$ ${brl(folhaTotal)}) · ${diaDoAno}/365 dias do ano`,
+      pct: pctAno, cls:'' },
+    { id:'p-ferias',  val: feriasMensal,
+      meta:`(Folha ÷ 12) × 1.333 — provisão mensal de férias`,
+      pct: pctAno, cls:'' },
+    { id:'p-fgts',    val: fgtsMensal,
+      meta:`8% sobre a folha total — recolhimento mensal`,
+      pct: 100, cls:'' },
+    { id:'p-passivo', val: passivoTotal,
+      meta: horasExtrasTotalH > 0
+        ? `${horasExtrasTotalH.toFixed(1)}h extras (30d) + reserva de risco 5%`
+        : `Apenas reserva de risco (5% da folha) — sem HE detectada`,
+      pct: Math.max(8, pctPassivo), cls: corPassivo }
+  ];
+
+  cards.forEach(c => {
+    document.getElementById(c.id).textContent = brl(c.val);
+    document.getElementById(c.id + '-meta').textContent = c.meta;
+    const bar = document.getElementById(c.id + '-bar');
+    bar.className = 'fill ' + c.cls;
+    // Anima após paint
+    requestAnimationFrame(() => { bar.style.width = c.pct + '%'; });
+  });
+
+  /* ── 5. ALERTAS CRÍTICOS ────────────────────────────────────── */
+  const alertas = [];
+
+  // (a) Faxineiras/limpeza sem registro de insalubridade
+  // Regra: a CCT-RJ pós-2025 obriga adicional de insalubridade
+  // (20% sobre o piso) para profissionais de limpeza. Como o schema
+  // ainda não armazena esse adicional por funcionário, qualquer
+  // faxineira ativa é flagada como "config pendente".
+  const faxineiras = funcs.filter(f => f.cargo === 'faxineira');
+  if (faxineiras.length > 0) {
+    const nomes = faxineiras.map(f => f.nome).slice(0, 3).join(', ')
+                + (faxineiras.length > 3 ? ` e mais ${faxineiras.length - 3}` : '');
+    alertas.push({
+      severidade: 'red',
+      titulo: `${faxineiras.length} funcionário(s) de limpeza sem adicional de insalubridade`,
+      desc:   `A CCT-RJ pós-2025 obriga o adicional de insalubridade (20% sobre o piso) para profissionais de limpeza que manipulam produtos químicos ou resíduos. Funcionário(s): ${nomes}.`,
+      legal:  'CCT-RJ 2025 · NR-15',
+      cta:    'Configurar adicional →',
+      href:   '/funcionarios.html'
+    });
+  }
+
+  // (b) Porteiros com >2h extras diárias detectadas
+  porteirosExcesso.forEach(pe => {
+    alertas.push({
+      severidade: 'amber',
+      titulo: `Porteiro ${pe.nome} acumulou ${pe.horas.toFixed(1)}h extras em ${pe.dias} dia(s)`,
+      desc:   `Detectado(s) ${pe.dias} dia(s) com mais de 2h extras consecutivas nos últimos 30 dias. A CLT Art.59 limita a 2h extras diárias. Provisione pagamento ou ofereça banco de horas.`,
+      legal:  'CLT Art.59',
+      cta:    'Ver registros de ponto →',
+      href:   '/ponto.html'
+    });
+  });
+
+  /* ── 6. RENDERIZA ALERTAS ───────────────────────────────────── */
+  const tag  = document.getElementById('alertas-tag');
+  const area = document.getElementById('alertas-area');
+
+  if (alertas.length === 0) {
+    tag.textContent = '✓ TUDO OK';
+    tag.className   = 'tag green';
+    area.innerHTML  = `
+      <div class="alertas-empty">
+        <span class="ico">✓</span>
+        Nenhuma inconformidade detectada. Sua folha está em ordem com a CCT vigente.
+      </div>`;
+  } else {
+    const temRed   = alertas.some(a => a.severidade === 'red');
+    tag.textContent = `${alertas.length} INCONFORMIDADE${alertas.length > 1 ? 'S' : ''}`;
+    tag.className   = 'tag ' + (temRed ? 'red' : 'amber');
+    area.innerHTML  = alertas.map(a => `
+      <div class="alerta-item">
+        <div class="ico ${a.severidade}">${a.severidade === 'red' ? '!' : '⚠'}</div>
+        <div class="body">
+          <div class="head">
+            <span class="title">${a.titulo}</span>
+            <span class="legal-pill">${a.legal}</span>
+          </div>
+          <div class="desc">${a.desc}</div>
+          <a href="${a.href}" class="cta">${a.cta}</a>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   BOOT
+   ════════════════════════════════════════════════════════════════ */
 (async () => {
   window.staflowApp.renderSidebar('sidebar');
   const profile = await window.staflowApp.bootstrapShell({ route: 'dashboard' });
@@ -352,7 +825,8 @@ async function loadStats() {
     ? `Condomínio ${profile.condominio_nome}.`
     : 'Configure o seu condomínio em Configurações.';
 
-  await loadStats();
+  // Carga paralela: stats operacionais + camada de compliance
+  await Promise.all([ loadStats(), loadCompliance() ]);
 })();
 </script>
 </body>
