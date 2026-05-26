@@ -5,6 +5,12 @@
   "redirects": [
     { "source": "/", "destination": "/staflow-landing", "permanent": false }
   ],
+  "rewrites": [
+    {
+      "source": "/:path((?!auth|assets|js|sql|supabase|api|dashboard|funcionarios|ponto|tarefas|faltas|planos|configuracoes|colaborador|staflow-landing|favicon|robots|sitemap|_next|404).*)",
+      "destination": "/staflow-landing.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
