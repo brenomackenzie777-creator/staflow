@@ -4,9 +4,107 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Criar conta — StaFlow</title>
+<link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./auth.css">
+<style>
+/* ─── Toggle Síndico/Colaborador (segmented control) ──────── */
+.role-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 18px;
+  position: relative;
+}
+.role-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--white-dim);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 11px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: 0.2px;
+  -webkit-tap-highlight-color: transparent;
+}
+.role-toggle-btn .ico {
+  font-size: 15px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.role-toggle-btn:hover { color: var(--white); }
+.role-toggle-btn.active {
+  background: var(--teal);
+  color: var(--navy-deep);
+  box-shadow: 0 2px 8px rgba(6,214,160,0.25);
+}
+.role-toggle-btn.active:hover { color: var(--navy-deep); }
+.role-toggle-helper {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--white-muted);
+  text-transform: uppercase;
+  text-align: center;
+  margin-top: -10px;
+  margin-bottom: 18px;
+}
+
+/* ─── Nota de compliance para colaborador ─── */
+.colab-note {
+  display: none;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  margin: -6px 0 18px;
+  background: var(--teal-dim);
+  border: 1px solid var(--teal-border);
+  border-left: 3px solid var(--teal);
+  border-radius: var(--radius);
+  animation: noteSlide 0.25s ease;
+}
+.colab-note.show { display: flex; }
+@keyframes noteSlide {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.colab-note .ico {
+  flex-shrink: 0;
+  color: var(--teal);
+  font-size: 14px;
+  margin-top: 1px;
+}
+.colab-note .txt {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--white-dim);
+}
+.colab-note .txt strong {
+  color: var(--white);
+  font-weight: 600;
+}
+
+/* ─── Sucesso colaborador (variante) ─── */
+.success-box.colab .check {
+  background: var(--teal-dim);
+  color: var(--teal);
+  border-color: var(--teal-border);
+}
+</style>
 </head>
 <body>
 
@@ -28,7 +126,28 @@
     <!-- ETAPA 1 -->
     <section id="etapa-1">
       <h1 class="auth-title">Crie sua conta</h1>
-      <p class="auth-sub">Comece pelo essencial.</p>
+      <p class="auth-sub" id="sub-1">Comece pelo essencial.</p>
+
+      <!-- Toggle de papel: Síndico ou Colaborador -->
+      <div class="role-toggle" role="tablist" aria-label="Tipo de conta">
+        <button type="button" class="role-toggle-btn active" id="role-sindico" role="tab" aria-selected="true">
+          <span class="ico">⌂</span> Sou Síndico
+        </button>
+        <button type="button" class="role-toggle-btn" id="role-colab" role="tab" aria-selected="false">
+          <span class="ico">●</span> Sou Colaborador
+        </button>
+      </div>
+      <div class="role-toggle-helper" id="role-helper">GERENCIA UM CONDOMÍNIO</div>
+
+      <!-- Nota LGPD/compliance — só aparece para colaborador -->
+      <div class="colab-note" id="colab-note">
+        <span class="ico">🔒</span>
+        <span class="txt">
+          <strong>Atenção:</strong> utilize o mesmo e-mail que o seu síndico ou
+          zelador cadastrou no painel do condomínio para liberar seu ponto
+          eletrônico.
+        </span>
+      </div>
 
       <form id="form-1" novalidate>
         <div class="field" id="f-nome">
@@ -61,7 +180,8 @@
         </div>
 
         <button class="btn" id="btn-next" type="submit">
-          <span class="btn-label">Continuar</span>
+          <span class="spinner"></span>
+          <span class="btn-label" id="btn-next-lbl">Continuar</span>
         </button>
 
         <div class="aux-center">Já tem conta? <a href="./login.html">Entrar</a></div>
@@ -147,8 +267,53 @@
 <script src="../js/supabase-client.js"></script>
 <script src="../js/auth.js"></script>
 <script>
-// Estado em memória entre as etapas
-const state = { nome:'', email:'', senha:'', condo:'', end:'', role:'sindico', fone:'' };
+/* ════════════════════════════════════════════════════════════════
+   ESTADO DO CADASTRO — bifurca entre Síndico (2 etapas + condomínio)
+   e Colaborador (1 etapa + signUp direto + auto-claim via app-shell).
+   ════════════════════════════════════════════════════════════════ */
+const state = {
+  nome:'', email:'', senha:'',
+  condo:'', end:'', fone:'',
+  role: 'sindico'   // 'sindico' | 'colaborador' (escolhido no toggle)
+};
+
+/* ── Toggle de papel ───────────────────────────────────────── */
+const btnSindico = document.getElementById('role-sindico');
+const btnColab   = document.getElementById('role-colab');
+const helperEl   = document.getElementById('role-helper');
+const noteEl     = document.getElementById('colab-note');
+const subEl      = document.getElementById('sub-1');
+const btnNextLbl = document.getElementById('btn-next-lbl');
+const stepperEl  = document.querySelector('.stepper');
+const stepLabel  = document.getElementById('step-label');
+
+function setTipoCadastro(tipo) {
+  state.role = tipo;
+  const isSind = tipo === 'sindico';
+  btnSindico.classList.toggle('active', isSind);
+  btnColab.classList.toggle('active', !isSind);
+  btnSindico.setAttribute('aria-selected', isSind);
+  btnColab.setAttribute('aria-selected', !isSind);
+
+  if (isSind) {
+    helperEl.textContent = 'GERENCIA UM CONDOMÍNIO';
+    noteEl.classList.remove('show');
+    subEl.textContent = 'Comece pelo essencial.';
+    btnNextLbl.textContent = 'Continuar';
+    stepperEl.style.display = '';
+    stepLabel.textContent = 'Etapa 1 de 2 · Seus dados';
+  } else {
+    helperEl.textContent = 'JÁ FUI CADASTRADO PELO MEU SÍNDICO';
+    noteEl.classList.add('show');
+    subEl.textContent = 'Use o e-mail informado pelo seu condomínio.';
+    btnNextLbl.textContent = 'Ativar Minha Conta de Funcionário';
+    stepperEl.style.display = 'none';
+    stepLabel.textContent = 'Acesso ao app do colaborador';
+  }
+}
+
+btnSindico.addEventListener('click', () => setTipoCadastro('sindico'));
+btnColab.addEventListener('click',   () => setTipoCadastro('colaborador'));
 
 function toast(msg, type='error') {
   const t = document.getElementById('toast');
@@ -217,8 +382,8 @@ document.querySelectorAll('.radio-card').forEach(card => {
   });
 });
 
-// ---- Etapa 1 → 2 ----
-document.getElementById('form-1').addEventListener('submit', (e) => {
+// ---- Etapa 1 → 2 (síndico) ou Etapa 1 → signUp direto (colaborador) ----
+document.getElementById('form-1').addEventListener('submit', async (e) => {
   e.preventDefault();
   const nome = document.getElementById('nome').value.trim();
   const email = document.getElementById('email').value.trim();
@@ -234,7 +399,46 @@ document.getElementById('form-1').addEventListener('submit', (e) => {
   if (bad) return;
 
   state.nome = nome; state.email = email; state.senha = senha;
-  irPara(2);
+
+  // ── Bifurcação por tipo de conta ────────────────────────────
+  if (state.role === 'sindico') {
+    // Fluxo síndico: precisa coletar dados do condomínio
+    irPara(2);
+    return;
+  }
+
+  // ── Fluxo COLABORADOR: signup direto sem etapa de condomínio ──
+  // O claim_funcionario_by_email() acontecerá automaticamente no
+  // próximo login (via app-shell.js → bootstrapShell), que vai
+  // detectar o vínculo por e-mail, rebaixar profile.role para
+  // 'funcionario' e redirecionar para /colaborador.html.
+  const btn = document.getElementById('btn-next');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const res = await staflowAuth.signUp(state.email, state.senha, {
+    full_name: state.nome,
+    // role enviado como hint (o trigger do banco ainda cria como 'sindico'
+    // por padrão — o claim_funcionario_by_email() rebaixa depois)
+    role: 'funcionario',
+    intencao_colaborador: true
+  });
+
+  btn.classList.remove('loading'); btn.disabled = false;
+  if (!res.ok) { toast(res.error, 'error'); return; }
+
+  // Sinaliza para a próxima sessão (app-shell.js) que este user
+  // se cadastrou como colaborador — usado apenas para mensagem
+  // contextual. O claim em si roda incondicionalmente.
+  try {
+    localStorage.setItem('staflow_pending_colab_claim', state.email);
+  } catch(_) { /* storage bloqueado em incognito — ignora */ }
+
+  document.getElementById('sent-email').textContent = state.email;
+  // Variante visual da tela de sucesso para colaborador
+  const sbox = document.querySelector('#etapa-3 .success-box');
+  if (sbox) sbox.classList.add('colab');
+  irPara(3);
+  iniciarReenvio();
 });
 
 // ---- Voltar ----

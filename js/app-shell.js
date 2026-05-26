@@ -135,6 +135,21 @@ window.staflowApp = window.staflowApp || {};
       if (claim.data && claim.data.vinculado) isFuncionario = true;
     } catch (e) { /* RPC pode não existir em ambientes antigos — silencioso */ }
 
+    // 3a-bis. Se o user marcou "Sou Colaborador" no cadastro e o claim
+    //         falhou, redireciona para /colaborador.html que tem UI
+    //         própria explicando que o e-mail não foi cadastrado.
+    let pendingColabClaim = null;
+    try { pendingColabClaim = localStorage.getItem('staflow_pending_colab_claim'); } catch(_) {}
+    if (pendingColabClaim && !isFuncionario) {
+      // Mantém a flag — colaborador.html mostra a tela "Conta não vinculada"
+      location.replace('/colaborador.html');
+      return null;
+    }
+    if (isFuncionario) {
+      // Vínculo deu certo — limpa a flag
+      try { localStorage.removeItem('staflow_pending_colab_claim'); } catch(_) {}
+    }
+
     // 3b. Garante condomínio APENAS para síndicos/admins (evita criar
     //     condomínio órfão para funcionários recém-cadastrados).
     if (!isFuncionario) {

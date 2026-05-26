@@ -641,6 +641,10 @@ let lastGeoTimestamp = 0;
     funcId  = claim.data.funcionario_id;
     condoId = claim.data.condominio_id;
   }
+  // Limpa flag de pending claim (vindo de /auth/cadastro como colaborador)
+  if (funcId) {
+    try { localStorage.removeItem('staflow_pending_colab_claim'); } catch(_) {}
+  }
 
   if (!funcId) {
     // Vínculo não existe — mostra erro elegante e oculta resto
