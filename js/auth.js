@@ -211,12 +211,52 @@
     }
   }
 
+  // ---------- LOAD FULL SESSION (consumido pelo route-guard) ----------
+  // Carrega em uma chamada: session, profile, claim funcionário, subscription.
+  // Idempotente — pode ser chamado múltiplas vezes sem efeitos colaterais
+  // adicionais (claim retorna o mesmo vínculo existente).
+  //
+  // Retorna:
+  //   { user, profile, subscription, claimed }
+  //   - user: { id, email } | null
+  //   - profile: row da tabela profiles | null
+  //   - subscription: row da tabela subscriptions | null
+  //     (pode vir com _blocked=true e _reason; ver checkSubscription)
+  //   - claimed: true se o claim_funcionario_by_email() vinculou nesta chamada
+  async function loadFullSession() {
+    const session = await getCurrentSession();
+    if (!session?.user) {
+      return { user: null, profile: null, subscription: null, claimed: false };
+    }
+    const user = session.user;
+
+    // 1. Tenta vincular funcionário (idempotente — não faz nada se já estiver
+    //    vinculado, e não cria nada se o email não bater)
+    let claimed = false;
+    try {
+      const claim = await sb.rpc('claim_funcionario_by_email').single();
+      if (claim?.data?.vinculado) claimed = true;
+    } catch (_) { /* RPC pode falhar; profile será carregado mesmo assim */ }
+
+    // 2. Carrega profile (depois do claim — pega role atualizada)
+    const profRes = await getProfile();
+    const profile = profRes.ok ? profRes.data : null;
+
+    // 3. Subscription só faz sentido para admin/sindico
+    let subscription = null;
+    if (profile && (profile.role === 'sindico' || profile.role === 'admin')) {
+      subscription = await checkSubscription();
+    }
+
+    return { user, profile, subscription, claimed };
+  }
+
   // ---------- API GLOBAL ----------
   window.staflowAuth = {
     signIn, signUp, signOut,
     resetPassword, updatePassword, resendConfirmation,
     getCurrentUser, getCurrentSession, onAuthStateChange,
     getProfile, updateProfile,
-    checkAuth, checkSubscription, traduzirErro
+    checkAuth, checkSubscription, loadFullSession, traduzirErro
   };
 })();

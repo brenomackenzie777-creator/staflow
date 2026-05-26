@@ -104,78 +104,35 @@ window.staflowApp = window.staflowApp || {};
 
   // ---------- Sidebar bootstrap ----------
   // Espera o DOM ter os elementos #u-name, #u-role, #u-avatar, .sb-link[data-route]
+  //
+  // ARQUITETURA: toda decisão de "pode renderizar aqui?" é delegada ao
+  // window.staflowGuard.executarRoteamentoSeguro (tronco superior de
+  // roteamento). bootstrapShell só faz a parte VISUAL e de DOM depois
+  // que o guard autoriza.
   async function bootstrapShell(opts = {}) {
     const route = opts.route || 'dashboard';
 
-    // 1. Proteger
-    const session = await window.staflowAuth.checkAuth('/auth/login.html');
-    if (!session) return null;
+    // 1. Carrega sessão completa: user + claim + profile + subscription
+    const { user, profile, subscription, claimed } = await window.staflowAuth.loadFullSession();
 
-    // 2. Verificar assinatura vigente — bloqueia se inexistente, expirada,
-    //    past_due ou canceled. Em todos os casos redireciona para /planos.html.
-    const sub = await window.staflowAuth.checkSubscription();
-    if (!sub || sub._blocked) {
-      const motivo = sub?._reason;
-      if (motivo) {
-        // Sinaliza o motivo via query string para a tela de planos exibir o toast
-        const params = new URLSearchParams({ reason: motivo });
-        location.replace('/planos.html?' + params.toString());
-      } else {
-        location.replace('/planos.html');
-      }
-      return null;
-    }
+    // 2. Se o claim vinculou, limpa a flag de pending (cadastro como colab)
+    if (claimed) window.staflowGuard.limparPendingColabClaim();
 
-    // 3a. Tenta vincular como funcionário primeiro (auto-claim por e-mail).
-    //     Se o usuário foi pré-cadastrado em /funcionarios pelo síndico, esta
-    //     RPC rebaixa role para 'funcionario' e seta condominio_id correto.
-    let isFuncionario = false;
+    // 3. ★ TRONCO SUPERIOR DE ROTEAMENTO — única decisão autoritativa
+    const g = window.staflowGuard.executarRoteamentoSeguro(user, profile, {
+      hasActiveSubscription: !!subscription && !subscription._blocked,
+      isBlockedSubscription: !!subscription?._blocked,
+      blockReason: subscription?._reason
+    });
+    if (!g.allow) return null;   // guard já redirecionou ou bloqueou
+
+    // 4. Daqui pra baixo: sindico/admin autorizado em página admin.
+    //    Garante condomínio vinculado (síndico recém-criado pode não ter).
     try {
-      const claim = await window.staflowSupabase.rpc('claim_funcionario_by_email').single();
-      if (claim.data && claim.data.vinculado) isFuncionario = true;
-    } catch (e) { /* RPC pode não existir em ambientes antigos — silencioso */ }
+      await window.staflowSupabase.rpc('ensure_condominio');
+    } catch (_) { /* silencioso */ }
 
-    // 3a-bis. Se o user marcou "Sou Colaborador" no cadastro e o claim
-    //         falhou, redireciona para /colaborador.html que tem UI
-    //         própria explicando que o e-mail não foi cadastrado.
-    let pendingColabClaim = null;
-    try { pendingColabClaim = localStorage.getItem('staflow_pending_colab_claim'); } catch(_) {}
-    if (pendingColabClaim && !isFuncionario) {
-      // Mantém a flag — colaborador.html mostra a tela "Conta não vinculada"
-      location.replace('/colaborador.html');
-      return null;
-    }
-    if (isFuncionario) {
-      // Vínculo deu certo — limpa a flag
-      try { localStorage.removeItem('staflow_pending_colab_claim'); } catch(_) {}
-    }
-
-    // 3b. Garante condomínio APENAS para síndicos/admins (evita criar
-    //     condomínio órfão para funcionários recém-cadastrados).
-    if (!isFuncionario) {
-      try {
-        await window.staflowSupabase.rpc('ensure_condominio');
-      } catch (e) { /* silencioso */ }
-    }
-
-    // 4. Perfil
-    const { ok, data: profile, error } = await window.staflowAuth.getProfile();
-    if (!ok) {
-      toast(error, 'error');
-      hideSplash();
-      return null;
-    }
-
-    // 4b. ROUTE GUARD POR ROLE — funcionário não acessa páginas admin.
-    //     Síndico/admin não acessa /colaborador.html. bootstrapShell é
-    //     chamado pelas páginas admin; se chegou aqui com role=funcionario
-    //     redireciona para o app de bolso.
-    if (profile.role === 'funcionario') {
-      location.replace('/colaborador.html');
-      return null;
-    }
-
-    // 4c. Preencher sidebar
+    // 5. Preencher sidebar
     const elName   = document.getElementById('u-name');
     const elRole   = document.getElementById('u-role');
     const elAvatar = document.getElementById('u-avatar');

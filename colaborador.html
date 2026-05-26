@@ -509,15 +509,15 @@ body {
 
   <!-- ───── Erro de vínculo (escondido por padrão) ───── -->
   <section class="link-error" id="link-error" style="display:none;">
-    <span class="ico">!</span>
-    <h2>Conta não vinculada</h2>
+    <span class="ico">⏳</span>
+    <h2>Aguardando ativação do Síndico</h2>
     <p>
-      Não encontramos um cadastro de funcionário com o seu e-mail
-      <code id="link-email">—</code>. Peça para o síndico te cadastrar em
-      <strong>Funcionários</strong> usando este mesmo e-mail e, então,
-      saia e entre novamente.
+      Peça para o administrador cadastrar seu e-mail
+      <code id="link-email">—</code> no painel <strong>Funcionários</strong>
+      do StaFlow. Assim que ele te cadastrar, faça logout e login novamente
+      para ativar seu acesso ao app de bolso.
     </p>
-    <button class="btn-out" id="btn-logout-err">Sair</button>
+    <button class="btn-out" id="btn-logout-err">Sair / Logout</button>
   </section>
 
 </div>
@@ -529,6 +529,7 @@ body {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/route-guard.js"></script>
 
 <script>
 const sb   = window.staflowSupabase;
@@ -608,42 +609,26 @@ let lastGeoTimestamp = 0;
    BOOT
    ════════════════════════════════════════════════════════════════ */
 (async () => {
-  // 1. Auth
-  const session = await auth.checkAuth('/auth/login.html');
-  if (!session) return;
+  // 1. Carrega sessão completa (faz claim internamente)
+  const session = await auth.loadFullSession();
   user = session.user;
+  profile = session.profile;
 
-  // 2. Profile
-  const profRes = await auth.getProfile();
-  if (!profRes.ok) { toast(profRes.error, 'error'); return; }
-  profile = profRes.data;
+  // 2. ★ TRONCO SUPERIOR DE ROTEAMENTO — única decisão autoritativa
+  //    Se o user não for funcionário (e não tiver flag pending), o guard
+  //    ejeta automaticamente para /dashboard. Se nem estiver logado, vai
+  //    pra /auth/login.
+  const g = window.staflowGuard.executarRoteamentoSeguro(user, profile);
+  if (!g.allow) return;
 
-  // 3. Guard inverso — síndico/admin não fica aqui
-  if (profile.role && profile.role !== 'funcionario') {
-    // Tenta auto-claim antes de devolver para o dashboard
-    const claim = await sb.rpc('claim_funcionario_by_email').single();
-    if (claim.data && claim.data.vinculado) {
-      // Vinculou — recarrega profile e segue como funcionário
-      const r2 = await auth.getProfile();
-      if (r2.ok) profile = r2.data;
-    } else {
-      // Não é funcionário e não foi vinculado → manda pro dashboard
-      location.replace('/dashboard.html');
-      return;
-    }
-  }
-
-  // 4. Vincula/recupera o funcionario via RPC
-  let funcId = null, condoId = null;
-  const claim = await sb.rpc('claim_funcionario_by_email').single();
-  if (claim.error) { toast('Erro ao validar vínculo: ' + claim.error.message, 'error'); }
-  if (claim.data) {
-    funcId  = claim.data.funcionario_id;
-    condoId = claim.data.condominio_id;
-  }
-  // Limpa flag de pending claim (vindo de /auth/cadastro como colaborador)
-  if (funcId) {
-    try { localStorage.removeItem('staflow_pending_colab_claim'); } catch(_) {}
+  // 3. Aqui é seguro: profile.role === 'funcionario' OU flag pending ativa.
+  //    Tenta recuperar o registro de funcionario vinculado.
+  let funcId = null;
+  const claimRes = await sb.rpc('claim_funcionario_by_email').single();
+  if (claimRes?.data?.funcionario_id) {
+    funcId = claimRes.data.funcionario_id;
+    // Vínculo deu certo → limpa a flag de pending (se houvesse)
+    window.staflowGuard.limparPendingColabClaim();
   }
 
   if (!funcId) {

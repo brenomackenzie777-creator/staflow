@@ -319,6 +319,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/supabase-client.js"></script>
 <script src="/js/auth.js"></script>
+<script src="/js/route-guard.js"></script>
 <!-- Mapa de price IDs do Stripe (window.STAFLOW_STRIPE_PRICES) -->
 <script src="/js/stripe-config.js"></script>
 <script>
@@ -522,41 +523,31 @@ document.getElementById('btn-scale').addEventListener('click',   () => ativarPla
 
 // ---------- Boot ----------
 (async () => {
-  // Verifica autenticação
-  const session = await auth.checkAuth('/auth/login.html');
-  if (!session) return;
+  // 1. Carrega sessão completa
+  const { user, profile, subscription } = await auth.loadFullSession();
+  perfilAtual = profile;
 
-  const { ok, data: profile } = await auth.getProfile();
-  if (ok) perfilAtual = profile;
+  // 2. ★ TRONCO SUPERIOR DE ROTEAMENTO — autoritativo
+  //    Se for funcionário, ejeta pra /colaborador. Se for sindico com
+  //    subscription vigente, ejeta pra /dashboard. Se for sindico sem
+  //    subscription, autoriza renderizar /planos.
+  const g = window.staflowGuard.executarRoteamentoSeguro(user, profile, {
+    hasActiveSubscription: !!subscription && !subscription._blocked,
+    isBlockedSubscription: !!subscription?._blocked,
+    blockReason: subscription?._reason
+  });
+  if (!g.allow) return;
 
-  // Mensagens de retorno do Stripe e bloqueios do app-shell
+  // 3. Toasts contextuais de retorno (Stripe cancel / motivos de bloqueio)
   const qs = new URLSearchParams(location.search);
-
   if (qs.get('checkout') === 'cancel') {
     toast('Pagamento cancelado. Escolha um plano para continuar.', 'error');
   }
-
   switch (qs.get('reason')) {
-    case 'past_due':
-      toast('Sua assinatura está com pagamento pendente. Regularize para continuar.', 'error');
-      break;
-    case 'canceled':
-      toast('Sua assinatura foi cancelada. Escolha um plano para reativar.', 'error');
-      break;
-    case 'expired':
-      toast('Sua assinatura expirou. Renove para continuar usando o StaFlow.', 'error');
-      break;
-    case 'inactive':
-      toast('Sua assinatura não está ativa. Escolha um plano abaixo.', 'error');
-      break;
-  }
-
-  // Se já tem assinatura vigente (active/trialing, dentro do período), vai pro dashboard.
-  // Se tem subscription mas está bloqueada, NÃO redireciona — fica em /planos para ele reativar.
-  const sub = await auth.checkSubscription();
-  if (sub && !sub._blocked) {
-    location.replace('/dashboard.html');
-    return;
+    case 'past_due': toast('Sua assinatura está com pagamento pendente. Regularize para continuar.', 'error'); break;
+    case 'canceled': toast('Sua assinatura foi cancelada. Escolha um plano para reativar.', 'error'); break;
+    case 'expired':  toast('Sua assinatura expirou. Renove para continuar usando o StaFlow.', 'error'); break;
+    case 'inactive': toast('Sua assinatura não está ativa. Escolha um plano abaixo.', 'error'); break;
   }
 })();
 </script>
