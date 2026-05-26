@@ -381,26 +381,196 @@ table.tbl .row-actions button.danger:hover { color: var(--red); border-color: va
   padding: 10px 18px; margin-top: 0;
 }
 
-/* ---------- Responsivo ---------- */
-@media (max-width: 720px) {
-  .app { grid-template-columns: 1fr; }
-  .sidebar {
-    position: fixed; top: 0; left: 0; bottom: 0;
-    width: 248px; transform: translateX(-100%);
-    z-index: 100;
-    transition: transform .25s;
-  }
-  .sidebar.open { transform: translateX(0); }
-  .main { padding: 18px; }
-  .topbar h1 { font-size: 22px; }
-  .menu-toggle { display: inline-flex !important; }
+/* ============================================================
+   SKELETON LOADERS — pulse suave usado em tabelas e cards
+   enquanto a Promise do Supabase está pendente.
+   ============================================================ */
+.skeleton-pulse {
+  position: relative;
+  overflow: hidden;
+  background: rgba(240, 244, 255, 0.04);
+  border-radius: 4px;
+  display: inline-block;
 }
+.skeleton-pulse::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(240, 244, 255, 0.07) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* Barra de skeleton (uso em linhas de tabela / textos) */
+.sk-bar {
+  display: inline-block;
+  height: 12px;
+  width: 100%;
+  border-radius: 3px;
+  background: rgba(240,244,255,0.04);
+  position: relative;
+  overflow: hidden;
+}
+.sk-bar::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(240,244,255,0.07), transparent);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.sk-bar.sm { height: 10px; }
+.sk-bar.lg { height: 18px; }
+.sk-bar.w-30 { width: 30%; }
+.sk-bar.w-50 { width: 50%; }
+.sk-bar.w-60 { width: 60%; }
+.sk-bar.w-80 { width: 80%; }
+.sk-circle {
+  display: inline-block;
+  border-radius: 50%;
+  background: rgba(240,244,255,0.04);
+  position: relative; overflow: hidden;
+  width: 32px; height: 32px;
+  flex-shrink: 0;
+}
+.sk-circle::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(240,244,255,0.07), transparent);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.sk-circle.lg { width: 44px; height: 44px; }
+
+/* Linha de tabela skeleton */
+tr.sk-row td { padding: 14px; border-bottom: 1px solid var(--border); }
+tr.sk-row td:first-child {
+  display: flex; align-items: center; gap: 10px;
+}
+tr.sk-row .sk-text-block {
+  display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0;
+}
+
+/* ============================================================
+   TOAST — sistema unificado com variantes success/error/warning/info
+   ============================================================ */
+.toast {
+  position: fixed; left: 50%; bottom: 22px;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--navy);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; color: var(--white);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transition: opacity .2s ease, transform .25s ease;
+  min-width: 260px; max-width: 90vw;
+}
+.toast.show {
+  opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto;
+}
+.toast .ico {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  flex-shrink: 0;
+}
+.toast .msg { flex: 1; line-height: 1.4; }
+
+/* Variantes */
+.toast.success { border-color: var(--teal-border); }
+.toast.success .ico { background: var(--teal-dim); color: var(--teal); }
+
+.toast.error { border-color: rgba(239,68,68,0.4); }
+.toast.error .ico { background: rgba(239,68,68,0.15); color: var(--red); }
+
+.toast.warning { border-color: rgba(255,209,102,0.4); }
+.toast.warning .ico { background: rgba(255,209,102,0.15); color: var(--amber); }
+
+.toast.info { border-color: var(--border-strong); }
+.toast.info .ico { background: rgba(99,102,241,0.15); color: #818CF8; }
+
+/* ============================================================
+   RESPONSIVO — Mobile First, breakpoint 768px
+   ============================================================ */
+
+/* Botão hamburguer (visível só no mobile) */
 .menu-toggle {
   display: none;
   background: var(--navy);
   border: 1px solid var(--border);
   color: var(--white);
-  padding: 8px 12px; border-radius: var(--radius);
-  cursor: pointer; font-size: 18px;
-  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 18px;
+  margin-bottom: 12px;
+  transition: var(--transition);
+}
+.menu-toggle:hover { border-color: var(--teal); color: var(--teal); }
+
+/* Backdrop do drawer */
+.sidebar-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(2px);
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+.sidebar-backdrop.show { opacity: 1; pointer-events: auto; }
+
+/* ── Tablet / mobile ── */
+@media (max-width: 768px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: 270px; max-width: 80vw;
+    transform: translateX(-100%);
+    z-index: 100;
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+    box-shadow: 4px 0 32px rgba(0,0,0,0.4);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .main { padding: 16px 14px 80px; }
+  .topbar { flex-direction: column; align-items: stretch; gap: 12px; margin-bottom: 20px; }
+  .topbar h1 { font-size: 22px; }
+  .topbar-actions { flex-wrap: wrap; }
+  .topbar-actions .btn { flex: 1; min-width: 0; padding: 10px 14px; font-size: 13px; }
+  .menu-toggle { display: inline-flex !important; align-items: center; }
+  .modal { padding: 22px 18px; }
+  .modal .field-row { grid-template-columns: 1fr; }
+  .toolbar { gap: 8px; }
+  .toolbar select.filter { flex: 1; min-width: 130px; }
+  /* Tabelas: scroll horizontal suave em mobile */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  .table-wrap::-webkit-scrollbar { height: 6px; }
+  .table-wrap::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+  table.tbl { min-width: 560px; }
+  table.tbl th, table.tbl td { padding: 10px 12px; }
+  .toast { left: 14px; right: 14px; transform: translateY(20px); min-width: 0; }
+  .toast.show { transform: translateY(0); }
+}
+
+@media (max-width: 480px) {
+  .main { padding: 14px 12px 80px; }
+  .card { padding: 16px 14px; }
+  .topbar h1 { font-size: 20px; }
+  .sb-brand .wm { font-size: 16px; }
+  .empty { padding: 40px 16px; }
 }

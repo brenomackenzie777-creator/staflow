@@ -217,6 +217,22 @@ function tempoAtras(d) {
 
 // Carrega estatísticas e equipe recente
 async function loadStats() {
+  // Skeleton enquanto Promise pendente
+  window.staflowApp.skeletonStats(['s-funcionarios', 's-presentes', 's-tarefas', 's-faltas']);
+  const recentArea = document.getElementById('recent-area');
+  if (recentArea) {
+    recentArea.innerHTML = Array.from({ length: 4 }).map(() => `
+      <div class="activity-item">
+        <div class="av"><span class="sk-circle" style="width:32px;height:32px;"></span></div>
+        <div class="meta">
+          <div class="who"><span class="sk-bar w-60"></span></div>
+          <div class="what" style="margin-top:6px;"><span class="sk-bar sm w-30"></span></div>
+        </div>
+        <div class="when"><span class="sk-bar sm w-50" style="width:50px;"></span></div>
+      </div>
+    `).join('');
+  }
+
   const hoje = new Date();
   const inicioDia  = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
   const fimDia     = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1).toISOString();

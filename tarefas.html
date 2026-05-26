@@ -328,6 +328,11 @@ function populateFuncionarioSelect() {
 }
 
 async function loadAll() {
+  // Skeleton enquanto carrega
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('tbl-wrap').style.display = 'block';
+  window.staflowApp.skeletonRows('tbody', 6, 5);
+
   const { data, error } = await sb.from('tarefas')
     .select('*')
     .order('created_at', { ascending: false });

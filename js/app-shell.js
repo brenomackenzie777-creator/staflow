@@ -14,8 +14,23 @@ window.staflowApp = window.staflowApp || {};
 (function () {
   'use strict';
 
-  // ---------- Toast ----------
-  function toast(msg, type = 'success') {
+  // ---------- Toast (success | error | warning | info) ----------
+  const TOAST_ICONS = {
+    success: '✓',
+    error:   '✕',
+    warning: '!',
+    info:    'i'
+  };
+  function showToast(msg, type = 'success', durationMs) {
+    const t = ensureToast();
+    const safeType = TOAST_ICONS[type] ? type : 'info';
+    t.className = 'toast show ' + safeType;
+    t.querySelector('.ico').textContent = TOAST_ICONS[safeType];
+    t.querySelector('.msg').textContent = msg;
+    clearTimeout(window.__tt);
+    window.__tt = setTimeout(() => t.className = 'toast', durationMs || 4000);
+  }
+  function ensureToast() {
     let t = document.getElementById('toast');
     if (!t) {
       t = document.createElement('div');
@@ -23,12 +38,52 @@ window.staflowApp = window.staflowApp || {};
       t.className = 'toast';
       t.innerHTML = '<span class="ico"></span><span class="msg"></span>';
       document.body.appendChild(t);
+    } else if (!t.querySelector('.ico')) {
+      // Página tem o elemento mas sem markup interno — normaliza
+      t.innerHTML = '<span class="ico"></span><span class="msg"></span>';
     }
-    t.className = 'toast show ' + type;
-    t.querySelector('.ico').textContent = type === 'success' ? '✓' : '⚠';
-    t.querySelector('.msg').textContent = msg;
-    clearTimeout(window.__tt);
-    window.__tt = setTimeout(() => t.className = 'toast', 4000);
+    return t;
+  }
+  // Alias para compatibilidade com chamadas existentes
+  const toast = showToast;
+
+  // ---------- Skeleton loaders ----------
+  // skeletonRows(tbodyId, cols, rowCount) — preenche o <tbody> com linhas
+  // de skeleton enquanto a Promise de carga ainda está pendente.
+  function skeletonRows(tbodyOrId, cols = 5, rowCount = 5) {
+    const tbody = typeof tbodyOrId === 'string'
+      ? document.getElementById(tbodyOrId)
+      : tbodyOrId;
+    if (!tbody) return;
+    const widths = ['w-80', 'w-60', 'w-50', 'w-30', 'w-60', 'w-50'];
+    let html = '';
+    for (let r = 0; r < rowCount; r++) {
+      let tds = '';
+      for (let c = 0; c < cols; c++) {
+        if (c === 0) {
+          // Primeira coluna: avatar/círculo + bloco de texto
+          tds += `<td>
+            <span class="sk-circle"></span>
+            <span class="sk-text-block">
+              <span class="sk-bar w-60"></span>
+              <span class="sk-bar sm w-30"></span>
+            </span>
+          </td>`;
+        } else {
+          tds += `<td><span class="sk-bar ${widths[c % widths.length]}"></span></td>`;
+        }
+      }
+      html += `<tr class="sk-row">${tds}</tr>`;
+    }
+    tbody.innerHTML = html;
+  }
+
+  // skeletonStats(ids) — substitui o conteúdo de cada elemento por uma sk-bar
+  function skeletonStats(ids = []) {
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<span class="sk-bar lg w-50"></span>';
+    });
   }
 
   // ---------- Helpers ----------
@@ -119,10 +174,31 @@ window.staflowApp = window.staflowApp || {};
       });
     }
 
-    // 8. Mobile drawer
+    // 8. Mobile drawer + backdrop
     const tgl = document.getElementById('menu-toggle');
     const sb  = document.getElementById('sidebar');
-    if (tgl && sb) tgl.addEventListener('click', () => sb.classList.toggle('open'));
+    if (tgl && sb) {
+      // Cria backdrop sob demanda
+      let bd = document.querySelector('.sidebar-backdrop');
+      if (!bd) {
+        bd = document.createElement('div');
+        bd.className = 'sidebar-backdrop';
+        document.body.appendChild(bd);
+      }
+      const closeDrawer = () => {
+        sb.classList.remove('open');
+        bd.classList.remove('show');
+      };
+      tgl.addEventListener('click', () => {
+        const open = sb.classList.toggle('open');
+        bd.classList.toggle('show', open);
+      });
+      bd.addEventListener('click', closeDrawer);
+      // Fecha ao navegar dentro do drawer
+      sb.querySelectorAll('a.sb-link').forEach(a => a.addEventListener('click', closeDrawer));
+      // Fecha com Esc
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+    }
 
     // 9. Auto-logout na expiração
     window.staflowAuth.onAuthStateChange((event) => {
@@ -221,4 +297,7 @@ window.staflowApp = window.staflowApp || {};
   window.staflowApp.renderSidebar  = renderSidebar;
   window.staflowApp.hideSplash     = hideSplash;
   window.staflowApp.exportCSV      = exportCSV;
+  window.staflowApp.showToast      = showToast;
+  window.staflowApp.skeletonRows   = skeletonRows;
+  window.staflowApp.skeletonStats  = skeletonStats;
 })();

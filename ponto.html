@@ -573,6 +573,12 @@ async function loadData() {
   const dateStr = document.getElementById('inp-date').value;
   if (!dateStr) return;
 
+  // Skeleton enquanto carrega
+  document.getElementById('empty-nofunc').style.display = 'none';
+  document.getElementById('empty-filter').style.display = 'none';
+  document.getElementById('tbl-wrap').style.display     = 'block';
+  window.staflowApp.skeletonRows('tbody', 6, 5);
+
   const { start, end } = dayRange(dateStr);
 
   const [resFuncs, resReg] = await Promise.all([

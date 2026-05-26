@@ -485,6 +485,11 @@ function renderRows() {
 
 // ---- Carregar dados ----
 async function loadAll() {
+  // Skeleton enquanto carrega
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('tbl-wrap').style.display = 'block';
+  window.staflowApp.skeletonRows('tbody', 7, 5);
+
   const { data, error } = await sb
     .from('faltas')
     .select('*, atestado_path, funcionarios(id, nome, cargo)')
