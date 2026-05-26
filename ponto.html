@@ -263,7 +263,8 @@
         <p class="sub">Registro de entrada e saída dos funcionários.</p>
       </div>
       <div class="topbar-actions">
-        <button class="btn btn-ghost" id="btn-export" style="width:auto;padding:10px 18px;">⤓ Exportar CSV</button>
+        <button class="btn btn-ghost" id="btn-espelho" style="width:auto;padding:10px 18px;" title="Espelho consolidado do mês">⤓ Espelho mensal</button>
+        <button class="btn btn-ghost" id="btn-export" style="width:auto;padding:10px 18px;">⤓ Exportar dia</button>
       </div>
     </div>
 
@@ -704,7 +705,7 @@ async function openDetail(funcId) {
 document.getElementById('det-close').addEventListener('click', () => modalDet.classList.remove('show'));
 modalDet.addEventListener('click', (e) => { if (e.target === modalDet) modalDet.classList.remove('show'); });
 
-// ── Exportar CSV ────────────────────────────────────────────────────────────────
+// ── Exportar CSV — Dia atual ────────────────────────────────────────────────────
 document.getElementById('btn-export').addEventListener('click', () => {
   if (rows.length === 0) { T('Nenhum dado para exportar.', 'error'); return; }
 
@@ -715,24 +716,182 @@ document.getElementById('btn-export').addEventListener('click', () => {
     const f      = row.func;
     const status = getStatus(row);
     return [
-      `"${f.nome.replace(/"/g,'""')}"`,
-      `"${(CARGO_LBL[f.cargo] || f.cargo).replace(/"/g,'""')}"`,
+      f.nome,
+      CARGO_LBL[f.cargo] || f.cargo,
       fmtHora(row.entrada?.registrado_em),
       fmtHora(row.saida?.registrado_em),
       calcHoras(row.entrada?.registrado_em, row.saida?.registrado_em),
       status
-    ].join(',');
+    ];
   });
 
-  const csv  = [header.join(','), ...csvRows].join('\n');
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `ponto_${dateStr}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  window.staflowApp.exportCSV(header, csvRows, `ponto_${dateStr}.csv`);
   T('CSV exportado com sucesso.', 'success');
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MOTOR DE CONSOLIDAÇÃO — Métricas de período
+// ══════════════════════════════════════════════════════════════════════════════
+// Busca todos os pontos e faltas de um funcionário entre dataInicio e dataFim
+// (strings ISO YYYY-MM-DD, inclusivas) e calcula:
+//   - totalHorasTrabalhadas   (decimal, em horas)
+//   - totalHorasFormatado     ('Xh YYm')
+//   - diasTrabalhados         (dias com pelo menos 1 par entrada/saída)
+//   - faltasInjustificadas    (tipo=falta E justificada=false)
+//   - diasAtestado            (tipo=atestado)
+//   - diasFerias              (tipo=ferias)
+//   - diasLicenca             (tipo=licenca)
+//
+async function calcularMetricasPeriodo(funcionarioId, dataInicio, dataFim) {
+  // dataInicio e dataFim em formato YYYY-MM-DD
+  const inicioISO = dataInicio + 'T00:00:00.000Z';
+  const fimDate   = new Date(dataFim + 'T12:00:00Z');
+  fimDate.setUTCDate(fimDate.getUTCDate() + 1);
+  const fimISO = `${fimDate.getUTCFullYear()}-${String(fimDate.getUTCMonth()+1).padStart(2,'0')}-${String(fimDate.getUTCDate()).padStart(2,'0')}T00:00:00.000Z`;
+
+  const [resPontos, resFaltas] = await Promise.all([
+    sb.from('registros_ponto')
+      .select('tipo, registrado_em')
+      .eq('funcionario_id', funcionarioId)
+      .gte('registrado_em', inicioISO)
+      .lt('registrado_em', fimISO)
+      .order('registrado_em', { ascending: true }),
+    sb.from('faltas')
+      .select('tipo, justificada, data')
+      .eq('funcionario_id', funcionarioId)
+      .gte('data', dataInicio)
+      .lte('data', dataFim)
+  ]);
+
+  if (resPontos.error) throw resPontos.error;
+  if (resFaltas.error) throw resFaltas.error;
+
+  const pontos = resPontos.data || [];
+  const faltas = resFaltas.data || [];
+
+  // Agrupa pontos por dia local (YYYY-MM-DD)
+  const porDia = {};
+  for (const p of pontos) {
+    const d = new Date(p.registrado_em);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if (!porDia[key]) porDia[key] = [];
+    porDia[key].push(p);
+  }
+
+  let totalMs = 0;
+  let diasTrabalhados = 0;
+
+  for (const dia of Object.keys(porDia)) {
+    const eventos = porDia[dia].sort((a, b) => new Date(a.registrado_em) - new Date(b.registrado_em));
+    // Pareia entrada→saida sequencialmente (suporta múltiplas idas e voltas)
+    let entradaAtual = null;
+    let trabalhouNoDia = false;
+    for (const e of eventos) {
+      if (e.tipo === 'entrada' && !entradaAtual) {
+        entradaAtual = e;
+      } else if (e.tipo === 'saida' && entradaAtual) {
+        totalMs += new Date(e.registrado_em) - new Date(entradaAtual.registrado_em);
+        entradaAtual = null;
+        trabalhouNoDia = true;
+      }
+    }
+    if (trabalhouNoDia) diasTrabalhados++;
+  }
+
+  const horasDecimal = totalMs / 3600000;
+  const horasInt     = Math.floor(horasDecimal);
+  const minutos      = Math.round((horasDecimal - horasInt) * 60);
+
+  // Contadores de faltas
+  let faltasInjustificadas = 0, diasAtestado = 0, diasFerias = 0, diasLicenca = 0;
+  for (const f of faltas) {
+    if (f.tipo === 'falta' && !f.justificada) faltasInjustificadas++;
+    else if (f.tipo === 'atestado') diasAtestado++;
+    else if (f.tipo === 'ferias')   diasFerias++;
+    else if (f.tipo === 'licenca')  diasLicenca++;
+  }
+
+  return {
+    funcionarioId,
+    periodo: { inicio: dataInicio, fim: dataFim },
+    totalHorasTrabalhadas: Math.round(horasDecimal * 100) / 100,
+    totalHorasFormatado:   `${horasInt}h${String(minutos).padStart(2,'0')}m`,
+    diasTrabalhados,
+    faltasInjustificadas,
+    diasAtestado,
+    diasFerias,
+    diasLicenca,
+    totalDiasAfastado: diasAtestado + diasFerias + diasLicenca
+  };
+}
+
+// Exponho globalmente caso outras telas/relatórios queiram reutilizar
+window.staflowApp.calcularMetricasPeriodo = calcularMetricasPeriodo;
+
+// ── Espelho mensal: consolidado de TODOS os funcionários ativos ───────────────
+document.getElementById('btn-espelho').addEventListener('click', async () => {
+  if (allFuncs.length === 0) {
+    T('Cadastre funcionários antes de gerar o espelho.', 'error');
+    return;
+  }
+
+  // Usa o mês da data atualmente selecionada na tela
+  const dateStr = document.getElementById('inp-date').value;
+  const [ano, mes] = dateStr.split('-').map(Number);
+  const dataInicio = `${ano}-${String(mes).padStart(2,'0')}-01`;
+  // Último dia do mês
+  const ultimoDia = new Date(ano, mes, 0).getDate();
+  const dataFim   = `${ano}-${String(mes).padStart(2,'0')}-${String(ultimoDia).padStart(2,'0')}`;
+
+  const btn = document.getElementById('btn-espelho');
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Gerando…';
+
+  try {
+    // Calcula em paralelo para todos os funcionários
+    const metricas = await Promise.all(
+      allFuncs.map(f => calcularMetricasPeriodo(f.id, dataInicio, dataFim))
+    );
+
+    const header = [
+      'Nome', 'Cargo', 'Período',
+      'Horas trabalhadas', 'Total (horas decimais)',
+      'Dias trabalhados',
+      'Faltas injustificadas',
+      'Dias de atestado', 'Dias de férias', 'Dias de licença',
+      'Total dias afastado'
+    ];
+
+    const rowsCsv = allFuncs.map((f, i) => {
+      const m = metricas[i];
+      return [
+        f.nome,
+        CARGO_LBL[f.cargo] || f.cargo,
+        `${dataInicio} a ${dataFim}`,
+        m.totalHorasFormatado,
+        m.totalHorasTrabalhadas,
+        m.diasTrabalhados,
+        m.faltasInjustificadas,
+        m.diasAtestado,
+        m.diasFerias,
+        m.diasLicenca,
+        m.totalDiasAfastado
+      ];
+    });
+
+    window.staflowApp.exportCSV(
+      header,
+      rowsCsv,
+      `espelho_ponto_${ano}-${String(mes).padStart(2,'0')}.csv`
+    );
+    T(`Espelho de ${String(mes).padStart(2,'0')}/${ano} exportado.`, 'success');
+  } catch (err) {
+    T('Erro ao gerar espelho: ' + (err.message || 'tente novamente'), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
 });
 
 // ── Filtros / busca ─────────────────────────────────────────────────────────────

@@ -52,6 +52,8 @@
   background: var(--teal-dim); color: var(--teal);
 }
 .stat-foot .pill.amber { background: rgba(255,209,102,0.12); color: var(--amber); }
+.stat-foot .pill.red   { background: rgba(255,107,107,0.12); color: var(--red); }
+.stat-foot .pill.teal  { background: var(--teal-dim); color: var(--teal); }
 
 .row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
 .card h2 {
@@ -148,7 +150,7 @@
       <a href="/ponto.html" class="stat">
         <div class="stat-label">Presentes hoje</div>
         <div class="stat-value" id="s-presentes">—</div>
-        <div class="stat-foot">Ver registro de ponto</div>
+        <div class="stat-foot" id="s-presentes-foot">Ver registro de ponto</div>
       </a>
       <a href="/tarefas.html" class="stat">
         <div class="stat-label">Tarefas pendentes</div>
@@ -158,7 +160,7 @@
       <a href="/faltas.html" class="stat">
         <div class="stat-label">Faltas na semana</div>
         <div class="stat-value" id="s-faltas">—</div>
-        <div class="stat-foot">Ver registro de faltas</div>
+        <div class="stat-foot" id="s-faltas-foot">Ver registro de faltas</div>
       </a>
     </section>
 
@@ -223,18 +225,23 @@ async function loadStats() {
   const dow = hoje.getDay() === 0 ? 6 : hoje.getDay() - 1;
   const inicioSemana = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - dow).toISOString();
 
-  // Queries paralelas
+  const hojeISO = inicioDia.split('T')[0];
+
+  // Queries paralelas — agora também cruza faltas de HOJE para distinguir
+  // ausentes legítimos (atestado/férias/licença) de faltas injustificadas.
   const [
     { count: totalAtivos },
     { data: pontosHoje },
     { count: tarefasPendentes },
-    { count: faltasSemana },
+    { data: faltasSemanaRows },
+    { data: faltasHoje },
     { data: ultimos }
   ] = await Promise.all([
     sb.from('funcionarios').select('id', { count:'exact', head:true }).eq('ativo', true),
     sb.from('registros_ponto').select('funcionario_id, tipo').gte('registrado_em', inicioDia).lt('registrado_em', fimDia),
     sb.from('tarefas').select('id', { count:'exact', head:true }).in('status', ['pendente','em_andamento']),
-    sb.from('faltas').select('id', { count:'exact', head:true }).gte('data', inicioSemana.split('T')[0]),
+    sb.from('faltas').select('id, tipo, justificada, data').gte('data', inicioSemana.split('T')[0]),
+    sb.from('faltas').select('funcionario_id, tipo, justificada').eq('data', hojeISO),
     sb.from('funcionarios').select('id, nome, cargo, created_at, ativo').order('created_at', { ascending:false }).limit(5)
   ]);
 
@@ -250,10 +257,50 @@ async function loadStats() {
     presentes = Object.values(porFunc).filter(v => v.entrada && !v.saida).length;
   }
 
+  // ── Inteligência de faltas ─────────────────────────────────────────────────
+  // HOJE: separa "afastados legítimos" (atestado/férias/licença) de faltas injust.
+  const TIPOS_AFASTAMENTO = new Set(['atestado','ferias','licenca']);
+  const afastadosHojeIds  = new Set();
+  let faltasInjustHoje    = 0;
+
+  (faltasHoje || []).forEach(r => {
+    if (TIPOS_AFASTAMENTO.has(r.tipo)) {
+      afastadosHojeIds.add(r.funcionario_id);
+    } else if (r.tipo === 'falta' && !r.justificada) {
+      faltasInjustHoje++;
+    }
+  });
+
+  // SEMANA: total + breakdown
+  const semanaTotal      = (faltasSemanaRows || []).length;
+  const semanaAtestado   = (faltasSemanaRows || []).filter(r => r.tipo === 'atestado').length;
+  const semanaInjust     = (faltasSemanaRows || []).filter(r => r.tipo === 'falta' && !r.justificada).length;
+
   document.getElementById('s-funcionarios').textContent = totalAtivos ?? 0;
   document.getElementById('s-presentes').textContent    = presentes;
   document.getElementById('s-tarefas').textContent      = tarefasPendentes ?? 0;
-  document.getElementById('s-faltas').textContent       = faltasSemana ?? 0;
+  document.getElementById('s-faltas').textContent       = semanaTotal;
+
+  // Footer enriquecido: presentes mostra os em atestado/licença hoje
+  const footPres = document.getElementById('s-presentes-foot');
+  if (afastadosHojeIds.size > 0) {
+    footPres.innerHTML = `<span class="pill amber">${afastadosHojeIds.size} em atestado/licença</span>`;
+  } else if (faltasInjustHoje > 0) {
+    footPres.innerHTML = `<span class="pill red">${faltasInjustHoje} falta(s) injustificada(s) hoje</span>`;
+  } else {
+    footPres.textContent = 'Ver registro de ponto';
+  }
+
+  // Footer enriquecido: faltas-semana mostra breakdown
+  const footFaltas = document.getElementById('s-faltas-foot');
+  if (semanaTotal > 0) {
+    const parts = [];
+    if (semanaInjust > 0)    parts.push(`<span class="pill red">${semanaInjust} injust.</span>`);
+    if (semanaAtestado > 0)  parts.push(`<span class="pill amber">${semanaAtestado} atestado(s)</span>`);
+    footFaltas.innerHTML = parts.join(' ') || 'Ver registro de faltas';
+  } else {
+    footFaltas.textContent = 'Ver registro de faltas';
+  }
 
   // Equipe recente
   const empty = document.getElementById('empty-funcs');

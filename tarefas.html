@@ -511,7 +511,7 @@ document.getElementById('btn-export').addEventListener('click', () => {
   }
 
   const header = ['Título', 'Responsável', 'Prioridade', 'Prazo', 'Status'];
-  const lines = rows.map(r => {
+  const rowsCsv = rows.map(r => {
     const resp = r.funcionario_id
       ? (allFuncionarios.find(f => f.id === r.funcionario_id)?.nome || '')
       : '';
@@ -524,17 +524,10 @@ document.getElementById('btn-export').addEventListener('click', () => {
       PRIO_LBL[r.prioridade] || r.prioridade,
       prazo,
       STATUS_LBL[r.status] || r.status
-    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    ];
   });
 
-  const csv = [header.join(','), ...lines].join('\n');
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url;
-  a.download = `tarefas_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  window.staflowApp.exportCSV(header, rowsCsv, `tarefas_${new Date().toISOString().slice(0,10)}.csv`);
   T('CSV exportado com sucesso.', 'success');
 });
 

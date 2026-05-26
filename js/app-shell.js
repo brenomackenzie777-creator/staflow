@@ -183,6 +183,35 @@ window.staflowApp = window.staflowApp || {};
     if (el) el.innerHTML = sidebarHTML();
   }
 
+  // ---------- CSV helper (BOM UTF-8 para abrir corretamente no Excel) ----------
+  // header: ['Coluna A', 'Coluna B', ...]
+  // rows:   [[v1, v2, ...], [v1, v2, ...], ...]   (valores brutos; serão escapados)
+  // filename: 'relatorio_2026-05.csv'
+  function csvEscape(v) {
+    if (v == null) return '';
+    const s = String(v);
+    // Se contém vírgula, aspa, quebra de linha → cerca com aspas e escapa "
+    if (/[",\n\r;]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function exportCSV(header, rows, filename) {
+    const lines = [
+      header.map(csvEscape).join(','),
+      ...rows.map(r => r.map(csvEscape).join(','))
+    ];
+    // BOM UTF-8 (﻿) garante acentos corretos no Excel/Numbers
+    const csv  = '﻿' + lines.join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   // ---------- API global ----------
   window.staflowApp.toast          = toast;
   window.staflowApp.iniciais       = iniciais;
@@ -191,4 +220,5 @@ window.staflowApp = window.staflowApp || {};
   window.staflowApp.bootstrapShell = bootstrapShell;
   window.staflowApp.renderSidebar  = renderSidebar;
   window.staflowApp.hideSplash     = hideSplash;
+  window.staflowApp.exportCSV      = exportCSV;
 })();
