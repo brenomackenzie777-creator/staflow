@@ -1,0 +1,9 @@
+# Supabase project config — apenas overrides para Edge Functions.
+# Stripe chama o webhook sem JWT → desabilitamos a verificação.
+# A função valida a autenticidade via Stripe-Signature (HMAC).
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.create-checkout-session]
+verify_jwt = true

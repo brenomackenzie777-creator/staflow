@@ -476,15 +476,22 @@ async function ativarPlano(plan) {
 
     // ──────────────────────────────────────────────────────────
     // CAMINHO B: Pago — Stripe Checkout
-    // Chama a Edge Function `create-checkout-session` (a deployar).
-    // Ela cria a Session no Stripe e retorna a URL para redirecionar.
+    // Mapa plano → price_id (configure em /js/stripe-config.js ou inline).
+    // Os valores reais ficam em window.STAFLOW_STRIPE_PRICES (definidos no
+    // build/deploy — mantém os IDs fora do código versionado).
     // ──────────────────────────────────────────────────────────
+    const priceMap = window.STAFLOW_STRIPE_PRICES || {};
+    const priceId  = priceMap[plan];
+    if (!priceId) {
+      throw new Error('Integração de pagamento ainda não está configurada. Use um cupom de desconto por enquanto.');
+    }
+
     const { data, error } = await sb.functions.invoke('create-checkout-session', {
       body: {
-        plan,
-        coupon_code:    cupomAtivo?.code || null,
-        success_url:    `${location.origin}/dashboard.html?checkout=success`,
-        cancel_url:     `${location.origin}/planos.html?checkout=cancel`
+        priceId,
+        condominioId: perfilAtual?.condominio_id || null,
+        successUrl:   `${location.origin}/dashboard.html?checkout=success`,
+        cancelUrl:    `${location.origin}/planos.html?checkout=cancel`
       }
     });
 
