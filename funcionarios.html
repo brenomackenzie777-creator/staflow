@@ -8,6 +8,104 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="auth/auth.css">
 <link rel="stylesheet" href="app.css">
+<style>
+/* ── Avatares na tabela ──────────────────────────────── */
+.tbl-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--navy-brand);
+  border: 1.5px solid var(--border);
+  display: inline-flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 13px;
+  color: #fff;
+}
+.tbl-avatar img {
+  width: 100%; height: 100%; object-fit: cover;
+  display: block;
+}
+
+/* ── Área de upload de foto no modal ─────────────────── */
+.foto-upload-area {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  background: var(--navy-deep);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  transition: var(--transition);
+}
+.foto-upload-area:hover { border-color: var(--border-strong); }
+
+.foto-preview {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: var(--navy-brand);
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.foto-preview img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.foto-preview .foto-initials {
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 22px;
+  color: #fff;
+  pointer-events: none;
+}
+
+.foto-controls {
+  display: flex; flex-direction: column; gap: 8px; flex: 1;
+}
+.foto-controls-row {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+}
+.btn-foto-pick {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--white);
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.btn-foto-pick:hover { border-color: var(--teal); color: var(--teal); }
+
+.btn-foto-remove {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px solid rgba(239,68,68,0.4);
+  border-radius: var(--radius);
+  color: var(--red);
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-foto-remove:hover { background: rgba(239,68,68,0.08); }
+
+.foto-hint {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--white-muted);
+}
+.foto-filename {
+  font-size: 12px; color: var(--teal);
+  font-family: var(--font-mono);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 200px;
+}
+</style>
 </head>
 <body>
 
@@ -86,6 +184,26 @@
 
     <form id="form-func" novalidate>
       <input type="hidden" id="f-id">
+
+      <!-- Foto -->
+      <div class="field">
+        <label>Foto <span style="color:var(--white-muted);font-size:12px;">(opcional)</span></label>
+        <div class="foto-upload-area">
+          <div class="foto-preview" id="foto-preview">
+            <span class="foto-initials" id="foto-initials">?</span>
+            <img id="foto-img" src="" alt="" style="display:none;">
+          </div>
+          <div class="foto-controls">
+            <div class="foto-controls-row">
+              <label class="btn-foto-pick" for="foto-file">📷 Escolher foto</label>
+              <input type="file" id="foto-file" accept="image/jpeg,image/png,image/webp" style="display:none;">
+              <button type="button" id="btn-foto-remove" class="btn-foto-remove" style="display:none;">✕ Remover</button>
+            </div>
+            <div id="foto-filename" class="foto-filename" style="display:none;"></div>
+            <div class="foto-hint">JPG, PNG ou WebP · máx. 5 MB</div>
+          </div>
+        </div>
+      </div>
 
       <div class="field" id="ff-nome">
         <label for="f-nome">Nome completo</label>
@@ -191,10 +309,21 @@
 const sb = window.staflowSupabase;
 const T  = window.staflowApp.toast;
 
-let allRows = [];      // cache total
+let allRows = [];
 let profile = null;
 
-// ---------- helpers de máscara ----------
+// ── Estado do upload de foto ───────────────────────────────────
+let fotoFile        = null;   // File selecionado para upload
+let currentFotoPath = null;   // foto_path existente no DB
+let fotoToDelete    = false;  // sinaliza remoção da foto existente
+
+// ── Helpers ───────────────────────────────────────────────────
+function iniciais(nome) {
+  if (!nome) return '?';
+  const p = nome.trim().split(/\s+/);
+  return ((p[0]?.[0] || '') + (p[p.length - 1]?.[0] || '')).toUpperCase();
+}
+
 function maskTel(v) {
   v = (v||'').replace(/\D/g,'').slice(0,11);
   if (v.length > 10) return v.replace(/(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
@@ -209,14 +338,106 @@ function maskCPF(v) {
     [a,b,c].filter(Boolean).join('.') + (d ? '-'+d : '')
   );
 }
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
 document.getElementById('f-tel').addEventListener('input', e => e.target.value = maskTel(e.target.value));
 document.getElementById('f-cpf').addEventListener('input', e => e.target.value = maskCPF(e.target.value));
 
-// ---------- cargos / turnos legíveis ----------
 const CARGO_LBL = { porteiro:'Porteiro', zelador:'Zelador', faxineira:'Faxineira', jardineiro:'Jardineiro', seguranca:'Segurança', outro:'Outro' };
 const TURNO_LBL = { manha:'Manhã', tarde:'Tarde', noite:'Noite', integral:'Integral', escala:'Escala' };
 
-// ---------- render lista ----------
+// ── Foto: preview no modal ─────────────────────────────────────
+function showFotoImg(src) {
+  document.getElementById('foto-initials').style.display = 'none';
+  const img = document.getElementById('foto-img');
+  img.src = src;
+  img.style.display = 'block';
+  document.getElementById('btn-foto-remove').style.display = 'inline-flex';
+}
+function showFotoInitials(nome) {
+  document.getElementById('foto-initials').textContent = iniciais(nome || '?');
+  document.getElementById('foto-initials').style.display = 'block';
+  document.getElementById('foto-img').style.display = 'none';
+  document.getElementById('foto-img').src = '';
+}
+function resetFoto(nome) {
+  fotoFile = null; fotoToDelete = false;
+  showFotoInitials(nome);
+  document.getElementById('btn-foto-remove').style.display = 'none';
+  document.getElementById('foto-filename').style.display = 'none';
+  document.getElementById('foto-file').value = '';
+}
+
+// Seleção de arquivo
+document.getElementById('foto-file').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { T('Foto muito grande. Máximo: 5 MB.', 'error'); e.target.value = ''; return; }
+  fotoFile = file;
+  fotoToDelete = false;
+  const reader = new FileReader();
+  reader.onload = ev => showFotoImg(ev.target.result);
+  reader.readAsDataURL(file);
+  const fn = document.getElementById('foto-filename');
+  fn.textContent = file.name;
+  fn.style.display = 'block';
+});
+
+// Remover foto
+document.getElementById('btn-foto-remove').addEventListener('click', () => {
+  fotoToDelete = true;
+  fotoFile = null;
+  const nome = document.getElementById('f-nome').value;
+  showFotoInitials(nome);
+  document.getElementById('btn-foto-remove').style.display = 'none';
+  document.getElementById('foto-filename').style.display = 'none';
+  document.getElementById('foto-file').value = '';
+});
+
+// Atualizar iniciais no preview ao digitar o nome
+document.getElementById('f-nome').addEventListener('input', (e) => {
+  if (!fotoFile && !currentFotoPath) {
+    document.getElementById('foto-initials').textContent = iniciais(e.target.value);
+  }
+});
+
+// ── Storage: upload de foto ────────────────────────────────────
+async function uploadFoto(funcionarioId, file) {
+  const ext  = file.name.split('.').pop().toLowerCase() || 'jpg';
+  const path = `${profile.condominio_id}/${funcionarioId}.${ext}`;
+  const { error } = await sb.storage
+    .from('fotos-funcionarios')
+    .upload(path, file, { upsert: true, cacheControl: '3600' });
+  if (error) throw new Error('Erro ao enviar foto: ' + error.message);
+  return path;
+}
+
+async function deleteFoto(fotoPath) {
+  if (!fotoPath) return;
+  await sb.storage.from('fotos-funcionarios').remove([fotoPath]);
+}
+
+// ── Storage: signed URLs em lote para a tabela ─────────────────
+async function loadAvatarUrls() {
+  const imgs = document.querySelectorAll('img[data-foto-path]');
+  if (!imgs.length) return;
+  const paths = [...imgs].map(img => img.dataset.fotoPath);
+  const { data } = await sb.storage.from('fotos-funcionarios').createSignedUrls(paths, 3600);
+  if (!data) return;
+  data.forEach(({ path, signedUrl }) => {
+    if (!signedUrl) return;
+    document.querySelectorAll(`img[data-foto-path="${path}"]`).forEach(img => {
+      img.src = signedUrl;
+      img.style.display = 'block';
+      img.closest('.tbl-avatar')?.querySelectorAll('span').forEach(s => s.style.display = 'none');
+    });
+  });
+}
+
+// ── Render lista ──────────────────────────────────────────────
 function renderRows() {
   const q      = document.getElementById('q').value.trim().toLowerCase();
   const cargo  = document.getElementById('f-cargo').value;
@@ -238,17 +459,14 @@ function renderRows() {
   const tbody   = document.getElementById('tbody');
 
   if (allRows.length === 0) {
-    empty.style.display = 'block';
-    tblWrap.style.display = 'none';
-    return;
+    empty.style.display = 'block'; tblWrap.style.display = 'none'; return;
   }
   if (rows.length === 0) {
     empty.style.display = 'block';
     empty.querySelector('.title').textContent = 'Nenhum resultado';
     empty.querySelector('.desc').textContent  = 'Ajuste os filtros para ver outros funcionários.';
     empty.querySelector('#btn-first-func').style.display = 'none';
-    tblWrap.style.display = 'none';
-    return;
+    tblWrap.style.display = 'none'; return;
   }
 
   empty.style.display = 'none';
@@ -257,8 +475,18 @@ function renderRows() {
   tbody.innerHTML = rows.map(r => `
     <tr data-id="${r.id}">
       <td>
-        <div style="font-weight:600;">${escapeHtml(r.nome)}</div>
-        ${r.email ? `<div style="font-size:12px;color:var(--white-dim);">${escapeHtml(r.email)}</div>` : ''}
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="tbl-avatar">
+            ${r.foto_path
+              ? `<img data-foto-path="${r.foto_path}" src="" alt="${escapeHtml(r.nome)}" style="display:none;">`
+              : ''}
+            <span>${iniciais(r.nome)}</span>
+          </div>
+          <div>
+            <div style="font-weight:600;">${escapeHtml(r.nome)}</div>
+            ${r.email ? `<div style="font-size:12px;color:var(--white-dim);">${escapeHtml(r.email)}</div>` : ''}
+          </div>
+        </div>
       </td>
       <td>${CARGO_LBL[r.cargo] || r.cargo}</td>
       <td>${TURNO_LBL[r.turno] || r.turno}</td>
@@ -274,32 +502,36 @@ function renderRows() {
       </td>
     </tr>
   `).join('');
+
+  // Carrega signed URLs para avatares com foto (sem bloquear render)
+  loadAvatarUrls();
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-// ---------- carregar do banco ----------
+// ── Carregar do banco ─────────────────────────────────────────
 async function loadAll() {
   const { data, error } = await sb.from('funcionarios')
-    .select('*').order('nome', { ascending: true });
+    .select('id, nome, cargo, turno, telefone, cpf, email, data_admissao, ativo, observacoes, foto_path, created_at')
+    .order('nome', { ascending: true });
   if (error) { T(error.message, 'error'); return; }
   allRows = data || [];
   renderRows();
 }
 
-// ---------- modal ----------
+// ── Modal ─────────────────────────────────────────────────────
 const modal = document.getElementById('modal-func');
+
 function openNew() {
   document.getElementById('m-title').textContent = 'Novo funcionário';
   document.getElementById('form-func').reset();
   document.getElementById('f-id').value = '';
   document.getElementById('f-ativo').value = 'true';
+  currentFotoPath = null;
+  resetFoto('');
   modal.classList.add('show');
   setTimeout(() => document.getElementById('f-nome').focus(), 100);
 }
-function openEdit(row) {
+
+async function openEdit(row) {
   document.getElementById('m-title').textContent = 'Editar funcionário';
   document.getElementById('f-id').value      = row.id;
   document.getElementById('f-nome').value    = row.nome || '';
@@ -311,13 +543,39 @@ function openEdit(row) {
   document.getElementById('f-adm').value     = row.data_admissao || '';
   document.getElementById('f-ativo').value   = row.ativo ? 'true' : 'false';
   document.getElementById('f-obs').value     = row.observacoes || '';
+
+  // Foto
+  currentFotoPath = row.foto_path || null;
+  fotoFile = null; fotoToDelete = false;
+  document.getElementById('foto-filename').style.display = 'none';
+
+  if (row.foto_path) {
+    // Carrega signed URL para preview
+    const { data } = await sb.storage.from('fotos-funcionarios').createSignedUrl(row.foto_path, 3600);
+    if (data?.signedUrl) {
+      showFotoImg(data.signedUrl);
+    } else {
+      showFotoInitials(row.nome);
+      currentFotoPath = null;
+    }
+  } else {
+    showFotoInitials(row.nome);
+    document.getElementById('btn-foto-remove').style.display = 'none';
+  }
+
   modal.classList.add('show');
 }
-function closeModal() { modal.classList.remove('show'); }
+
+function closeModal() {
+  modal.classList.remove('show');
+  resetFoto('');
+  currentFotoPath = null;
+}
+
 document.getElementById('m-cancel').addEventListener('click', closeModal);
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-// ---------- salvar ----------
+// ── Salvar ────────────────────────────────────────────────────
 document.getElementById('form-func').addEventListener('submit', async (e) => {
   e.preventDefault();
   const ffNome = document.getElementById('ff-nome');
@@ -342,68 +600,101 @@ document.getElementById('form-func').addEventListener('submit', async (e) => {
   btn.classList.add('loading'); btn.disabled = true;
 
   const id = document.getElementById('f-id').value;
-  let resp;
-  if (id) {
-    resp = await sb.from('funcionarios').update(payload).eq('id', id).select().single();
-  } else {
-    payload.condominio_id = profile.condominio_id;
-    payload.created_by    = profile.id;
-    resp = await sb.from('funcionarios').insert(payload).select().single();
+
+  try {
+    let resp;
+    if (id) {
+      resp = await sb.from('funcionarios').update(payload).eq('id', id).select().single();
+    } else {
+      payload.condominio_id = profile.condominio_id;
+      payload.created_by    = profile.id;
+      resp = await sb.from('funcionarios').insert(payload).select().single();
+    }
+
+    if (resp.error) throw new Error(resp.error.message);
+
+    const savedId = resp.data.id;
+
+    // ── Upload / remoção de foto ──
+    if (fotoFile) {
+      // Upload novo arquivo
+      const newPath = await uploadFoto(savedId, fotoFile);
+      // Se havia foto anterior com extensão diferente, remove
+      if (currentFotoPath && currentFotoPath !== newPath) {
+        await deleteFoto(currentFotoPath);
+      }
+      await sb.from('funcionarios').update({ foto_path: newPath }).eq('id', savedId);
+    } else if (fotoToDelete && currentFotoPath) {
+      // Usuário clicou em "Remover"
+      await deleteFoto(currentFotoPath);
+      await sb.from('funcionarios').update({ foto_path: null }).eq('id', savedId);
+    }
+    // Se nenhuma mudança de foto → mantém como está
+
+    T(id ? 'Funcionário atualizado.' : 'Funcionário cadastrado.', 'success');
+    closeModal();
+    await loadAll();
+
+  } catch (err) {
+    T(err.message || 'Erro ao salvar.', 'error');
+  } finally {
+    btn.classList.remove('loading'); btn.disabled = false;
   }
-
-  btn.classList.remove('loading'); btn.disabled = false;
-
-  if (resp.error) { T(resp.error.message, 'error'); return; }
-
-  T(id ? 'Funcionário atualizado.' : 'Funcionário cadastrado.', 'success');
-  closeModal();
-  await loadAll();
 });
 
-// ---------- excluir ----------
+// ── Excluir ───────────────────────────────────────────────────
 const modalDel = document.getElementById('modal-del');
 let delTarget = null;
+
 function askDelete(row) {
   delTarget = row;
   document.getElementById('del-nome').textContent = row.nome;
   modalDel.classList.add('show');
 }
+
 document.getElementById('d-cancel').addEventListener('click', () => modalDel.classList.remove('show'));
 modalDel.addEventListener('click', (e) => { if (e.target === modalDel) modalDel.classList.remove('show'); });
+
 document.getElementById('d-confirm').addEventListener('click', async () => {
   if (!delTarget) return;
   const btn = document.getElementById('d-confirm');
   btn.classList.add('loading'); btn.disabled = true;
+
+  // Remove foto do storage antes de deletar o registro
+  if (delTarget.foto_path) {
+    await deleteFoto(delTarget.foto_path);
+  }
+
   const { error } = await sb.from('funcionarios').delete().eq('id', delTarget.id);
   btn.classList.remove('loading'); btn.disabled = false;
   if (error) { T(error.message, 'error'); return; }
   T('Funcionário excluído.', 'success');
   modalDel.classList.remove('show');
+  delTarget = null;
   await loadAll();
 });
 
-// ---------- delegação de cliques nas linhas ----------
+// ── Delegação de cliques nas linhas ───────────────────────────
 document.getElementById('tbody').addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-act]');
   if (!btn) return;
-  const tr = e.target.closest('tr');
-  const id = tr.dataset.id;
+  const tr  = e.target.closest('tr');
+  const id  = tr.dataset.id;
   const row = allRows.find(r => r.id === id);
   if (!row) return;
   if (btn.dataset.act === 'edit') openEdit(row);
   if (btn.dataset.act === 'del')  askDelete(row);
 });
 
-// ---------- filtros / busca ----------
+// ── Filtros / busca ───────────────────────────────────────────
 ['q','f-cargo','f-status'].forEach(id =>
   document.getElementById(id).addEventListener('input', renderRows)
 );
 
-// ---------- new buttons ----------
 document.getElementById('btn-new-func').addEventListener('click', openNew);
 document.getElementById('btn-first-func').addEventListener('click', openNew);
 
-// ---------- boot ----------
+// ── Boot ──────────────────────────────────────────────────────
 (async () => {
   window.staflowApp.renderSidebar('sidebar');
   profile = await window.staflowApp.bootstrapShell({ route: 'funcionarios' });
@@ -414,8 +705,8 @@ document.getElementById('btn-first-func').addEventListener('click', openNew);
     document.getElementById('btn-new-func').disabled = true;
   }
 
-  const sub = document.getElementById('topbar-sub');
-  sub.textContent = profile.condominio_nome ? `Equipe do ${profile.condominio_nome}.` : 'Sua equipe.';
+  document.getElementById('topbar-sub').textContent =
+    profile.condominio_nome ? `Equipe do ${profile.condominio_nome}.` : 'Sua equipe.';
 
   await loadAll();
 })();

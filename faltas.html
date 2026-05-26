@@ -84,6 +84,63 @@ textarea.input {
   min-height: 80px;
 }
 
+/* ---- Atestado upload ---- */
+.atestado-field { display: none; }
+.atestado-field.visible { display: block; }
+
+.atestado-upload-area {
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: var(--transition);
+  background: var(--navy-deep);
+  position: relative;
+}
+.atestado-upload-area:hover { border-color: var(--teal); background: var(--teal-dim); }
+.atestado-upload-area input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.atestado-upload-ico { font-size: 24px; }
+.atestado-upload-lbl {
+  font-size: 13px; color: var(--white-dim); text-align: center;
+}
+.atestado-upload-lbl strong { color: var(--teal); }
+.atestado-upload-hint {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px;
+  color: var(--white-muted); text-align: center;
+}
+
+.atestado-preview-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--navy); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 14px;
+}
+.atestado-preview-ico { font-size: 20px; flex-shrink: 0; }
+.atestado-preview-name {
+  flex: 1; font-size: 13px; color: var(--white);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.atestado-preview-sub { font-size: 11px; color: var(--white-muted); }
+.btn-atestado-remove {
+  background: none; border: none; color: var(--white-muted);
+  cursor: pointer; font-size: 16px; padding: 2px 4px;
+  flex-shrink: 0; transition: color .15s;
+}
+.btn-atestado-remove:hover { color: var(--red); }
+
+/* ---- Ícone de atestado na tabela ---- */
+.atestado-dl {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: var(--teal); font-size: 12px; cursor: pointer;
+  text-decoration: none; white-space: nowrap;
+}
+.atestado-dl:hover { text-decoration: underline; }
+
 @media (max-width: 720px) {
   .faltas-stats { grid-template-columns: 1fr; }
 }
@@ -164,6 +221,7 @@ textarea.input {
                 <th>Tipo</th>
                 <th>Justificada</th>
                 <th>Observação</th>
+                <th>Atestado</th>
                 <th></th>
               </tr>
             </thead>
@@ -219,6 +277,32 @@ textarea.input {
         <textarea class="input" id="f-obs-i" placeholder="Detalhes ou anotações sobre a ocorrência…"></textarea>
       </div>
 
+      <!-- Atestado upload — visível apenas quando tipo = atestado -->
+      <div class="atestado-field" id="ff-atestado">
+        <label style="font-size:13px;font-weight:500;color:var(--white-dim);margin-bottom:8px;display:block;">
+          Comprovante médico
+          <span style="color:var(--white-muted);font-size:11px;margin-left:4px;">(LGPD Art. 11 — dado sensível de saúde)</span>
+        </label>
+
+        <!-- Área de upload (esconde quando há arquivo selecionado) -->
+        <div class="atestado-upload-area" id="atestado-drop" style="display:flex;">
+          <input type="file" id="atestado-file" accept="image/jpeg,image/png,application/pdf">
+          <div class="atestado-upload-ico">📎</div>
+          <div class="atestado-upload-lbl"><strong>Clique para selecionar</strong> ou arraste aqui</div>
+          <div class="atestado-upload-hint">JPG · PNG · PDF · máx. 10 MB</div>
+        </div>
+
+        <!-- Preview do arquivo selecionado ou já salvo -->
+        <div class="atestado-preview-row" id="atestado-preview" style="display:none;">
+          <div class="atestado-preview-ico" id="atestado-prev-ico">📄</div>
+          <div style="flex:1;min-width:0;">
+            <div class="atestado-preview-name" id="atestado-prev-name">—</div>
+            <div class="atestado-preview-sub" id="atestado-prev-sub"></div>
+          </div>
+          <button type="button" class="btn-atestado-remove" id="btn-atestado-remove" title="Remover arquivo">✕</button>
+        </div>
+      </div>
+
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" id="m-cancel"><span class="btn-label">Cancelar</span></button>
         <button type="submit" class="btn" id="m-save">
@@ -258,9 +342,14 @@ textarea.input {
 const sb = window.staflowSupabase;
 const T  = window.staflowApp.toast;
 
-let allRows      = [];  // todos os registros carregados
-let allFuncs     = [];  // lista de funcionários ativos
-let profile      = null;
+let allRows          = [];  // todos os registros carregados
+let allFuncs         = [];  // lista de funcionários ativos
+let profile          = null;
+
+// ---- Estado do atestado no modal ----
+let atestadoFile        = null;  // File objeto novo
+let currentAtestadoPath = null;  // path já salvo no DB
+let atestadoToDelete    = null;  // path a remover no storage ao salvar
 
 // ---- Labels e badges ----
 const TIPO_LBL = { falta: 'Falta', atestado: 'Atestado', ferias: 'Férias', licenca: 'Licença' };
@@ -369,6 +458,9 @@ function renderRows() {
     const nome = r.funcionarios?.nome || '—';
     const cargo = r.funcionarios?.cargo || '';
     const obs = r.observacao ? escapeHtml(r.observacao) : '<span style="color:var(--white-muted);">—</span>';
+    const atestadoCell = r.atestado_path
+      ? `<a class="atestado-dl" data-act="download" data-path="${escapeHtml(r.atestado_path)}">⤓ Ver</a>`
+      : '<span style="color:var(--white-muted);font-size:12px;">—</span>';
     return `
       <tr data-id="${r.id}">
         <td>
@@ -378,7 +470,8 @@ function renderRows() {
         <td style="font-family:var(--font-mono);font-size:13px;">${fmtData(r.data)}</td>
         <td>${tipoBadge(r.tipo)}</td>
         <td>${justBadge(r.justificada)}</td>
-        <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;color:var(--white-dim);">${obs}</td>
+        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;color:var(--white-dim);">${obs}</td>
+        <td>${atestadoCell}</td>
         <td>
           <div class="row-actions">
             <button data-act="edit">Editar</button>
@@ -394,7 +487,7 @@ function renderRows() {
 async function loadAll() {
   const { data, error } = await sb
     .from('faltas')
-    .select('*, funcionarios(id, nome, cargo)')
+    .select('*, atestado_path, funcionarios(id, nome, cargo)')
     .order('data', { ascending: false });
 
   if (error) { T(error.message, 'error'); return; }
@@ -434,6 +527,120 @@ async function loadFuncionarios() {
   });
 }
 
+// ---- Atestado: helpers de UI ----
+function toggleAtestadoField(tipo) {
+  const field = document.getElementById('ff-atestado');
+  if (tipo === 'atestado') {
+    field.classList.add('visible');
+  } else {
+    field.classList.remove('visible');
+    // Limpa seleção pendente se mudou de tipo
+    resetAtestado();
+  }
+}
+
+function showAtestadoPreview(name, sub) {
+  const isImg = /\.(jpg|jpeg|png)$/i.test(name);
+  document.getElementById('atestado-prev-ico').textContent = isImg ? '🖼️' : '📄';
+  document.getElementById('atestado-prev-name').textContent = name;
+  document.getElementById('atestado-prev-sub').textContent  = sub || '';
+  document.getElementById('atestado-drop').style.display    = 'none';
+  document.getElementById('atestado-preview').style.display = 'flex';
+}
+
+function showAtestadoDropzone() {
+  document.getElementById('atestado-drop').style.display    = 'flex';
+  document.getElementById('atestado-preview').style.display = 'none';
+  document.getElementById('atestado-file').value = '';
+}
+
+function resetAtestado() {
+  atestadoFile        = null;
+  currentAtestadoPath = null;
+  atestadoToDelete    = null;
+  showAtestadoDropzone();
+}
+
+// Upload para o bucket
+async function uploadAtestado(faltaId, file) {
+  const ext  = file.name.split('.').pop().toLowerCase();
+  const path = `${profile.condominio_id}/${faltaId}.${ext}`;
+  const { error } = await sb.storage.from('atestados-medicos').upload(path, file, { upsert: true });
+  if (error) throw error;
+  return path;
+}
+
+// Remove do bucket
+async function deleteAtestadoStorage(path) {
+  if (!path) return;
+  await sb.storage.from('atestados-medicos').remove([path]);
+}
+
+// Gera signed URL e abre em nova aba
+async function viewAtestado(path) {
+  const { data, error } = await sb.storage
+    .from('atestados-medicos')
+    .createSignedUrl(path, 3600);
+  if (error || !data?.signedUrl) {
+    T('Não foi possível gerar o link do atestado.', 'error');
+    return;
+  }
+  window.open(data.signedUrl, '_blank', 'noopener');
+}
+
+// Listeners do campo de arquivo
+document.getElementById('atestado-file').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) {
+    T('O arquivo excede 10 MB. Escolha um menor.', 'error');
+    e.target.value = '';
+    return;
+  }
+  const allowed = ['image/jpeg', 'image/png', 'application/pdf'];
+  if (!allowed.includes(file.type)) {
+    T('Formato inválido. Use JPG, PNG ou PDF.', 'error');
+    e.target.value = '';
+    return;
+  }
+  atestadoFile = file;
+  // Se havia um salvo, marca para deletar
+  if (currentAtestadoPath) {
+    atestadoToDelete    = currentAtestadoPath;
+    currentAtestadoPath = null;
+  }
+  const size = file.size > 1024 * 1024
+    ? (file.size / 1024 / 1024).toFixed(1) + ' MB'
+    : Math.round(file.size / 1024) + ' KB';
+  showAtestadoPreview(file.name, size + ' — novo arquivo selecionado');
+});
+
+document.getElementById('btn-atestado-remove').addEventListener('click', () => {
+  if (atestadoFile) {
+    // Só cancela a seleção local
+    atestadoFile = null;
+    if (atestadoToDelete) {
+      // Restaura o path que estava salvo
+      currentAtestadoPath = atestadoToDelete;
+      atestadoToDelete    = null;
+      const name = currentAtestadoPath.split('/').pop();
+      showAtestadoPreview(name, 'arquivo salvo');
+    } else {
+      showAtestadoDropzone();
+    }
+  } else if (currentAtestadoPath) {
+    // Marca o salvo para deletar ao salvar
+    atestadoToDelete    = currentAtestadoPath;
+    currentAtestadoPath = null;
+    showAtestadoDropzone();
+  }
+});
+
+// Tipo change → toggle campo
+document.getElementById('f-tipo-i').addEventListener('change', e => {
+  toggleAtestadoField(e.target.value);
+});
+
 // ---- Modal falta ----
 const modal = document.getElementById('modal-falta');
 
@@ -446,6 +653,8 @@ function openNew() {
   document.getElementById('f-data').value = hoje;
   document.getElementById('f-tipo-i').value = 'falta';
   document.getElementById('f-just').checked = false;
+  resetAtestado();
+  toggleAtestadoField('falta');
   clearFieldErrors();
   modal.classList.add('show');
   setTimeout(() => document.getElementById('f-func-i').focus(), 100);
@@ -459,11 +668,24 @@ function openEdit(row) {
   document.getElementById('f-tipo-i').value    = row.tipo || 'falta';
   document.getElementById('f-just').checked    = !!row.justificada;
   document.getElementById('f-obs-i').value     = row.observacao || '';
+
+  // Atestado
+  resetAtestado();
+  toggleAtestadoField(row.tipo || 'falta');
+  if (row.atestado_path) {
+    currentAtestadoPath = row.atestado_path;
+    const name = row.atestado_path.split('/').pop();
+    showAtestadoPreview(name, 'arquivo salvo — clique ✕ para substituir');
+  }
+
   clearFieldErrors();
   modal.classList.add('show');
 }
 
-function closeModal() { modal.classList.remove('show'); }
+function closeModal() {
+  modal.classList.remove('show');
+  resetAtestado();
+}
 
 function clearFieldErrors() {
   document.getElementById('ff-func').classList.remove('has-error');
@@ -505,17 +727,54 @@ document.getElementById('form-falta').addEventListener('submit', async e => {
 
   const id = document.getElementById('f-id').value;
   let resp;
-  if (id) {
-    resp = await sb.from('faltas').update(payload).eq('id', id).select().single();
-  } else {
-    payload.condominio_id = profile.condominio_id;
-    payload.created_by    = profile.id;
-    resp = await sb.from('faltas').insert(payload).select().single();
+  try {
+    if (id) {
+      resp = await sb.from('faltas').update(payload).eq('id', id).select().single();
+    } else {
+      payload.condominio_id = profile.condominio_id;
+      payload.created_by    = profile.id;
+      resp = await sb.from('faltas').insert(payload).select().single();
+    }
+
+    if (resp.error) { T(resp.error.message, 'error'); btn.classList.remove('loading'); btn.disabled = false; return; }
+
+    const savedId = resp.data.id;
+
+    // 1. Deleta atestado antigo do storage se marcado para remoção
+    if (atestadoToDelete) {
+      await deleteAtestadoStorage(atestadoToDelete);
+    }
+
+    // 2. Upload novo atestado (se houver)
+    let newAtestadoPath = currentAtestadoPath; // mantém o já salvo se não houve mudança
+    if (atestadoFile) {
+      try {
+        newAtestadoPath = await uploadAtestado(savedId, atestadoFile);
+      } catch (err) {
+        T('Falta salva, mas falha no upload do atestado: ' + err.message, 'error');
+        btn.classList.remove('loading'); btn.disabled = false;
+        closeModal();
+        await loadAll();
+        return;
+      }
+    } else if (atestadoToDelete && !atestadoFile) {
+      // Usuário removeu o atestado sem adicionar novo
+      newAtestadoPath = null;
+    }
+
+    // 3. Atualiza atestado_path se mudou
+    const pathAnterior = allRows.find(r => r.id === savedId)?.atestado_path || null;
+    if (newAtestadoPath !== pathAnterior) {
+      await sb.from('faltas').update({ atestado_path: newAtestadoPath }).eq('id', savedId);
+    }
+
+  } catch (err) {
+    T(err.message || 'Erro inesperado.', 'error');
+    btn.classList.remove('loading'); btn.disabled = false;
+    return;
   }
 
   btn.classList.remove('loading'); btn.disabled = false;
-
-  if (resp.error) { T(resp.error.message, 'error'); return; }
 
   T(id ? 'Registro atualizado.' : 'Falta registrada.', 'success');
   closeModal();
@@ -540,6 +799,13 @@ document.getElementById('d-confirm').addEventListener('click', async () => {
   if (!delTarget) return;
   const btn = document.getElementById('d-confirm');
   btn.classList.add('loading'); btn.disabled = true;
+
+  // 1. Remove atestado do storage se existir
+  if (delTarget.atestado_path) {
+    await deleteAtestadoStorage(delTarget.atestado_path);
+  }
+
+  // 2. Remove registro do DB
   const { error } = await sb.from('faltas').delete().eq('id', delTarget.id);
   btn.classList.remove('loading'); btn.disabled = false;
   if (error) { T(error.message, 'error'); return; }
@@ -550,7 +816,15 @@ document.getElementById('d-confirm').addEventListener('click', async () => {
 });
 
 // ---- Delegação de cliques na tabela ----
-document.getElementById('tbody').addEventListener('click', e => {
+document.getElementById('tbody').addEventListener('click', async e => {
+  // Download atestado
+  const dl = e.target.closest('[data-act="download"]');
+  if (dl) {
+    const path = dl.dataset.path;
+    if (path) await viewAtestado(path);
+    return;
+  }
+
   const btn = e.target.closest('button[data-act]');
   if (!btn) return;
   const tr = e.target.closest('tr');
