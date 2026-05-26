@@ -126,10 +126,22 @@ window.staflowApp = window.staflowApp || {};
       return null;
     }
 
-    // 3. Garante condomínio vinculado ao perfil (RPC)
+    // 3a. Tenta vincular como funcionário primeiro (auto-claim por e-mail).
+    //     Se o usuário foi pré-cadastrado em /funcionarios pelo síndico, esta
+    //     RPC rebaixa role para 'funcionario' e seta condominio_id correto.
+    let isFuncionario = false;
     try {
-      await window.staflowSupabase.rpc('ensure_condominio');
-    } catch (e) { /* silencioso — usuário pode não ser sindico/admin */ }
+      const claim = await window.staflowSupabase.rpc('claim_funcionario_by_email').single();
+      if (claim.data && claim.data.vinculado) isFuncionario = true;
+    } catch (e) { /* RPC pode não existir em ambientes antigos — silencioso */ }
+
+    // 3b. Garante condomínio APENAS para síndicos/admins (evita criar
+    //     condomínio órfão para funcionários recém-cadastrados).
+    if (!isFuncionario) {
+      try {
+        await window.staflowSupabase.rpc('ensure_condominio');
+      } catch (e) { /* silencioso */ }
+    }
 
     // 4. Perfil
     const { ok, data: profile, error } = await window.staflowAuth.getProfile();
@@ -139,7 +151,16 @@ window.staflowApp = window.staflowApp || {};
       return null;
     }
 
-    // 4. Preencher sidebar
+    // 4b. ROUTE GUARD POR ROLE — funcionário não acessa páginas admin.
+    //     Síndico/admin não acessa /colaborador.html. bootstrapShell é
+    //     chamado pelas páginas admin; se chegou aqui com role=funcionario
+    //     redireciona para o app de bolso.
+    if (profile.role === 'funcionario') {
+      location.replace('/colaborador.html');
+      return null;
+    }
+
+    // 4c. Preencher sidebar
     const elName   = document.getElementById('u-name');
     const elRole   = document.getElementById('u-role');
     const elAvatar = document.getElementById('u-avatar');

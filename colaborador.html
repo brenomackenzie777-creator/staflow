@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0F1624">
+<title>Meu painel — StaFlow</title>
+<meta name="description" content="App do colaborador StaFlow — ponto, tarefas e atestados.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="auth/auth.css">
+<style>
+/* ════════════════════════════════════════════════════════════════
+   StaFlow — App de bolso do colaborador (mobile-first)
+   Reusa tokens do auth.css. Layout independente de app.css
+   porque NÃO há sidebar/grid administrativo aqui.
+════════════════════════════════════════════════════════════════ */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--navy-deep);
+  color: var(--white);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.colab-shell {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 18px 18px 80px;
+  display: flex; flex-direction: column;
+  gap: 14px;
+}
+
+/* ───── Splash ───── */
+.splash {
+  position: fixed; inset: 0;
+  background: var(--navy-deep);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  transition: opacity 0.3s ease;
+}
+.splash.hide { opacity: 0; pointer-events: none; }
+.splash .dot {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--teal);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(0.85); opacity: 0.6; }
+  50%      { transform: scale(1);    opacity: 1; }
+}
+
+/* ───── Header ───── */
+.colab-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 4px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.colab-header .avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--navy-brand);
+  color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 16px;
+  flex-shrink: 0;
+}
+.colab-header .info { flex: 1; min-width: 0; }
+.colab-header .greeting {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 1.5px;
+  color: var(--white-muted); text-transform: uppercase;
+}
+.colab-header .name {
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 17px;
+  color: var(--white);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top: 2px;
+}
+.colab-header .condo {
+  font-size: 12px; color: var(--white-dim);
+  margin-top: 1px;
+}
+.colab-header .btn-logout {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--white-dim);
+  font-family: inherit; font-size: 13px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+.colab-header .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+/* ───── Card base ───── */
+.colab-card {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 16px 18px;
+}
+.colab-card .h {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--white-muted);
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+}
+.colab-card .h .pill {
+  font-size: 9px; padding: 2px 6px; border-radius: 2px;
+  background: var(--teal-dim); color: var(--teal);
+  border: 1px solid var(--teal-border);
+}
+.colab-card .h .pill.amber {
+  background: rgba(255,209,102,0.10); color: var(--amber);
+  border-color: rgba(255,209,102,0.25);
+}
+.colab-card .h .pill.red {
+  background: rgba(255,107,107,0.12); color: var(--red);
+  border-color: rgba(255,107,107,0.30);
+}
+
+/* ───── Ponto: botão big-action ───── */
+.ponto-card { text-align: center; }
+.ponto-status {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 28px;
+  color: var(--white);
+  letter-spacing: -0.5px;
+  margin: 8px 0 4px;
+  line-height: 1.1;
+}
+.ponto-status.green { color: var(--teal); }
+.ponto-status.amber { color: var(--amber); }
+.ponto-clock {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--white-dim);
+  margin-bottom: 18px;
+  letter-spacing: 1px;
+}
+.btn-ponto {
+  width: 200px; height: 200px;
+  max-width: 80vw;
+  max-height: 80vw;
+  border-radius: 50%;
+  border: none;
+  background: conic-gradient(var(--teal) 0deg, rgba(6,214,160,0.3) 360deg);
+  color: var(--navy-deep);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: inline-flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px;
+  box-shadow:
+    0 0 0 12px rgba(6,214,160,0.06),
+    0 0 60px rgba(6,214,160,0.25),
+    0 12px 32px rgba(0,0,0,0.4);
+  transition: transform 0.15s ease, box-shadow 0.25s ease;
+  position: relative;
+  margin: 8px auto 0;
+}
+.btn-ponto:active { transform: scale(0.96); }
+.btn-ponto.saida {
+  background: conic-gradient(var(--amber) 0deg, rgba(255,209,102,0.3) 360deg);
+  box-shadow:
+    0 0 0 12px rgba(255,209,102,0.06),
+    0 0 60px rgba(255,209,102,0.25),
+    0 12px 32px rgba(0,0,0,0.4);
+}
+.btn-ponto.loading {
+  pointer-events: none;
+  opacity: 0.65;
+}
+.btn-ponto.disabled {
+  background: rgba(240,244,255,0.06);
+  color: var(--white-muted);
+  box-shadow: none;
+  pointer-events: none;
+}
+.btn-ponto .icon { font-size: 36px; line-height: 1; }
+.btn-ponto .label { font-size: 14px; }
+
+.geo-status {
+  margin-top: 16px;
+  font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: 1px;
+  color: var(--white-muted);
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px;
+  min-height: 16px;
+}
+.geo-status.ok    { color: var(--teal); }
+.geo-status.err   { color: var(--amber); }
+
+/* ───── Stats trabalhistas ───── */
+.bi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+.bi-stat {
+  background: var(--navy-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.bi-stat .lbl {
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 1.5px;
+  color: var(--white-muted);
+  text-transform: uppercase;
+}
+.bi-stat .val {
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 22px;
+  color: var(--white);
+  margin-top: 6px; line-height: 1;
+  letter-spacing: -0.5px;
+}
+.bi-stat.teal .val { color: var(--teal); }
+.bi-stat .sub {
+  font-size: 10px; color: var(--white-dim);
+  margin-top: 4px;
+  font-family: var(--font-mono);
+}
+
+/* ───── Tarefas ───── */
+.task-item {
+  display: flex; gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.task-item:last-child { border-bottom: none; padding-bottom: 0; }
+.task-item:first-child { padding-top: 0; }
+.task-item .check {
+  width: 22px; height: 22px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--navy-deep);
+  margin-top: 1px;
+}
+.task-item .check.done {
+  background: var(--teal);
+  border-color: var(--teal);
+  position: relative;
+}
+.task-item .check.done::after {
+  content: '✓';
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px; color: var(--navy-deep);
+}
+.task-item .body { flex: 1; min-width: 0; }
+.task-item .body .titulo {
+  font-weight: 600; font-size: 14px;
+  color: var(--white);
+  line-height: 1.35;
+}
+.task-item .body .titulo.done { text-decoration: line-through; color: var(--white-muted); }
+.task-item .body .meta {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 4px;
+  font-size: 11px; color: var(--white-dim);
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+.task-item .body .meta .prio {
+  padding: 1px 6px; border-radius: 2px;
+  font-size: 9px; letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.task-item .body .meta .prio.alta  { background: rgba(255,107,107,0.12); color: var(--red); }
+.task-item .body .meta .prio.media { background: rgba(255,209,102,0.10); color: var(--amber); }
+.task-item .body .meta .prio.baixa { background: var(--teal-dim); color: var(--teal); }
+
+/* ───── LGPD: upload atestado ───── */
+.upload-area {
+  display: flex; flex-direction: column;
+  gap: 10px;
+}
+.upload-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px;
+  background: var(--navy-deep);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  transition: var(--transition);
+}
+.upload-row:hover { border-color: var(--teal); }
+.upload-row .icon-big {
+  width: 40px; height: 40px;
+  border-radius: var(--radius);
+  background: var(--teal-dim);
+  color: var(--teal);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.upload-row .col {
+  flex: 1; min-width: 0;
+}
+.upload-row .ttl {
+  font-size: 13px; font-weight: 600; color: var(--white);
+}
+.upload-row .desc {
+  font-size: 11px; color: var(--white-dim);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+.btn-attach {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  background: var(--teal);
+  color: var(--navy-deep);
+  border: none;
+  border-radius: var(--radius);
+  font-family: inherit; font-weight: 600; font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-attach:hover { filter: brightness(1.1); }
+.btn-attach.loading { opacity: 0.6; pointer-events: none; }
+.upload-data {
+  display: flex; gap: 8px; align-items: center;
+}
+.upload-data input[type="date"] {
+  flex: 1;
+  background: var(--navy-deep);
+  border: 1px solid var(--border-strong);
+  color: var(--white);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color-scheme: dark;
+}
+.lgpd-note {
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 1px;
+  color: var(--white-muted);
+  text-transform: uppercase;
+  display: flex; align-items: center; gap: 6px;
+  padding-top: 4px;
+}
+.lgpd-note .lock { color: var(--teal); }
+
+/* ───── Empty states ───── */
+.colab-empty {
+  text-align: center;
+  padding: 18px 8px;
+  color: var(--white-dim);
+  font-size: 13px;
+}
+.colab-empty .ico {
+  font-size: 28px;
+  color: var(--white-muted);
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* ───── Erro de vínculo ───── */
+.link-error {
+  text-align: center;
+  padding: 28px 18px;
+  background: var(--navy);
+  border: 1px solid rgba(255,107,107,0.28);
+  border-radius: var(--radius-md);
+}
+.link-error .ico {
+  font-size: 32px; color: var(--red);
+  display: block; margin-bottom: 12px;
+}
+.link-error h2 {
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 18px;
+  margin: 0 0 8px;
+}
+.link-error p {
+  color: var(--white-dim); font-size: 13px;
+  line-height: 1.5; margin: 0 0 16px;
+}
+.link-error code {
+  font-family: var(--font-mono);
+  background: var(--navy-deep);
+  padding: 2px 6px; border-radius: 2px;
+  font-size: 12px;
+  color: var(--teal);
+}
+.link-error .btn-out {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--white);
+  border-radius: var(--radius);
+  padding: 10px 18px;
+  font-family: inherit; font-size: 13px;
+  cursor: pointer;
+}
+
+/* ───── Toast (já está no auth.css) ───── */
+
+/* ───── Telas pequenas ───── */
+@media (max-width: 360px) {
+  .ponto-status { font-size: 24px; }
+  .btn-ponto { width: 170px; height: 170px; font-size: 16px; }
+  .bi-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="splash" id="splash"><div class="dot"></div></div>
+
+<div class="colab-shell" id="shell" style="display:none;">
+
+  <!-- ───── Header ───── -->
+  <header class="colab-header">
+    <div class="avatar" id="u-avatar">?</div>
+    <div class="info">
+      <div class="greeting" id="greeting">…</div>
+      <div class="name" id="u-name">…</div>
+      <div class="condo" id="u-condo">—</div>
+    </div>
+    <button class="btn-logout" id="btn-logout">Sair</button>
+  </header>
+
+  <!-- ───── Card de ponto ───── -->
+  <section class="colab-card ponto-card">
+    <div class="h">Meu ponto · <span id="hoje-pill">HOJE</span></div>
+    <div class="ponto-status" id="ponto-status">—</div>
+    <div class="ponto-clock" id="ponto-clock">—</div>
+
+    <button class="btn-ponto" id="btn-ponto" disabled>
+      <span class="icon">⏱</span>
+      <span class="label" id="btn-ponto-lbl">Carregando…</span>
+    </button>
+
+    <div class="geo-status" id="geo-status">📍 Aguardando primeira batida…</div>
+  </section>
+
+  <!-- ───── Card BI trabalhista ───── -->
+  <section class="colab-card">
+    <div class="h">Minhas horas · <span class="pill" id="mes-pill">MAIO</span></div>
+    <div class="bi-grid">
+      <div class="bi-stat teal">
+        <div class="lbl">Horas trabalhadas</div>
+        <div class="val" id="bi-horas">—</div>
+        <div class="sub" id="bi-horas-sub">No mês atual</div>
+      </div>
+      <div class="bi-stat">
+        <div class="lbl">Hora noturna</div>
+        <div class="val" id="bi-noturno">—</div>
+        <div class="sub" id="bi-noturno-sub">CLT Art.73 §1º</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── Card de tarefas ───── -->
+  <section class="colab-card">
+    <div class="h">Tarefas do condomínio · <span class="pill amber" id="tasks-pill">CARREGANDO…</span></div>
+    <div id="tasks-area">
+      <div class="colab-empty"><span class="ico">…</span>Carregando tarefas…</div>
+    </div>
+  </section>
+
+  <!-- ───── Card de atestado LGPD ───── -->
+  <section class="colab-card">
+    <div class="h">Enviar atestado médico</div>
+    <div class="upload-area">
+      <div class="upload-row">
+        <div class="icon-big">📎</div>
+        <div class="col">
+          <div class="ttl">Atestado em PDF, JPG ou PNG</div>
+          <div class="desc">Será enviado direto ao síndico. Apenas ele pode visualizar.</div>
+        </div>
+        <button class="btn-attach" id="btn-pick">Anexar</button>
+        <input type="file" id="atestado-file" accept="image/jpeg,image/png,application/pdf" style="display:none;">
+      </div>
+      <div class="upload-data">
+        <input type="date" id="atestado-data" aria-label="Data do atestado">
+        <button class="btn-attach" id="btn-enviar" style="background:var(--navy-brand);color:#fff;">Enviar</button>
+      </div>
+      <div class="lgpd-note">
+        <span class="lock">🔒</span>
+        LGPD ART.11 · DADO SENSÍVEL · CRIPTOGRAFADO
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── Erro de vínculo (escondido por padrão) ───── -->
+  <section class="link-error" id="link-error" style="display:none;">
+    <span class="ico">!</span>
+    <h2>Conta não vinculada</h2>
+    <p>
+      Não encontramos um cadastro de funcionário com o seu e-mail
+      <code id="link-email">—</code>. Peça para o síndico te cadastrar em
+      <strong>Funcionários</strong> usando este mesmo e-mail e, então,
+      saia e entre novamente.
+    </p>
+    <button class="btn-out" id="btn-logout-err">Sair</button>
+  </section>
+
+</div>
+
+<!-- Toast container (criado dinamicamente pelo app-shell, mas inicializamos aqui) -->
+<div class="toast" id="toast"><span class="ico"></span><span class="msg"></span></div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+
+<script>
+const sb   = window.staflowSupabase;
+const auth = window.staflowAuth;
+
+/* ════════════════════════════════════════════════════════════════
+   COLABORADOR — App de bolso
+   ════════════════════════════════════════════════════════════════ */
+
+const FATOR_HORA_NOTURNA = 60 / 52.5;   // CLT Art.73 §1º (mesmo de ponto.html)
+
+/* ── Toast minimalista ── */
+function toast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.className = 'toast show ' + type;
+  t.querySelector('.ico').textContent = type === 'success' ? '✓' : (type === 'error' ? '✕' : '!');
+  t.querySelector('.msg').textContent = msg;
+  clearTimeout(window.__tt);
+  window.__tt = setTimeout(() => t.className = 'toast', 4500);
+}
+
+function hideSplash() {
+  document.getElementById('splash').classList.add('hide');
+  document.getElementById('shell').style.display = 'flex';
+}
+
+function saudacao() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Bom dia';
+  if (h < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
+function iniciais(nome) {
+  if (!nome) return '?';
+  const p = nome.trim().split(/\s+/);
+  return ((p[0]?.[0] || '') + (p[p.length - 1]?.[0] || '')).toUpperCase();
+}
+function brl0(n) {
+  return Number(n||0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
+/* ────────────────────────────────────────────────────────────────
+   HORA NOTURNA — mesma fórmula de ponto.html (CLT Art.73 §1º)
+──────────────────────────────────────────────────────────────── */
+function minutosNoturnos(entradaTs, saidaTs) {
+  const start = new Date(entradaTs);
+  const end   = new Date(saidaTs);
+  if (end <= start) return 0;
+  let total = 0;
+  const cursor = new Date(start); cursor.setHours(0,0,0,0);
+  while (cursor < end) {
+    const dayStart  = new Date(cursor);
+    const fim5h     = new Date(cursor); fim5h.setHours(5,0,0,0);
+    const inicio22h = new Date(cursor); inicio22h.setHours(22,0,0,0);
+    const dayEnd    = new Date(cursor); dayEnd.setDate(dayEnd.getDate()+1);
+    const s1 = Math.max(start.getTime(), dayStart.getTime());
+    const e1 = Math.min(end.getTime(),   fim5h.getTime());
+    if (e1 > s1) total += (e1 - s1) / 60000;
+    const s2 = Math.max(start.getTime(), inicio22h.getTime());
+    const e2 = Math.min(end.getTime(),   dayEnd.getTime());
+    if (e2 > s2) total += (e2 - s2) / 60000;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return total;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ESTADO GLOBAL
+   ════════════════════════════════════════════════════════════════ */
+let user             = null;
+let profile          = null;
+let funcionario      = null;   // { id, nome, condominio_id, ... }
+let pontosHoje       = [];     // batidas do funcionário no dia
+let lastGeoTimestamp = 0;
+
+/* ════════════════════════════════════════════════════════════════
+   BOOT
+   ════════════════════════════════════════════════════════════════ */
+(async () => {
+  // 1. Auth
+  const session = await auth.checkAuth('/auth/login.html');
+  if (!session) return;
+  user = session.user;
+
+  // 2. Profile
+  const profRes = await auth.getProfile();
+  if (!profRes.ok) { toast(profRes.error, 'error'); return; }
+  profile = profRes.data;
+
+  // 3. Guard inverso — síndico/admin não fica aqui
+  if (profile.role && profile.role !== 'funcionario') {
+    // Tenta auto-claim antes de devolver para o dashboard
+    const claim = await sb.rpc('claim_funcionario_by_email').single();
+    if (claim.data && claim.data.vinculado) {
+      // Vinculou — recarrega profile e segue como funcionário
+      const r2 = await auth.getProfile();
+      if (r2.ok) profile = r2.data;
+    } else {
+      // Não é funcionário e não foi vinculado → manda pro dashboard
+      location.replace('/dashboard.html');
+      return;
+    }
+  }
+
+  // 4. Vincula/recupera o funcionario via RPC
+  let funcId = null, condoId = null;
+  const claim = await sb.rpc('claim_funcionario_by_email').single();
+  if (claim.error) { toast('Erro ao validar vínculo: ' + claim.error.message, 'error'); }
+  if (claim.data) {
+    funcId  = claim.data.funcionario_id;
+    condoId = claim.data.condominio_id;
+  }
+
+  if (!funcId) {
+    // Vínculo não existe — mostra erro elegante e oculta resto
+    document.getElementById('shell').querySelectorAll('section:not(.link-error)').forEach(s => s.style.display = 'none');
+    document.getElementById('link-error').style.display = 'block';
+    document.getElementById('link-email').textContent = user.email;
+    document.getElementById('btn-logout-err').addEventListener('click', logout);
+    setupHeader(profile.full_name || user.email, profile.condominio_nome);
+    hideSplash();
+    return;
+  }
+
+  // 5. Carrega ficha do funcionario (já com policy "self read" da migração 012)
+  const { data: f, error: fErr } = await sb.from('funcionarios')
+    .select('id, nome, cargo, condominio_id')
+    .eq('id', funcId)
+    .single();
+  if (fErr) { toast(fErr.message, 'error'); return; }
+  funcionario = f;
+
+  // Busca nome do condomínio
+  const { data: condo } = await sb.from('condominios')
+    .select('nome')
+    .eq('id', funcionario.condominio_id)
+    .maybeSingle();
+
+  // 6. Header + saudação
+  setupHeader(funcionario.nome, condo?.nome);
+
+  // 7. Carga inicial dos cards em paralelo
+  await Promise.all([
+    loadPonto(),
+    loadHorasMes(),
+    loadTarefas()
+  ]);
+
+  // 8. Default da data do atestado = hoje
+  document.getElementById('atestado-data').value = new Date().toISOString().slice(0,10);
+
+  // 9. Liga handlers
+  document.getElementById('btn-ponto').addEventListener('click', registrarPonto);
+  document.getElementById('btn-logout').addEventListener('click', logout);
+  document.getElementById('btn-pick').addEventListener('click', () => document.getElementById('atestado-file').click());
+  document.getElementById('atestado-file').addEventListener('change', onPickFile);
+  document.getElementById('btn-enviar').addEventListener('click', enviarAtestado);
+
+  // 10. Relógio em tempo real
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  hideSplash();
+})();
+
+function setupHeader(nome, condo) {
+  document.getElementById('u-avatar').textContent = iniciais(nome);
+  document.getElementById('u-name').textContent   = nome || '—';
+  document.getElementById('u-condo').textContent  = condo ? `Condomínio ${condo}` : '—';
+  document.getElementById('greeting').textContent = `${saudacao().toUpperCase()} ·`;
+}
+
+async function logout() {
+  await auth.signOut();
+  location.replace('/auth/login.html');
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('ponto-clock').textContent =
+    now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    + ' · ' + now.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   PONTO — leitura + registro
+   ════════════════════════════════════════════════════════════════ */
+async function loadPonto() {
+  const hoje      = new Date();
+  const inicioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
+  const fimDia    = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1).toISOString();
+
+  const { data, error } = await sb.from('registros_ponto')
+    .select('tipo, registrado_em, latitude, longitude, accuracy_m')
+    .eq('funcionario_id', funcionario.id)
+    .gte('registrado_em', inicioDia)
+    .lt('registrado_em', fimDia)
+    .order('registrado_em', { ascending: true });
+
+  if (error) { toast(error.message, 'error'); return; }
+  pontosHoje = data || [];
+  renderPonto();
+}
+
+function renderPonto() {
+  const ent  = pontosHoje.find(r => r.tipo === 'entrada');
+  const sai  = [...pontosHoje].reverse().find(r => r.tipo === 'saida');
+  const status = document.getElementById('ponto-status');
+  const btn    = document.getElementById('btn-ponto');
+  const lbl    = document.getElementById('btn-ponto-lbl');
+  const geo    = document.getElementById('geo-status');
+
+  btn.classList.remove('saida','disabled','loading');
+  btn.disabled = false;
+
+  if (!ent) {
+    status.textContent = 'Você ainda não bateu o ponto';
+    status.className   = 'ponto-status amber';
+    btn.classList.remove('saida');
+    lbl.textContent    = 'Bater entrada';
+  } else if (ent && !sai) {
+    status.textContent = 'Trabalhando agora';
+    status.className   = 'ponto-status green';
+    btn.classList.add('saida');
+    lbl.textContent    = 'Bater saída';
+  } else {
+    status.textContent = 'Jornada encerrada';
+    status.className   = 'ponto-status';
+    btn.classList.add('disabled');
+    btn.disabled       = true;
+    lbl.textContent    = 'Ponto fechado';
+  }
+
+  // Mostra dados do GPS da última batida, se houver
+  const ultimo = pontosHoje[pontosHoje.length - 1];
+  if (ultimo?.latitude != null) {
+    geo.className = 'geo-status ok';
+    geo.innerHTML = `📍 Última batida com GPS · precisão ~${ultimo.accuracy_m || '?'}m`;
+  } else if (ultimo) {
+    geo.className = 'geo-status err';
+    geo.textContent = '📍 Última batida sem GPS';
+  } else {
+    geo.className = 'geo-status';
+    geo.textContent = '📍 Aguardando primeira batida…';
+  }
+}
+
+/* Geolocalização com timeout (cai pra null se demorar) */
+function pegarPosicaoGPS() {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) return resolve(null);
+    const timer = setTimeout(() => resolve(null), 8000);   // 8s
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        clearTimeout(timer);
+        lastGeoTimestamp = Date.now();
+        resolve({
+          latitude:   pos.coords.latitude,
+          longitude:  pos.coords.longitude,
+          accuracy_m: Math.round(pos.coords.accuracy)
+        });
+      },
+      (err) => {
+        clearTimeout(timer);
+        console.warn('[GPS]', err.message);
+        resolve(null);
+      },
+      { enableHighAccuracy: true, timeout: 7000, maximumAge: 30000 }
+    );
+  });
+}
+
+async function registrarPonto() {
+  const btn = document.getElementById('btn-ponto');
+  if (btn.disabled) return;
+  btn.classList.add('loading');
+
+  // Decide tipo (entrada/saída) pelo estado atual
+  const ent = pontosHoje.find(r => r.tipo === 'entrada');
+  const sai = [...pontosHoje].reverse().find(r => r.tipo === 'saida');
+  const tipo = (!ent) ? 'entrada' : (!sai ? 'saida' : null);
+
+  if (!tipo) {
+    btn.classList.remove('loading');
+    return toast('Ponto do dia já encerrado.', 'error');
+  }
+
+  // Pega GPS (não bloqueia se falhar)
+  const geo = document.getElementById('geo-status');
+  geo.className = 'geo-status';
+  geo.textContent = '📍 Capturando GPS…';
+  const pos = await pegarPosicaoGPS();
+
+  const payload = {
+    condominio_id:  funcionario.condominio_id,
+    funcionario_id: funcionario.id,
+    tipo,
+    registrado_em:  new Date().toISOString(),
+    registrado_por: user.id,
+    latitude:       pos?.latitude   ?? null,
+    longitude:      pos?.longitude  ?? null,
+    accuracy_m:     pos?.accuracy_m ?? null
+  };
+
+  const { error } = await sb.from('registros_ponto').insert(payload);
+  btn.classList.remove('loading');
+
+  if (error) return toast(error.message, 'error');
+
+  toast(tipo === 'entrada' ? 'Entrada registrada ✓' : 'Saída registrada ✓', 'success');
+  await loadPonto();
+  // Atualiza horas do mês (afeta BI)
+  loadHorasMes();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   BI TRABALHISTA — horas do mês + hora noturna computada
+   ════════════════════════════════════════════════════════════════ */
+async function loadHorasMes() {
+  const hoje  = new Date();
+  const ini   = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const fim   = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+
+  document.getElementById('mes-pill').textContent =
+    hoje.toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase();
+
+  const { data, error } = await sb.from('registros_ponto')
+    .select('tipo, registrado_em')
+    .eq('funcionario_id', funcionario.id)
+    .gte('registrado_em', ini.toISOString())
+    .lt('registrado_em',  fim.toISOString())
+    .order('registrado_em', { ascending: true });
+
+  if (error) { console.warn(error); return; }
+
+  // Agrupa por dia local e pareia entrada→saida (mesmo motor de ponto.html)
+  const porDia = {};
+  (data || []).forEach(p => {
+    const d = new Date(p.registrado_em);
+    const k = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    (porDia[k] ||= []).push(p);
+  });
+
+  let totalMs       = 0;
+  let totalMinNot   = 0;
+  Object.values(porDia).forEach(evts => {
+    evts.sort((a,b) => new Date(a.registrado_em) - new Date(b.registrado_em));
+    let entradaAtual = null;
+    for (const e of evts) {
+      if (e.tipo === 'entrada' && !entradaAtual) entradaAtual = e;
+      else if (e.tipo === 'saida' && entradaAtual) {
+        totalMs     += new Date(e.registrado_em) - new Date(entradaAtual.registrado_em);
+        totalMinNot += minutosNoturnos(entradaAtual.registrado_em, e.registrado_em);
+        entradaAtual = null;
+      }
+    }
+  });
+
+  const horasDec    = totalMs / 3600000;
+  const horasInt    = Math.floor(horasDec);
+  const horasMin    = Math.round((horasDec - horasInt) * 60);
+
+  const noturnoDec  = (totalMinNot * FATOR_HORA_NOTURNA) / 60;
+  const notInt      = Math.floor(noturnoDec);
+  const notMin      = Math.round((noturnoDec - notInt) * 60);
+
+  document.getElementById('bi-horas').textContent      = `${horasInt}h${String(horasMin).padStart(2,'0')}`;
+  document.getElementById('bi-horas-sub').textContent  = `${brl0(horasDec)}h decimais`;
+  document.getElementById('bi-noturno').textContent    = `${notInt}h${String(notMin).padStart(2,'0')}`;
+  document.getElementById('bi-noturno-sub').textContent =
+    totalMinNot > 0 ? `${Math.round(totalMinNot)}min cronol.` : 'CLT Art.73 §1º';
+}
+
+/* ════════════════════════════════════════════════════════════════
+   TAREFAS — lista pendentes do condomínio
+   ════════════════════════════════════════════════════════════════ */
+async function loadTarefas() {
+  const { data, error } = await sb.from('tarefas')
+    .select('id, titulo, descricao, status, prioridade, prazo, created_at')
+    .eq('condominio_id', funcionario.condominio_id)
+    .in('status', ['pendente','em_andamento'])
+    .order('prioridade', { ascending: true })   // alta primeiro se enum
+    .order('prazo', { ascending: true, nullsFirst: false })
+    .limit(20);
+
+  const pill = document.getElementById('tasks-pill');
+  const area = document.getElementById('tasks-area');
+
+  if (error) {
+    pill.textContent = 'ERRO';
+    pill.className = 'pill red';
+    area.innerHTML = `<div class="colab-empty"><span class="ico">!</span>${error.message}</div>`;
+    return;
+  }
+
+  const list = data || [];
+  pill.textContent = `${list.length} PEND.`;
+  pill.className = list.length === 0 ? 'pill' : (list.length > 5 ? 'pill red' : 'pill amber');
+
+  if (list.length === 0) {
+    area.innerHTML = `<div class="colab-empty"><span class="ico">✓</span>Sem tarefas pendentes. Bom trabalho!</div>`;
+    return;
+  }
+
+  area.innerHTML = list.map(t => {
+    const prio = (t.prioridade || 'media').toLowerCase();
+    const prazoTxt = t.prazo
+      ? new Date(t.prazo).toLocaleDateString('pt-BR', { day:'2-digit', month:'short' })
+      : '';
+    return `
+      <div class="task-item">
+        <div class="check ${t.status==='em_andamento' ? '' : ''}"></div>
+        <div class="body">
+          <div class="titulo">${escapeHtml(t.titulo)}</div>
+          <div class="meta">
+            <span class="prio ${prio}">${prio.toUpperCase()}</span>
+            ${prazoTxt ? `· prazo: ${prazoTxt}` : ''}
+            ${t.status === 'em_andamento' ? '· em andamento' : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s||'').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ATESTADO — upload LGPD para bucket privado
+   ════════════════════════════════════════════════════════════════ */
+let atestadoFile = null;
+
+function onPickFile(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  if (f.size > 10 * 1024 * 1024) { toast('Arquivo maior que 10 MB.', 'error'); e.target.value = ''; return; }
+  atestadoFile = f;
+  toast(`Arquivo selecionado: ${f.name}`, 'success');
+}
+
+async function enviarAtestado() {
+  if (!atestadoFile) { toast('Anexe o arquivo do atestado primeiro.', 'error'); return; }
+  const data = document.getElementById('atestado-data').value;
+  if (!data) { toast('Informe a data do atestado.', 'error'); return; }
+
+  const btn = document.getElementById('btn-enviar');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  try {
+    // 1. Upload no bucket privado — path: <condominio_id>/<funcionario_id>/<yyyymmdd-rand>.ext
+    const ext   = (atestadoFile.name.split('.').pop() || 'pdf').toLowerCase();
+    const rand  = Math.random().toString(36).slice(2, 8);
+    const stamp = data.replace(/-/g,'');
+    const path  = `${funcionario.condominio_id}/${funcionario.id}/${stamp}-${rand}.${ext}`;
+
+    const up = await sb.storage
+      .from('atestados-medicos')
+      .upload(path, atestadoFile, { contentType: atestadoFile.type, upsert: false });
+
+    if (up.error) throw new Error('Upload: ' + up.error.message);
+
+    // 2. Cria registro em faltas (tipo=atestado, justificada=true)
+    const insRes = await sb.from('faltas').insert({
+      condominio_id:  funcionario.condominio_id,
+      funcionario_id: funcionario.id,
+      data,
+      tipo: 'atestado',
+      justificada: true,
+      atestado_path: path,
+      observacao:    'Enviado pelo app do colaborador',
+      created_by:    user.id
+    });
+    if (insRes.error) throw new Error('Registro: ' + insRes.error.message);
+
+    toast('Atestado enviado com sucesso ✓', 'success');
+    atestadoFile = null;
+    document.getElementById('atestado-file').value = '';
+  } catch (err) {
+    toast(err.message || 'Erro ao enviar.', 'error');
+  } finally {
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
