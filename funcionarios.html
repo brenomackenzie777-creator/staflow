@@ -380,9 +380,10 @@
           <label for="f-tel">Telefone</label>
           <input class="input" id="f-tel" type="tel" placeholder="(21) 99999-9999">
         </div>
-        <div class="field">
+        <div class="field" id="ff-cpf">
           <label for="f-cpf">CPF</label>
-          <input class="input" id="f-cpf" type="text" placeholder="000.000.000-00">
+          <input class="input" id="f-cpf" type="text" inputmode="numeric" placeholder="000.000.000-00" maxlength="14">
+          <span class="field-error">CPF inválido. Verifique os dígitos.</span>
         </div>
       </div>
 
@@ -444,6 +445,7 @@
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/route-guard.js"></script>
+<script src="js/validadores.js"></script>
 <script src="js/app-shell.js"></script>
 
 <script>
@@ -485,7 +487,16 @@ function escapeHtml(s) {
 }
 
 document.getElementById('f-tel').addEventListener('input', e => e.target.value = maskTel(e.target.value));
-document.getElementById('f-cpf').addEventListener('input', e => e.target.value = maskCPF(e.target.value));
+document.getElementById('f-cpf').addEventListener('input', e => {
+  e.target.value = maskCPF(e.target.value);
+  document.getElementById('ff-cpf').classList.remove('has-error');
+});
+document.getElementById('f-cpf').addEventListener('blur', e => {
+  const v = e.target.value.trim();
+  if (v && !window.staflowValidators.validarCPF(v)) {
+    document.getElementById('ff-cpf').classList.add('has-error');
+  }
+});
 
 const CARGO_LBL = { porteiro:'Porteiro', zelador:'Zelador', faxineira:'Faxineira', jardineiro:'Jardineiro', seguranca:'Segurança', outro:'Outro' };
 const TURNO_LBL = { manha:'Manhã', tarde:'Tarde', noite:'Noite', integral:'Integral', escala:'Escala' };
@@ -793,10 +804,24 @@ modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); }
 document.getElementById('form-func').addEventListener('submit', async (e) => {
   e.preventDefault();
   const ffNome = document.getElementById('ff-nome');
+  const ffCpf  = document.getElementById('ff-cpf');
   ffNome.classList.remove('has-error');
+  ffCpf.classList.remove('has-error');
 
-  const nome = document.getElementById('f-nome').value.trim();
+  const nome    = document.getElementById('f-nome').value.trim();
+  const cpfRaw  = document.getElementById('f-cpf').value.trim();
+
   if (nome.length < 3) { ffNome.classList.add('has-error'); return; }
+
+  // ★ TRAVA ANTIFRAUDE — CPF é opcional, mas se informado precisa passar
+  // no algoritmo oficial dos dígitos verificadores. Não aceitamos
+  // placeholders (111.111.111-11), sequências repetidas nem strings
+  // sintaticamente válidas com DV errado.
+  if (cpfRaw && !window.staflowValidators.validarCPF(cpfRaw)) {
+    ffCpf.classList.add('has-error');
+    T('CPF inválido. Verifique os dígitos verificadores ou deixe o campo em branco.', 'error');
+    return;   // bloqueia o submit
+  }
 
   const salarioRaw = document.getElementById('f-salario').value.trim();
   const payload = {

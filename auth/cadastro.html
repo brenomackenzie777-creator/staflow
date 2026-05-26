@@ -200,6 +200,12 @@
           <span class="field-error">Obrigatório.</span>
         </div>
 
+        <div class="field" id="f-cnpj">
+          <label for="cnpj">CNPJ do condomínio <span style="color:var(--white-muted);font-size:12px;">(opcional, mas se informar precisa ser válido)</span></label>
+          <input class="input" id="cnpj" type="text" inputmode="numeric" autocomplete="off" placeholder="00.000.000/0000-00" maxlength="18">
+          <span class="field-error">CNPJ inválido. Verifique os dígitos.</span>
+        </div>
+
         <div class="field">
           <label for="end">Endereço (opcional)</label>
           <input class="input" id="end" type="text" placeholder="R. das Flores, 123 — Rio de Janeiro/RJ">
@@ -267,6 +273,7 @@
 <script src="../js/supabase-client.js"></script>
 <script src="../js/auth.js"></script>
 <script src="../js/route-guard.js"></script>
+<script src="../js/validadores.js"></script>
 <script>
 /* ════════════════════════════════════════════════════════════════
    ESTADO DO CADASTRO — bifurca entre Síndico (2 etapas + condomínio)
@@ -274,7 +281,7 @@
    ════════════════════════════════════════════════════════════════ */
 const state = {
   nome:'', email:'', senha:'',
-  condo:'', end:'', fone:'',
+  condo:'', cnpj:'', end:'', fone:'',
   role: 'sindico'   // 'sindico' | 'colaborador' (escolhido no toggle)
 };
 
@@ -374,6 +381,22 @@ foneEl.addEventListener('input', () => {
   foneEl.value = v;
 });
 
+// Máscara CNPJ + validação visual em tempo real
+const cnpjEl = document.getElementById('cnpj');
+const fCnpj  = document.getElementById('f-cnpj');
+cnpjEl.addEventListener('input', () => {
+  cnpjEl.value = window.staflowValidators.formatarCNPJ(cnpjEl.value);
+  // Limpa erro enquanto digita
+  fCnpj.classList.remove('has-error');
+});
+cnpjEl.addEventListener('blur', () => {
+  const v = cnpjEl.value.trim();
+  if (!v) return;
+  if (!window.staflowValidators.validarCNPJ(v)) {
+    fCnpj.classList.add('has-error');
+  }
+});
+
 // Radio visual
 document.querySelectorAll('.radio-card').forEach(card => {
   card.addEventListener('click', () => {
@@ -449,19 +472,35 @@ document.getElementById('btn-back').addEventListener('click', () => irPara(1));
 document.getElementById('form-2').addEventListener('submit', async (e) => {
   e.preventDefault();
   const condo = document.getElementById('condo').value.trim();
+  const cnpj  = cnpjEl.value.trim();
   const end   = document.getElementById('end').value.trim();
   const role  = document.querySelector('input[name=role]:checked').value;
   const fone  = foneEl.value.trim();
 
   document.getElementById('f-condo').classList.remove('has-error');
+  document.getElementById('f-cnpj').classList.remove('has-error');
   document.getElementById('f-fone').classList.remove('has-error');
 
   let bad = false;
-  if (!condo)                              { document.getElementById('f-condo').classList.add('has-error'); bad = true; }
-  if (fone.replace(/\D/g,'').length < 10)  { document.getElementById('f-fone').classList.add('has-error');  bad = true; }
+  if (!condo) {
+    document.getElementById('f-condo').classList.add('has-error'); bad = true;
+  }
+  if (fone.replace(/\D/g,'').length < 10) {
+    document.getElementById('f-fone').classList.add('has-error'); bad = true;
+  }
+  // ★ CNPJ é OPCIONAL, mas se preenchido precisa ser MATEMATICAMENTE VÁLIDO
+  if (cnpj && !window.staflowValidators.validarCNPJ(cnpj)) {
+    document.getElementById('f-cnpj').classList.add('has-error');
+    toast('CNPJ inválido. Verifique os dígitos verificadores ou deixe o campo em branco.', 'error');
+    return;   // bloqueia o submit impiedosamente
+  }
   if (bad) return;
 
-  state.condo = condo; state.end = end; state.role = role; state.fone = fone;
+  state.condo = condo;
+  state.cnpj  = cnpj ? window.staflowValidators.limparDigitos(cnpj) : '';
+  state.end   = end;
+  state.role  = role;
+  state.fone  = fone;
 
   const btn = document.getElementById('btn-submit');
   btn.classList.add('loading'); btn.disabled = true;
@@ -471,6 +510,7 @@ document.getElementById('form-2').addEventListener('submit', async (e) => {
     phone: state.fone,
     role: state.role,
     condominio_nome: state.condo,
+    condominio_cnpj: state.cnpj || null,
     condominio_endereco: state.end
   });
 

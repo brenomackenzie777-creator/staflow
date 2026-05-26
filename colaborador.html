@@ -765,6 +765,78 @@ function renderPonto() {
   }
 }
 
+/* ════════════════════════════════════════════════════════════════
+   GPS + ANTIFRAUDE (audit_status)
+   ────────────────────────────────────────────────────────────────
+   Sinais examinados:
+   1. pos.coords.accuracy > 150m → LOW_ACCURACY (anomalia satélite)
+   2. heurísticas de mock location:
+      - accuracy exatamente 0, 1, 5, 10 (valores arredondados típicos
+        de extensões de spoof — GPS real raramente é tão "perfeito")
+      - timestamp do navegador muito divergente do Date.now() do device
+      - propriedade não-padrão pos.coords.altitudeAccuracy === null
+        em conjunto com accuracy < 5 (perfil típico de mock)
+      - pos.coords.mocked (Android Chrome com flag debug) — quando exposto
+   3. Combinação de 2+ sinais → FRAUDE_SUSPECT
+   Status retornados:
+     null            → não foi possível capturar GPS
+     'OK'            → GPS confiável
+     'LOW_ACCURACY'  → accuracy ruim, mas batida aceita
+     'MOCK_SUSPECT'  → 1 sinal de mock detectado
+     'FRAUDE_SUSPECT'→ 2+ sinais de mock combinados (auditar!)
+═══════════════════════════════════════════════════════════════ */
+
+function detectarSinaisDeMock(pos) {
+  const sinais = [];
+  const acc = pos.coords.accuracy;
+
+  // Sinal 1: precisão suspeitosamente "perfeita" (valores arredondados que
+  // GPS real raramente produz — chipset de smartphone reporta floats variados)
+  if (acc === 0 || acc === 1 || acc === 5 || acc === 10) {
+    sinais.push('accuracy_round_' + acc);
+  }
+
+  // Sinal 2: propriedade não-padrão exposta por Chromium Android com
+  // "Mock locations" ativado em Developer Options
+  if (pos.coords.mocked === true) {
+    sinais.push('coords_mocked_flag');
+  }
+
+  // Sinal 3: timestamp da posição muito divergente do relógio do device
+  //         (>5min) — fix muito antigo ou injetado
+  const drift = Math.abs(Date.now() - pos.timestamp);
+  if (drift > 5 * 60 * 1000) {
+    sinais.push('timestamp_drift_' + Math.round(drift / 1000) + 's');
+  }
+
+  // Sinal 4: altitudeAccuracy === null + accuracy < 5 + altitude null
+  //         (perfil típico de mock que só preenche lat/lng)
+  if (pos.coords.altitudeAccuracy === null && acc < 5 && pos.coords.altitude === null) {
+    sinais.push('mock_profile_missing_altitude');
+  }
+
+  return sinais;
+}
+
+function classificarGPS(pos) {
+  const acc = pos.coords.accuracy;
+  const sinais = detectarSinaisDeMock(pos);
+
+  // 2+ sinais combinados → fraude provável
+  if (sinais.length >= 2) {
+    return { status: 'FRAUDE_SUSPECT', sinais };
+  }
+  // 1 sinal de mock → suspeito
+  if (sinais.length === 1) {
+    return { status: 'MOCK_SUSPECT', sinais };
+  }
+  // Sem sinais de mock mas accuracy ruim
+  if (acc > 150) {
+    return { status: 'LOW_ACCURACY', sinais: [], accuracy: acc };
+  }
+  return { status: 'OK', sinais: [] };
+}
+
 /* Geolocalização com timeout (cai pra null se demorar) */
 function pegarPosicaoGPS() {
   return new Promise(resolve => {
@@ -774,10 +846,13 @@ function pegarPosicaoGPS() {
       (pos) => {
         clearTimeout(timer);
         lastGeoTimestamp = Date.now();
+        const audit = classificarGPS(pos);
         resolve({
-          latitude:   pos.coords.latitude,
-          longitude:  pos.coords.longitude,
-          accuracy_m: Math.round(pos.coords.accuracy)
+          latitude:    pos.coords.latitude,
+          longitude:   pos.coords.longitude,
+          accuracy_m:  Math.round(pos.coords.accuracy),
+          audit_status: audit.status,
+          audit_sinais: audit.sinais
         });
       },
       (err) => {
@@ -819,7 +894,10 @@ async function registrarPonto() {
     registrado_por: user.id,
     latitude:       pos?.latitude   ?? null,
     longitude:      pos?.longitude  ?? null,
-    accuracy_m:     pos?.accuracy_m ?? null
+    accuracy_m:     pos?.accuracy_m ?? null,
+    // audit_status só é gravado quando temos posição.
+    // Se pos for null (GPS off/negado) deixamos NULL → "não auditado".
+    audit_status:   pos?.audit_status ?? null
   };
 
   const { error } = await sb.from('registros_ponto').insert(payload);
@@ -827,9 +905,27 @@ async function registrarPonto() {
 
   if (error) return toast(error.message, 'error');
 
-  toast(tipo === 'entrada' ? 'Entrada registrada ✓' : 'Saída registrada ✓', 'success');
+  // ★ FEEDBACK ANTIFRAUDE — informa transparentemente o que foi registrado
+  let msgSucesso = (tipo === 'entrada' ? 'Entrada registrada ✓' : 'Saída registrada ✓');
+  if (pos?.audit_status === 'FRAUDE_SUSPECT') {
+    msgSucesso += ' (sinais de localização suspeita — síndico foi notificado)';
+    toast(msgSucesso, 'error');
+  } else if (pos?.audit_status === 'MOCK_SUSPECT') {
+    msgSucesso += ' (verificando autenticidade do GPS)';
+    toast(msgSucesso, 'success');
+  } else if (pos?.audit_status === 'LOW_ACCURACY') {
+    msgSucesso += ' (sinal de GPS fraco — tente em local aberto)';
+    toast(msgSucesso, 'success');
+  } else {
+    toast(msgSucesso, 'success');
+  }
+
+  // Log no console para debug do colaborador (não-bloqueante)
+  if (pos?.audit_sinais?.length) {
+    console.info('[ponto] audit:', pos.audit_status, pos.audit_sinais);
+  }
+
   await loadPonto();
-  // Atualiza horas do mês (afeta BI)
   loadHorasMes();
 }
 
