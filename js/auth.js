@@ -168,18 +168,44 @@
   }
 
   // ---------- SUBSCRIPTION ----------
+  // Considera "vigente" apenas status active OU trialing E ainda dentro
+  // do período atual. Bloqueia past_due, canceled, pending e expirados.
+  //
+  // Retorna o objeto da assinatura se vigente, ou:
+  //   null                      → sem assinatura nenhuma (precisa /planos.html)
+  //   { _blocked: true, ... }   → tem assinatura mas inadimplente/expirada
   async function checkSubscription() {
     try {
       const user = await getCurrentUser();
       if (!user) return null;
+
       const { data, error } = await sb
         .from('subscriptions')
         .select('*')
         .eq('profile_id', user.id)
-        .eq('status', 'active')
         .maybeSingle();
+
       if (error || !data) return null;
-      return data;
+
+      const statusValido = data.status === 'active' || data.status === 'trialing';
+      const periodoValido =
+        data.current_period_end == null ||
+        new Date(data.current_period_end) > new Date();
+
+      if (statusValido && periodoValido) {
+        return data;
+      }
+
+      // Tem registro mas não está vigente — sinaliza para UI
+      return {
+        ...data,
+        _blocked: true,
+        _reason: !statusValido
+          ? (data.status === 'past_due' ? 'past_due'
+            : data.status === 'canceled' ? 'canceled'
+            : 'inactive')
+          : 'expired'
+      };
     } catch {
       return null;
     }

@@ -56,10 +56,18 @@ window.staflowApp = window.staflowApp || {};
     const session = await window.staflowAuth.checkAuth('/auth/login.html');
     if (!session) return null;
 
-    // 2. Verificar assinatura ativa — redireciona para /planos.html se não tiver
+    // 2. Verificar assinatura vigente — bloqueia se inexistente, expirada,
+    //    past_due ou canceled. Em todos os casos redireciona para /planos.html.
     const sub = await window.staflowAuth.checkSubscription();
-    if (!sub) {
-      location.replace('/planos.html');
+    if (!sub || sub._blocked) {
+      const motivo = sub?._reason;
+      if (motivo) {
+        // Sinaliza o motivo via query string para a tela de planos exibir o toast
+        const params = new URLSearchParams({ reason: motivo });
+        location.replace('/planos.html?' + params.toString());
+      } else {
+        location.replace('/planos.html');
+      }
       return null;
     }
 

@@ -432,12 +432,6 @@ document.getElementById('cupom-input').addEventListener('keydown', (e) => {
 async function ativarPlano(plan) {
   if (ativando) return;
 
-  // Starter é sempre gratuito (sem precisar de cupom)
-  if (plan !== 'starter' && !cupomAtivo) {
-    toast('Para planos pagos, insira um cupom de desconto ou aguarde a integração de pagamento.', 'error');
-    return;
-  }
-
   ativando = true;
   const btns = ['btn-starter','btn-pro','btn-scale'].map(id => document.getElementById(id));
   btns.forEach(b => { b.disabled = true; b.classList.add('loading'); });
@@ -448,31 +442,65 @@ async function ativarPlano(plan) {
 
     const discount = cupomAtivo?.discount_percent ?? (plan === 'starter' ? 100 : 0);
     const precoFinal = Math.round(precos[plan] * (1 - discount / 100));
+    const ehGratuito = precoFinal === 0;
 
-    // Cria a assinatura
-    const { error: subErr } = await sb.from('subscriptions').upsert({
-      profile_id:           user.id,
-      condominio_id:        perfilAtual?.condominio_id || null,
-      plan,
-      status:               'active',
-      coupon_used:          cupomAtivo?.code || null,
-      discount_percent:     discount,
-      current_period_start: new Date().toISOString(),
-      current_period_end:   null
-    }, { onConflict: 'profile_id' });
+    // ──────────────────────────────────────────────────────────
+    // CAMINHO A: Gratuito (Starter, ou qualquer plano com cupom 100%)
+    // Ativa direto no Supabase, sem passar pelo Stripe.
+    // ──────────────────────────────────────────────────────────
+    if (ehGratuito) {
+      const { error: subErr } = await sb.from('subscriptions').upsert({
+        profile_id:           user.id,
+        condominio_id:        perfilAtual?.condominio_id || null,
+        plan,
+        status:               'active',
+        coupon_used:          cupomAtivo?.code || null,
+        discount_percent:     discount,
+        current_period_start: new Date().toISOString(),
+        current_period_end:   null   // sem vencimento
+      }, { onConflict: 'profile_id' });
 
-    if (subErr) throw subErr;
+      if (subErr) throw subErr;
 
-    // Incrementa uso do cupom (se aplicado)
-    if (cupomAtivo) {
-      await sb.from('cupons').update({ uses_count: (cupomAtivo.uses_count || 0) + 1 }).eq('code', cupomAtivo.code);
+      // Incrementa uso do cupom (se aplicado)
+      if (cupomAtivo) {
+        await sb.from('cupons')
+          .update({ uses_count: (cupomAtivo.uses_count || 0) + 1 })
+          .eq('code', cupomAtivo.code);
+      }
+
+      toast(`Plano ${plan.charAt(0).toUpperCase()+plan.slice(1)} ativado! Bem-vindo ao StaFlow.`, 'success');
+      setTimeout(() => location.replace('/dashboard.html'), 1200);
+      return;
     }
 
-    toast(`Plano ${plan.charAt(0).toUpperCase()+plan.slice(1)} ativado! Bem-vindo ao StaFlow.`, 'success');
-    setTimeout(() => location.replace('/dashboard.html'), 1200);
+    // ──────────────────────────────────────────────────────────
+    // CAMINHO B: Pago — Stripe Checkout
+    // Chama a Edge Function `create-checkout-session` (a deployar).
+    // Ela cria a Session no Stripe e retorna a URL para redirecionar.
+    // ──────────────────────────────────────────────────────────
+    const { data, error } = await sb.functions.invoke('create-checkout-session', {
+      body: {
+        plan,
+        coupon_code:    cupomAtivo?.code || null,
+        success_url:    `${location.origin}/dashboard.html?checkout=success`,
+        cancel_url:     `${location.origin}/planos.html?checkout=cancel`
+      }
+    });
+
+    if (error) throw error;
+
+    if (data?.url) {
+      // Redireciona para o Stripe Checkout hospedado
+      window.location.href = data.url;
+      return;
+    }
+
+    // Fallback: Edge Function ainda não foi deployada
+    throw new Error('Integração de pagamento ainda não está disponível. Use um cupom de desconto por enquanto.');
 
   } catch (err) {
-    toast('Erro ao ativar plano. Tente novamente.', 'error');
+    toast(err.message || 'Erro ao ativar plano. Tente novamente.', 'error');
     btns.forEach(b => { b.disabled = false; b.classList.remove('loading'); });
     ativando = false;
   }
@@ -491,9 +519,32 @@ document.getElementById('btn-scale').addEventListener('click',   () => ativarPla
   const { ok, data: profile } = await auth.getProfile();
   if (ok) perfilAtual = profile;
 
-  // Se já tem assinatura ativa, vai direto pro dashboard
+  // Mensagens de retorno do Stripe e bloqueios do app-shell
+  const qs = new URLSearchParams(location.search);
+
+  if (qs.get('checkout') === 'cancel') {
+    toast('Pagamento cancelado. Escolha um plano para continuar.', 'error');
+  }
+
+  switch (qs.get('reason')) {
+    case 'past_due':
+      toast('Sua assinatura está com pagamento pendente. Regularize para continuar.', 'error');
+      break;
+    case 'canceled':
+      toast('Sua assinatura foi cancelada. Escolha um plano para reativar.', 'error');
+      break;
+    case 'expired':
+      toast('Sua assinatura expirou. Renove para continuar usando o StaFlow.', 'error');
+      break;
+    case 'inactive':
+      toast('Sua assinatura não está ativa. Escolha um plano abaixo.', 'error');
+      break;
+  }
+
+  // Se já tem assinatura vigente (active/trialing, dentro do período), vai pro dashboard.
+  // Se tem subscription mas está bloqueada, NÃO redireciona — fica em /planos para ele reativar.
   const sub = await auth.checkSubscription();
-  if (sub) {
+  if (sub && !sub._blocked) {
     location.replace('/dashboard.html');
     return;
   }
