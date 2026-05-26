@@ -105,6 +105,112 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   max-width: 200px;
 }
+
+/* ── Alerta de compliance dentro do modal ──────────── */
+.compliance-alert {
+  display: none;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 14px 14px 12px;
+  margin: 4px 0 14px;
+  background: rgba(255,107,107,0.08);
+  border: 1px solid rgba(255,107,107,0.28);
+  border-left: 3px solid var(--red);
+  border-radius: var(--radius);
+  animation: slideDown 0.25s ease;
+}
+.compliance-alert.show { display: flex; }
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.compliance-alert .ico {
+  width: 28px; height: 28px;
+  flex-shrink: 0;
+  border-radius: var(--radius);
+  background: rgba(255,107,107,0.14);
+  color: var(--red);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 14px;
+  margin-top: 2px;
+}
+.compliance-alert .body { flex: 1; min-width: 0; }
+.compliance-alert .head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.compliance-alert .title {
+  font-weight: 600; font-size: 13px; color: var(--white);
+}
+.compliance-alert .legal-pill {
+  font-family: var(--font-mono);
+  font-size: 8px; letter-spacing: 1px;
+  padding: 2px 6px; border-radius: 2px;
+  background: rgba(66,153,225,0.10);
+  color: #6bb1f0;
+  border: 1px solid rgba(66,153,225,0.22);
+  text-transform: uppercase;
+}
+.compliance-alert .desc {
+  font-size: 12px; color: var(--white-dim);
+  line-height: 1.5;
+}
+
+/* ── Checkbox de compliance ──────────────────────── */
+.field-check {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  background: var(--navy-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.field-check:hover { border-color: var(--border-strong); }
+.field-check.auto-marked {
+  border-color: var(--teal-border);
+  background: var(--teal-dim);
+}
+.field-check input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: var(--teal);
+  cursor: pointer;
+  margin: 0;
+  flex-shrink: 0;
+}
+.field-check .ck-label {
+  font-size: 13px;
+  color: var(--white);
+  user-select: none;
+}
+.field-check .ck-hint {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 1px;
+  color: var(--white-muted);
+  text-transform: uppercase;
+}
+
+/* ── Input de salário com prefixo R$ ─────────────── */
+.input-money {
+  position: relative;
+}
+.input-money::before {
+  content: 'R$';
+  position: absolute;
+  left: 12px; top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--white-muted);
+  pointer-events: none;
+}
+.input-money input {
+  padding-left: 36px !important;
+  font-family: var(--font-mono);
+}
 </style>
 </head>
 <body>
@@ -235,6 +341,39 @@
         </div>
       </div>
 
+      <!-- ⚠ Alerta de compliance — só aparece para cargos insalubres -->
+      <div class="compliance-alert" id="cargo-alert">
+        <span class="ico">⚠</span>
+        <div class="body">
+          <div class="head">
+            <span class="title">Atenção: cargo exige adicional de insalubridade</span>
+            <span class="legal-pill">CCT-RJ 2025 · NR-15</span>
+          </div>
+          <div class="desc">
+            Pela Convenção Coletiva e NR-15, este cargo exige o
+            <strong>Adicional de Insalubridade de 20%</strong> ativado para evitar
+            passivos trabalhistas. Já marcamos a caixa abaixo e sugerimos o piso correto da CCT.
+          </div>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="f-salario">Salário base <span style="color:var(--white-muted);font-size:12px;">(opcional)</span></label>
+          <div class="input-money">
+            <input class="input" id="f-salario" type="number" step="0.01" min="0" placeholder="0,00" autocomplete="off">
+          </div>
+        </div>
+        <div class="field">
+          <label>Adicional NR-15</label>
+          <label class="field-check" id="ck-ins-wrap" for="f-insalubridade">
+            <input type="checkbox" id="f-insalubridade">
+            <span class="ck-label">Insalubridade 20%</span>
+            <span class="ck-hint" id="ck-ins-hint">CCT · NR-15</span>
+          </label>
+        </div>
+      </div>
+
       <div class="field-row">
         <div class="field">
           <label for="f-tel">Telefone</label>
@@ -348,6 +487,52 @@ document.getElementById('f-cpf').addEventListener('input', e => e.target.value =
 
 const CARGO_LBL = { porteiro:'Porteiro', zelador:'Zelador', faxineira:'Faxineira', jardineiro:'Jardineiro', seguranca:'Segurança', outro:'Outro' };
 const TURNO_LBL = { manha:'Manhã', tarde:'Tarde', noite:'Noite', integral:'Integral', escala:'Escala' };
+
+/* ════════════════════════════════════════════════════════════════
+   COMPLIANCE — Pisos CCT-RJ 2025 + cargos insalubres
+   ════════════════════════════════════════════════════════════════ */
+const PISO_CCT_RJ = {
+  porteiro:    2045.00,
+  zelador:     2700.00,
+  faxineira:   1890.00,
+  jardineiro:  1890.00,
+  seguranca:   2450.00,
+  outro:       1518.00
+};
+const CARGOS_INSALUBRES = new Set(['faxineira']);  // CCT-RJ 2025 + NR-15
+
+/* ── Listener: aplica regras de compliance ao trocar cargo ─────── */
+const elCargoSel  = document.getElementById('f-cargo-i');
+const elAlert     = document.getElementById('cargo-alert');
+const elInsCk     = document.getElementById('f-insalubridade');
+const elInsWrap   = document.getElementById('ck-ins-wrap');
+const elSalario   = document.getElementById('f-salario');
+let salarioTocado = false;   // se usuário digitou algo no salário, não sobrescreve
+elSalario.addEventListener('input', () => { salarioTocado = true; });
+
+function aplicarRegraCargo(cargo) {
+  // 1. Alerta visual + auto-check do checkbox para cargos insalubres
+  if (CARGOS_INSALUBRES.has(cargo)) {
+    elAlert.classList.add('show');
+    elInsCk.checked = true;
+    elInsWrap.classList.add('auto-marked');
+  } else {
+    elAlert.classList.remove('show');
+    elInsWrap.classList.remove('auto-marked');
+    // NÃO desmarca automaticamente — síndico pode ter motivo p/ manter
+  }
+
+  // 2. Sugere piso CCT-RJ se o salário ainda não foi tocado pelo usuário
+  const piso = PISO_CCT_RJ[cargo];
+  if (piso) {
+    elSalario.placeholder = `Sugestão CCT-RJ: ${piso.toFixed(2).replace('.', ',')}`;
+    if (!salarioTocado && !elSalario.value) {
+      elSalario.value = piso.toFixed(2);
+    }
+  }
+}
+
+elCargoSel.addEventListener('change', (e) => aplicarRegraCargo(e.target.value));
 
 // ── Foto: preview no modal ─────────────────────────────────────
 function showFotoImg(src) {
@@ -515,7 +700,7 @@ async function loadAll() {
   window.staflowApp.skeletonRows('tbody', 6, 5);
 
   const { data, error } = await sb.from('funcionarios')
-    .select('id, nome, cargo, turno, telefone, cpf, email, data_admissao, ativo, observacoes, foto_path, created_at')
+    .select('id, nome, cargo, turno, telefone, cpf, email, data_admissao, ativo, observacoes, foto_path, salario_base, adicional_insalubridade, created_at')
     .order('nome', { ascending: true });
   if (error) { T(error.message, 'error'); return; }
   allRows = data || [];
@@ -532,6 +717,11 @@ function openNew() {
   document.getElementById('f-ativo').value = 'true';
   currentFotoPath = null;
   resetFoto('');
+  // Aplica regra do cargo default (porteiro) — sugere piso e oculta alerta
+  salarioTocado = false;
+  elAlert.classList.remove('show');
+  elInsWrap.classList.remove('auto-marked');
+  aplicarRegraCargo(elCargoSel.value);
   modal.classList.add('show');
   setTimeout(() => document.getElementById('f-nome').focus(), 100);
 }
@@ -548,6 +738,23 @@ async function openEdit(row) {
   document.getElementById('f-adm').value     = row.data_admissao || '';
   document.getElementById('f-ativo').value   = row.ativo ? 'true' : 'false';
   document.getElementById('f-obs').value     = row.observacoes || '';
+
+  // ── Campos de compliance ──────────────────────────────────────
+  // Salário base já salvo → marca como "tocado" para não sobrescrever
+  if (row.salario_base != null) {
+    elSalario.value = Number(row.salario_base).toFixed(2);
+    salarioTocado = true;
+  } else {
+    elSalario.value = '';
+    salarioTocado = false;
+  }
+  elInsCk.checked = !!row.adicional_insalubridade;
+  // Aplica a regra visual do cargo (alerta + auto-fill se vazio)
+  aplicarRegraCargo(row.cargo || 'porteiro');
+  // Se já está marcado por edição prévia, ainda assim destaca quando cargo é insalubre
+  if (!CARGOS_INSALUBRES.has(row.cargo)) {
+    elInsWrap.classList.remove('auto-marked');
+  }
 
   // Foto
   currentFotoPath = row.foto_path || null;
@@ -589,16 +796,19 @@ document.getElementById('form-func').addEventListener('submit', async (e) => {
   const nome = document.getElementById('f-nome').value.trim();
   if (nome.length < 3) { ffNome.classList.add('has-error'); return; }
 
+  const salarioRaw = document.getElementById('f-salario').value.trim();
   const payload = {
     nome,
-    cargo:         document.getElementById('f-cargo-i').value,
-    turno:         document.getElementById('f-turno-i').value,
-    telefone:      document.getElementById('f-tel').value.trim() || null,
-    cpf:           document.getElementById('f-cpf').value.trim() || null,
-    email:         document.getElementById('f-email-i').value.trim() || null,
-    data_admissao: document.getElementById('f-adm').value || null,
-    ativo:         document.getElementById('f-ativo').value === 'true',
-    observacoes:   document.getElementById('f-obs').value.trim() || null
+    cargo:                    document.getElementById('f-cargo-i').value,
+    turno:                    document.getElementById('f-turno-i').value,
+    telefone:                 document.getElementById('f-tel').value.trim() || null,
+    cpf:                      document.getElementById('f-cpf').value.trim() || null,
+    email:                    document.getElementById('f-email-i').value.trim() || null,
+    data_admissao:            document.getElementById('f-adm').value || null,
+    ativo:                    document.getElementById('f-ativo').value === 'true',
+    observacoes:              document.getElementById('f-obs').value.trim() || null,
+    salario_base:             salarioRaw ? Number(salarioRaw) : null,
+    adicional_insalubridade:  document.getElementById('f-insalubridade').checked
   };
 
   const btn = document.getElementById('m-save');

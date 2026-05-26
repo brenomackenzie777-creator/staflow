@@ -740,14 +740,59 @@ document.getElementById('btn-export').addEventListener('click', () => {
 // ══════════════════════════════════════════════════════════════════════════════
 // Busca todos os pontos e faltas de um funcionário entre dataInicio e dataFim
 // (strings ISO YYYY-MM-DD, inclusivas) e calcula:
-//   - totalHorasTrabalhadas   (decimal, em horas)
-//   - totalHorasFormatado     ('Xh YYm')
-//   - diasTrabalhados         (dias com pelo menos 1 par entrada/saída)
-//   - faltasInjustificadas    (tipo=falta E justificada=false)
-//   - diasAtestado            (tipo=atestado)
-//   - diasFerias              (tipo=ferias)
-//   - diasLicenca             (tipo=licenca)
+//   - totalHorasTrabalhadas       (decimal, em horas — TEMPO CRONOLÓGICO)
+//   - totalHorasFormatado         ('Xh YYm')
+//   - diasTrabalhados             (dias com pelo menos 1 par entrada/saída)
+//   - faltasInjustificadas        (tipo=falta E justificada=false)
+//   - diasAtestado                (tipo=atestado)
+//   - diasFerias                  (tipo=ferias)
+//   - diasLicenca                 (tipo=licenca)
+//   - minutosNoturnosCronologicos (minutos relógio dentro de [22h-05h])
+//   - horasNoturnasComputadas     (decimal — TEMPO LEGAL pela CLT Art.73 §1º)
+//   - horasNoturnasFormatado      ('Xh YYm')
 //
+// CLT Art. 73 §1º: a hora noturna trabalhada entre 22h e 05h tem duração
+// reduzida de 52'30". O fator de conversão é 60/52.5 = 1.142857.
+// Cada minuto cronológico noturno equivale a 1.142857 minutos de jornada legal.
+
+// Fator de conversão da hora noturna reduzida (CLT Art.73 §1º)
+const FATOR_HORA_NOTURNA = 60 / 52.5;   // = 1.1428571428...
+
+// Helper: retorna minutos da intersecção entre o intervalo trabalhado
+// [entradaTs, saidaTs] e a janela legal noturna [22h-05h] em qualquer
+// calendário coberto pela jornada.
+function minutosNoturnos(entradaTs, saidaTs) {
+  const start = new Date(entradaTs);
+  const end   = new Date(saidaTs);
+  if (end <= start) return 0;
+
+  let total = 0;
+  // Cursor no início do dia da entrada
+  const cursor = new Date(start);
+  cursor.setHours(0, 0, 0, 0);
+
+  // Itera por cada dia coberto pelo intervalo de trabalho
+  while (cursor < end) {
+    const dayStart  = new Date(cursor);
+    const fim5h     = new Date(cursor); fim5h.setHours(5, 0, 0, 0);
+    const inicio22h = new Date(cursor); inicio22h.setHours(22, 0, 0, 0);
+    const dayEnd    = new Date(cursor); dayEnd.setDate(dayEnd.getDate() + 1);
+
+    // Janela 1 do dia: [00h, 05h)
+    const s1 = Math.max(start.getTime(), dayStart.getTime());
+    const e1 = Math.min(end.getTime(),   fim5h.getTime());
+    if (e1 > s1) total += (e1 - s1) / 60000;
+
+    // Janela 2 do dia: [22h, 24h)
+    const s2 = Math.max(start.getTime(), inicio22h.getTime());
+    const e2 = Math.min(end.getTime(),   dayEnd.getTime());
+    if (e2 > s2) total += (e2 - s2) / 60000;
+
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return total;
+}
+
 async function calcularMetricasPeriodo(funcionarioId, dataInicio, dataFim) {
   // dataInicio e dataFim em formato YYYY-MM-DD
   const inicioISO = dataInicio + 'T00:00:00.000Z';
@@ -786,6 +831,7 @@ async function calcularMetricasPeriodo(funcionarioId, dataInicio, dataFim) {
 
   let totalMs = 0;
   let diasTrabalhados = 0;
+  let minutosNoturnosTotais = 0;   // cronológicos (relógio) dentro de [22h-05h]
 
   for (const dia of Object.keys(porDia)) {
     const eventos = porDia[dia].sort((a, b) => new Date(a.registrado_em) - new Date(b.registrado_em));
@@ -796,7 +842,8 @@ async function calcularMetricasPeriodo(funcionarioId, dataInicio, dataFim) {
       if (e.tipo === 'entrada' && !entradaAtual) {
         entradaAtual = e;
       } else if (e.tipo === 'saida' && entradaAtual) {
-        totalMs += new Date(e.registrado_em) - new Date(entradaAtual.registrado_em);
+        totalMs                 += new Date(e.registrado_em) - new Date(entradaAtual.registrado_em);
+        minutosNoturnosTotais   += minutosNoturnos(entradaAtual.registrado_em, e.registrado_em);
         entradaAtual = null;
         trabalhouNoDia = true;
       }
@@ -807,6 +854,12 @@ async function calcularMetricasPeriodo(funcionarioId, dataInicio, dataFim) {
   const horasDecimal = totalMs / 3600000;
   const horasInt     = Math.floor(horasDecimal);
   const minutos      = Math.round((horasDecimal - horasInt) * 60);
+
+  // ── CLT Art.73 §1º: minutos noturnos × 1.142857 = minutos legais ──
+  const minutosNoturnosLegais = minutosNoturnosTotais * FATOR_HORA_NOTURNA;
+  const horasNoturnasDecimal  = minutosNoturnosLegais / 60;
+  const hnInt                 = Math.floor(horasNoturnasDecimal);
+  const hnMin                 = Math.round((horasNoturnasDecimal - hnInt) * 60);
 
   // Contadores de faltas
   let faltasInjustificadas = 0, diasAtestado = 0, diasFerias = 0, diasLicenca = 0;
@@ -827,7 +880,11 @@ async function calcularMetricasPeriodo(funcionarioId, dataInicio, dataFim) {
     diasAtestado,
     diasFerias,
     diasLicenca,
-    totalDiasAfastado: diasAtestado + diasFerias + diasLicenca
+    totalDiasAfastado: diasAtestado + diasFerias + diasLicenca,
+    // ── Hora noturna reduzida — CLT Art.73 §1º ──
+    minutosNoturnosCronologicos: Math.round(minutosNoturnosTotais),
+    horasNoturnasComputadas:     Math.round(horasNoturnasDecimal * 100) / 100,
+    horasNoturnasFormatado:      `${hnInt}h${String(hnMin).padStart(2,'0')}m`
   };
 }
 
@@ -866,7 +923,11 @@ document.getElementById('btn-espelho').addEventListener('click', async () => {
       'Dias trabalhados',
       'Faltas injustificadas',
       'Dias de atestado', 'Dias de férias', 'Dias de licença',
-      'Total dias afastado'
+      'Total dias afastado',
+      // ── Hora noturna reduzida (CLT Art.73 §1º) ──
+      'Minutos noturnos (cronológicos)',
+      'Horas noturnas computadas (CLT 73§1º)',
+      'Horas noturnas (decimal)'
     ];
 
     const rowsCsv = allFuncs.map((f, i) => {
@@ -882,7 +943,10 @@ document.getElementById('btn-espelho').addEventListener('click', async () => {
         m.diasAtestado,
         m.diasFerias,
         m.diasLicenca,
-        m.totalDiasAfastado
+        m.totalDiasAfastado,
+        m.minutosNoturnosCronologicos,
+        m.horasNoturnasFormatado,
+        m.horasNoturnasComputadas
       ];
     });
 

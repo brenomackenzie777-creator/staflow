@@ -633,7 +633,7 @@ async function loadCompliance() {
     { data: funcs },
     { data: pontos30d }
   ] = await Promise.all([
-    sb.from('funcionarios').select('id, nome, cargo').eq('ativo', true),
+    sb.from('funcionarios').select('id, nome, cargo, salario_base, adicional_insalubridade').eq('ativo', true),
     sb.from('registros_ponto').select('funcionario_id, tipo, registrado_em').gte('registrado_em', desde.toISOString())
   ]);
 
@@ -661,11 +661,14 @@ async function loadCompliance() {
     return;
   }
 
-  /* ── 1. FOLHA TOTAL (Σ piso CCT por cargo) ──────────────────── */
-  const folhaTotal = funcs.reduce(
-    (acc, f) => acc + (PISO_CCT_RJ[f.cargo] ?? PISO_CCT_RJ.outro),
-    0
-  );
+  /* ── 1. FOLHA TOTAL ─────────────────────────────────────────
+     Prioriza salario_base individual (migração 011) e cai no
+     PISO_CCT_RJ[cargo] como fallback quando ainda não preenchido.
+  ──────────────────────────────────────────────────────────── */
+  const salarioDe = (f) => Number(f.salario_base) > 0
+    ? Number(f.salario_base)
+    : (PISO_CCT_RJ[f.cargo] ?? PISO_CCT_RJ.outro);
+  const folhaTotal = funcs.reduce((acc, f) => acc + salarioDe(f), 0);
 
   /* ── 2. HORAS EXTRAS POR PORTEIRO (últimos 30 dias) ────────── */
   const porteiros = funcs.filter(f => f.cargo === 'porteiro');
@@ -748,18 +751,18 @@ async function loadCompliance() {
   /* ── 5. ALERTAS CRÍTICOS ────────────────────────────────────── */
   const alertas = [];
 
-  // (a) Faxineiras/limpeza sem registro de insalubridade
-  // Regra: a CCT-RJ pós-2025 obriga adicional de insalubridade
-  // (20% sobre o piso) para profissionais de limpeza. Como o schema
-  // ainda não armazena esse adicional por funcionário, qualquer
-  // faxineira ativa é flagada como "config pendente".
-  const faxineiras = funcs.filter(f => f.cargo === 'faxineira');
-  if (faxineiras.length > 0) {
-    const nomes = faxineiras.map(f => f.nome).slice(0, 3).join(', ')
-                + (faxineiras.length > 3 ? ` e mais ${faxineiras.length - 3}` : '');
+  // (a) Faxineiras/limpeza SEM adicional_insalubridade marcado.
+  // Após a migração 011, a flag está no schema — só flagamos quem
+  // ainda não foi regularizado pelo síndico.
+  const faxineirasPendentes = funcs.filter(
+    f => f.cargo === 'faxineira' && !f.adicional_insalubridade
+  );
+  if (faxineirasPendentes.length > 0) {
+    const nomes = faxineirasPendentes.map(f => f.nome).slice(0, 3).join(', ')
+                + (faxineirasPendentes.length > 3 ? ` e mais ${faxineirasPendentes.length - 3}` : '');
     alertas.push({
       severidade: 'red',
-      titulo: `${faxineiras.length} funcionário(s) de limpeza sem adicional de insalubridade`,
+      titulo: `${faxineirasPendentes.length} funcionário(s) de limpeza sem adicional de insalubridade`,
       desc:   `A CCT-RJ pós-2025 obriga o adicional de insalubridade (20% sobre o piso) para profissionais de limpeza que manipulam produtos químicos ou resíduos. Funcionário(s): ${nomes}.`,
       legal:  'CCT-RJ 2025 · NR-15',
       cta:    'Configurar adicional →',
