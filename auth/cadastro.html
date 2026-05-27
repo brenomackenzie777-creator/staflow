@@ -267,9 +267,45 @@
           <span class="field-error">Telefone inválido.</span>
         </div>
 
-        <div class="field">
-          <label for="end">Endereço <span style="color:var(--white-muted);font-size:12px;">(opcional)</span></label>
-          <input class="input" id="end" type="text" placeholder="R. das Flores, 123">
+        <!-- Endereço estruturado com auto-fill ViaCEP -->
+        <div class="field" id="f-cep">
+          <label for="cep">CEP do condomínio <span style="color:var(--white-muted);font-size:12px;">(preenche endereço automaticamente)</span></label>
+          <input class="input" id="cep" type="text" inputmode="numeric" autocomplete="off" placeholder="00000-000" maxlength="9">
+          <span class="field-error">CEP não encontrado.</span>
+        </div>
+
+        <div class="field-row">
+          <div class="field" style="flex:3;">
+            <label for="logradouro">Logradouro</label>
+            <input class="input" id="logradouro" type="text" placeholder="Rua / Avenida" autocomplete="off">
+          </div>
+          <div class="field" style="flex:1;">
+            <label for="numero">Número</label>
+            <input class="input" id="numero" type="text" placeholder="123" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="bairro">Bairro</label>
+            <input class="input" id="bairro" type="text" placeholder="Centro" autocomplete="off">
+          </div>
+          <div class="field" style="flex:2;">
+            <label for="cidade">Cidade</label>
+            <input class="input" id="cidade" type="text" placeholder="Rio de Janeiro" autocomplete="off">
+          </div>
+          <div class="field" style="max-width:90px;">
+            <label for="uf">UF</label>
+            <select class="input" id="uf">
+              <option value="">—</option>
+              <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option>
+              <option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option>
+              <option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option>
+              <option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+              <option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option>
+              <option>SE</option><option>TO</option>
+            </select>
+          </div>
         </div>
 
         <button class="btn" id="btn-submit" type="submit">
@@ -460,6 +496,54 @@ scpfEl.addEventListener('blur', () => {
   if (!window.staflowValidators.validarCPF(v)) fScpf.classList.add('has-error');
 });
 
+/* ── CEP + ViaCEP auto-fill ───────────────────────────────────
+   Máscara 00000-000 enquanto digita; ao completar 8 dígitos OU
+   ao perder o foco, busca em https://viacep.com.br/ws/CEP/json/
+   e preenche logradouro/bairro/cidade/UF automaticamente.
+   Falhas de rede são silenciosas (UX não trava se o ViaCEP cair).
+─────────────────────────────────────────────────────────────── */
+const cepEl     = document.getElementById('cep');
+const fCep      = document.getElementById('f-cep');
+const logEl     = document.getElementById('logradouro');
+const numEl     = document.getElementById('numero');
+const bairroEl  = document.getElementById('bairro');
+const cidadeEl  = document.getElementById('cidade');
+const ufEl      = document.getElementById('uf');
+
+function maskCEP(v) {
+  v = (v || '').replace(/\D/g, '').slice(0, 8);
+  if (v.length > 5) return v.replace(/(\d{5})(\d{0,3})/, '$1-$2');
+  return v;
+}
+
+async function buscarViaCEP(cep) {
+  const digits = (cep || '').replace(/\D/g, '');
+  if (digits.length !== 8) return;
+  fCep.classList.remove('has-error');
+  try {
+    const r = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d?.erro) { fCep.classList.add('has-error'); return; }
+    // Preenche apenas campos vazios (não sobrescreve digitação manual)
+    if (d.logradouro && !logEl.value)   logEl.value     = d.logradouro;
+    if (d.bairro     && !bairroEl.value) bairroEl.value = d.bairro;
+    if (d.localidade && !cidadeEl.value) cidadeEl.value = d.localidade;
+    if (d.uf         && !ufEl.value)     ufEl.value     = d.uf;
+    // Foca o próximo campo lógico
+    if (!numEl.value) numEl.focus();
+  } catch (_) { /* falha de rede silenciosa */ }
+}
+
+cepEl.addEventListener('input', () => {
+  cepEl.value = maskCEP(cepEl.value);
+  fCep.classList.remove('has-error');
+  // Auto-busca quando completar 8 dígitos
+  const digits = cepEl.value.replace(/\D/g, '');
+  if (digits.length === 8) buscarViaCEP(digits);
+});
+cepEl.addEventListener('blur', () => buscarViaCEP(cepEl.value));
+
 // (radio cards de cargo removidos — role do síndico é sempre 'sindico' no cadastro inicial;
 //  admins são promovidos posteriormente pelo painel)
 
@@ -562,21 +646,44 @@ document.getElementById('form-2').addEventListener('submit', async (e) => {
   state.condo = condo;
   state.cnpj  = cnpj ? window.staflowValidators.limparDigitos(cnpj) : '';
   state.scpf  = window.staflowValidators.limparDigitos(scpf);
-  state.end   = end;
-  state.role  = 'sindico';   // role fixo nesta etapa (era radio)
+  state.role  = 'sindico';
   state.fone  = fone;
+
+  // Endereço estruturado (ViaCEP-driven)
+  const cepDigits = window.staflowValidators.limparDigitos(cepEl.value);
+  const logradouro = logEl.value.trim();
+  const numero     = numEl.value.trim();
+  const bairro     = bairroEl.value.trim();
+  const cidade     = cidadeEl.value.trim();
+  const uf         = ufEl.value;
+
+  // Reconstrói endereco-string para legado (até ensure_condominio popular)
+  const partes = [];
+  if (logradouro) partes.push(logradouro + (numero ? ', ' + numero : ''));
+  if (bairro)     partes.push(bairro);
+  if (cidade && uf) partes.push(cidade + '/' + uf);
+  else if (cidade) partes.push(cidade);
+  if (cepDigits)  partes.push('CEP ' + cepDigits.replace(/(\d{5})(\d{3})/,'$1-$2'));
+  state.end = partes.join(' — ');
 
   const btn = document.getElementById('btn-submit');
   btn.classList.add('loading'); btn.disabled = true;
 
   const res = await staflowAuth.signUp(state.email, state.senha, {
-    full_name: state.nome,
-    phone: state.fone,
-    cpf: state.scpf,
-    role: state.role,
-    condominio_nome: state.condo,
-    condominio_cnpj: state.cnpj || null,
-    condominio_endereco: state.end
+    full_name:           state.nome,
+    phone:               state.fone,
+    cpf:                 state.scpf,
+    role:                state.role,
+    condominio_nome:     state.condo,
+    condominio_cnpj:     state.cnpj || null,
+    condominio_endereco: state.end || null,
+    // Campos estruturados → ensure_condominio() lê via raw_user_meta_data
+    logradouro:          logradouro || null,
+    numero:              numero || null,
+    bairro:              bairro || null,
+    cidade:              cidade || null,
+    estado:              uf || null,
+    cep:                 cepDigits || null
   });
 
   btn.classList.remove('loading'); btn.disabled = false;

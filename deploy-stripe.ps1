@@ -5,8 +5,40 @@
 #   .\deploy-stripe.ps1
 #
 # Pré-requisitos:
-#   - Supabase CLI:  npm i -g supabase
-#   - Login feito:   supabase login
+#   - Supabase CLI:        npm i -g supabase
+#   - Login feito:         supabase login   (ou SUPABASE_ACCESS_TOKEN env)
+#   - Bash não:            este é template Windows
+# ============================================================
+#
+# 🛡️  SEGURANÇA — LEIA ANTES DE EDITAR
+# ─────────────────────────────────────────────────────────────
+# Este arquivo é o TEMPLATE versionado (commitado no git).
+# NUNCA preencha secrets reais aqui — copie para a versão
+# `.local.ps1` (coberta pelo .gitignore) e preencha lá.
+#
+#   Copy-Item deploy-stripe.ps1 deploy-stripe.local.ps1
+#   notepad deploy-stripe.local.ps1   # preencher secrets reais
+#   .\deploy-stripe.local.ps1
+#
+# ─────────────────────────────────────────────────────────────
+# 🚦 TEST MODE vs LIVE MODE — como virar a chave
+# ─────────────────────────────────────────────────────────────
+# 1) Stripe Dashboard → toggle 'View test data' OFF (canto inf. esq.)
+# 2) Products → criar Pro (R$ 99) e Scale (R$ 249) novamente em LIVE
+# 3) Developers → API keys → revele 'sk_live_...'
+# 4) Developers → Webhooks → Add endpoint LIVE:
+#    URL:  https://wsxpskrrzqtdoodpoofx.supabase.co/functions/v1/stripe-webhook
+#    Eventos:
+#      - checkout.session.completed
+#      - customer.subscription.created
+#      - customer.subscription.updated
+#      - customer.subscription.deleted
+#      - invoice.paid
+#      - invoice.payment_failed
+#    Copie o 'whsec_...' do Signing secret
+# 5) Substitua os valores abaixo por sk_live_ / whsec_ / price_LIVE_
+# 6) Rode este script
+# 7) Atualize js/stripe-config.js com os mesmos price IDs LIVE
 # ============================================================
 
 $ErrorActionPreference = "Stop"
@@ -16,6 +48,8 @@ $ErrorActionPreference = "Stop"
 # ──────────────────────────────────────────────────────────────
 $PROJECT_REF           = "wsxpskrrzqtdoodpoofx"
 
+# 🧪 TEST MODE  → sk_test_... / whsec_... / price_TEST_...
+# 🚀 LIVE MODE  → sk_live_... / whsec_LIVE_... / price_LIVE_...
 $STRIPE_SECRET_KEY     = "sk_test_REPLACE_ME"        # Stripe → Developers → API keys
 $STRIPE_WEBHOOK_SECRET = "whsec_REPLACE_ME"          # Stripe → Developers → Webhooks → Signing secret
 $STRIPE_PRICE_PRO      = "price_REPLACE_ME_PRO"      # Stripe → Products → Pro   → Pricing → API ID
@@ -42,6 +76,10 @@ foreach ($k in $vars.Keys) {
     exit 1
   }
 }
+
+# Detecta TEST vs LIVE pelo prefixo da chave
+$mode = if ($STRIPE_SECRET_KEY.StartsWith("sk_live_")) { "🚀 LIVE MODE (PRODUCAO)" } else { "🧪 TEST MODE" }
+Write-Host "`nModo detectado: $mode" -ForegroundColor Yellow
 
 # ──────────────────────────────────────────────────────────────
 # 3) Link do projeto
@@ -74,14 +112,12 @@ if (-not $?) { exit 1 }
 
 # ──────────────────────────────────────────────────────────────
 Write-Host ""
-Write-Host "Deploy concluido!" -ForegroundColor Green
+Write-Host "Deploy concluido! Modo: $mode" -ForegroundColor Green
 Write-Host ""
-Write-Host "Proximos passos:"
-Write-Host "  1. No Stripe Dashboard -> Developers -> Webhooks -> Add endpoint"
+Write-Host "Checklist pos-deploy:"
+Write-Host "  1. Webhook endpoint configurado em Stripe Dashboard?"
 Write-Host "     URL: https://$PROJECT_REF.supabase.co/functions/v1/stripe-webhook"
-Write-Host "     Eventos: customer.subscription.created"
-Write-Host "              customer.subscription.updated"
-Write-Host "              customer.subscription.deleted"
-Write-Host "              invoice.payment_failed"
-Write-Host "  2. Copie o NOVO Signing secret e re-rode este script com o valor atualizado."
-Write-Host "  3. Preencha js/stripe-config.js com os mesmos price IDs."
+Write-Host "     Eventos: checkout.session.completed + customer.subscription.*"
+Write-Host "              + invoice.paid + invoice.payment_failed"
+Write-Host "  2. js/stripe-config.js atualizado com os mesmos price IDs?"
+Write-Host "  3. Teste com Stripe CLI: stripe trigger checkout.session.completed"
