@@ -155,6 +155,184 @@
 .tbl tbody tr:hover td { background: rgba(240,244,255,0.02); }
 .tbl tbody tr td:last-child { cursor: default; }
 
+/* ── ÁREA DE IMPRESSÃO — Espelho de Ponto (MTE Portaria 671) ── */
+.print-only { display: none; }
+
+@media print {
+  /* Esconde tudo menos a área de impressão */
+  body * { visibility: hidden !important; }
+  #print-area, #print-area * { visibility: visible !important; }
+  #print-area {
+    display: block !important;
+    position: absolute;
+    left: 0; top: 0;
+    width: 100%;
+    padding: 24px 28px;
+    background: #fff !important;
+    color: #000 !important;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+  @page { size: A4 portrait; margin: 12mm; }
+  /* Esconde sidebar, modal-backdrops, toast, splash, etc */
+  .sidebar, .modal-backdrop, .toast, .splash, .menu-toggle, .topbar-actions { display: none !important; }
+}
+
+#print-area .print-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #000;
+  margin-bottom: 20px;
+}
+#print-area .print-header h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: 18pt; font-weight: 800;
+  margin: 0 0 4px;
+  letter-spacing: -0.3px;
+}
+#print-area .print-header .sub {
+  font-size: 9pt; color: #444;
+  font-family: 'DM Mono', monospace;
+}
+#print-area .print-header .codice {
+  text-align: right;
+  font-family: 'DM Mono', monospace;
+  font-size: 9pt; color: #444;
+}
+#print-area .meta-block {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 18px;
+  font-size: 10pt;
+}
+#print-area .meta-block .lbl {
+  font-family: 'DM Mono', monospace;
+  font-size: 8pt; color: #666;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+#print-area .meta-block .val { font-weight: 600; }
+#print-area table.espelho {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 18px;
+  font-size: 9.5pt;
+}
+#print-area table.espelho th,
+#print-area table.espelho td {
+  border: 1px solid #999;
+  padding: 5px 7px;
+  text-align: left;
+  vertical-align: top;
+}
+#print-area table.espelho th {
+  background: #eee !important;
+  font-weight: 700;
+  font-size: 8.5pt;
+  text-transform: uppercase;
+}
+#print-area table.espelho td.mono {
+  font-family: 'DM Mono', monospace;
+  font-size: 9pt;
+}
+#print-area table.espelho tr.audit-row td { background: #fff7e6 !important; }
+#print-area .audit-flag {
+  display: inline-block;
+  font-family: 'DM Mono', monospace;
+  font-size: 7.5pt;
+  padding: 1px 4px;
+  border: 1px solid #999;
+  border-radius: 2px;
+  margin-left: 4px;
+}
+#print-area .audit-flag.red { background: #fbeaea !important; color: #b00020 !important; border-color: #b00020; }
+#print-area .audit-flag.amber { background: #fff7e6 !important; color: #8a6100 !important; border-color: #8a6100; }
+#print-area .audit-flag.blue { background: #eaf2fb !important; color: #1a4a8a !important; border-color: #1a4a8a; }
+
+#print-area .totalizadores {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  border: 1.5px solid #000;
+  padding: 12px;
+  margin-bottom: 24px;
+}
+#print-area .totalizadores .tot {
+  text-align: center;
+}
+#print-area .totalizadores .tot .lbl {
+  font-family: 'DM Mono', monospace;
+  font-size: 8pt; color: #666;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+#print-area .totalizadores .tot .val {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 14pt;
+}
+
+#print-area .signatures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  margin-top: 60px;
+  margin-bottom: 28px;
+}
+#print-area .sig-block {
+  text-align: center;
+  border-top: 1px solid #000;
+  padding-top: 6px;
+  font-size: 10pt;
+}
+#print-area .sig-block .lbl {
+  font-family: 'DM Mono', monospace;
+  font-size: 8pt; color: #666;
+  text-transform: uppercase;
+}
+
+#print-area .hash-block {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  background: #f6f6f6 !important;
+  font-family: 'DM Mono', monospace;
+  font-size: 7.5pt;
+  word-break: break-all;
+  color: #444;
+}
+#print-area .hash-block .lbl {
+  font-weight: 700; color: #000;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 2px;
+}
+#print-area .legal-note {
+  margin-top: 8px;
+  font-size: 8pt;
+  color: #666;
+  font-style: italic;
+}
+
+/* ── Botão editar batida (✏️) ── */
+.btn-edit-hora {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--white-dim);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  margin-left: 6px;
+  transition: var(--transition);
+  vertical-align: middle;
+}
+.btn-edit-hora:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
 /* ── Audit badges (antifraude GPS vindo do app de bolso) ── */
 .audit-pill {
   display: inline-block;
@@ -293,7 +471,8 @@
         <p class="sub">Registro de entrada e saída dos funcionários.</p>
       </div>
       <div class="topbar-actions">
-        <button class="btn btn-ghost" id="btn-espelho" style="width:auto;padding:10px 18px;" title="Espelho consolidado do mês">⤓ Espelho mensal</button>
+        <button class="btn" id="btn-espelho-legal" style="width:auto;padding:10px 18px;background:var(--navy-brand);color:#fff;" title="Espelho de ponto formal MTE Portaria 671">📄 Emitir Espelho de Ponto</button>
+        <button class="btn btn-ghost" id="btn-espelho" style="width:auto;padding:10px 18px;" title="CSV consolidado do mês (todos os funcionários)">⤓ CSV mensal</button>
         <button class="btn btn-ghost" id="btn-export" style="width:auto;padding:10px 18px;">⤓ Exportar dia</button>
       </div>
     </div>
@@ -375,6 +554,72 @@
 
   </main>
 </div>
+
+<!-- ── Modal: RETIFICAR BATIDA (síndico) ── -->
+<div class="modal-backdrop" id="modal-edit-reg">
+  <div class="modal" style="max-width:460px;">
+    <h2>Retificar batida de ponto</h2>
+    <p class="modal-sub">A alteração ficará marcada como <strong>EDITADO_ADMIN</strong> com seu nome e o motivo informado para auditoria fiscal.</p>
+
+    <form id="form-edit-reg" novalidate>
+      <input type="hidden" id="edit-reg-id">
+
+      <div class="field">
+        <label>Horário atual registrado</label>
+        <input class="input" id="edit-reg-atual" type="text" disabled style="opacity:0.6;font-family:var(--font-mono);">
+      </div>
+
+      <div class="field" id="ff-edit-novo">
+        <label for="edit-reg-novo">Novo horário</label>
+        <input class="input" id="edit-reg-novo" type="time" step="60" required>
+        <span class="field-error">Informe o novo horário.</span>
+      </div>
+
+      <div class="field" id="ff-edit-motivo">
+        <label for="edit-reg-motivo">Motivo da retificação <span style="color:var(--red);">*</span></label>
+        <input class="input" id="edit-reg-motivo" type="text" placeholder="Ex: Funcionário esqueceu de bater a saída" required maxlength="200">
+        <span class="field-error">Motivo é obrigatório (mínimo 5 caracteres).</span>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="edit-reg-cancel"><span class="btn-label">Cancelar</span></button>
+        <button type="submit" class="btn" id="edit-reg-save" style="background:var(--navy-brand);color:#fff;">
+          <span class="spinner"></span>
+          <span class="btn-label">Salvar retificação</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Modal: EMITIR ESPELHO LEGAL (escolha funcionário + mês) ── -->
+<div class="modal-backdrop" id="modal-espelho">
+  <div class="modal" style="max-width:460px;">
+    <h2>Emitir espelho de ponto</h2>
+    <p class="modal-sub">Documento formal conforme <strong>MTE Portaria 671</strong>, com hash de integridade. Pronto para impressão ou PDF.</p>
+
+    <div class="field">
+      <label for="esp-func">Funcionário</label>
+      <select class="input" id="esp-func"></select>
+    </div>
+
+    <div class="field">
+      <label for="esp-mes">Mês de referência</label>
+      <input class="input" id="esp-mes" type="month">
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="esp-cancel"><span class="btn-label">Cancelar</span></button>
+      <button type="button" class="btn" id="esp-gerar" style="background:var(--teal);color:var(--navy-deep);">
+        <span class="spinner"></span>
+        <span class="btn-label">Gerar e imprimir</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Área de impressão (gerada dinamicamente, oculta na tela) ── -->
+<div id="print-area" class="print-only" aria-hidden="true"></div>
 
 <!-- ── Modal: detalhe do funcionário ── -->
 <div class="modal-backdrop" id="modal-det">
@@ -488,7 +733,7 @@ function getStatus(row) {
   return 'AUSENTE';
 }
 
-/* Pill antifraude para uma batida individual baseada em audit_status */
+/* Pill antifraude / auditoria para uma batida individual */
 function auditPill(reg) {
   if (!reg || !reg.audit_status || reg.audit_status === 'OK') return '';
   switch (reg.audit_status) {
@@ -498,9 +743,17 @@ function auditPill(reg) {
       return ' <span class="audit-pill warn" title="Sinal único de mock location detectado — investigar com o funcionário.">⚠️ GPS Suspeito</span>';
     case 'LOW_ACCURACY':
       return ' <span class="audit-pill info" title="Precisão de GPS acima de 150m no momento da batida — local fechado ou sinal fraco.">📍 Baixa Precisão</span>';
+    case 'EDITADO_ADMIN':
+      return ' <span class="audit-pill warn" title="Horário retificado pelo síndico: ' + escapeHtml(reg.motivo_edicao || 'sem motivo informado') + '">✏️ Retificado</span>';
     default:
       return '';
   }
+}
+
+/* Botão pequeno de editar batida (✏️) */
+function editBtn(reg) {
+  if (!reg) return '';
+  return ' <button class="btn-edit-hora" data-act="edit-reg" data-rid="' + reg.id + '" title="Retificar horário">✏️</button>';
 }
 
 // ── Renderizar tabela ──────────────────────────────────────────────────────────
@@ -582,10 +835,10 @@ function renderTable() {
           </div>
         </td>
         <td>
-          <span class="hora-cell ${hasEnt ? 'has' : 'dash'}">${horaEnt}</span>${auditPill(row.entrada)}
+          <span class="hora-cell ${hasEnt ? 'has' : 'dash'}">${horaEnt}</span>${auditPill(row.entrada)}${editBtn(row.entrada)}
         </td>
         <td>
-          <span class="hora-cell ${hasSai ? 'has' : 'dash'}">${horaSai}</span>${auditPill(row.saida)}
+          <span class="hora-cell ${hasSai ? 'has' : 'dash'}">${horaSai}</span>${auditPill(row.saida)}${editBtn(row.saida)}
         </td>
         <td>
           <span class="total-cell ${total !== '—' ? 'has' : ''}">${escapeHtml(total)}</span>
@@ -680,7 +933,14 @@ async function registrarPonto(funcionarioId, tipo, btn) {
 
 // ── Delegação de cliques ────────────────────────────────────────────────────────
 document.getElementById('tbody').addEventListener('click', (e) => {
-  // botões de ponto
+  // Botão ✏️ retificar batida (síndico)
+  const editReg = e.target.closest('button[data-act="edit-reg"]');
+  if (editReg) {
+    e.stopPropagation();
+    abrirModalRetificacao(editReg.dataset.rid);
+    return;
+  }
+  // botões de ponto (entrada/saída)
   const actBtn = e.target.closest('button[data-act]');
   if (actBtn && !actBtn.disabled) {
     e.stopPropagation();
@@ -693,6 +953,311 @@ document.getElementById('tbody').addEventListener('click', (e) => {
     openDetail(tr.dataset.id);
   }
 });
+
+/* ════════════════════════════════════════════════════════════════
+   RETIFICAÇÃO DE BATIDA (síndico) — MODAL + UPDATE no banco
+   ════════════════════════════════════════════════════════════════ */
+const modalEditReg = document.getElementById('modal-edit-reg');
+let regEditando = null;
+
+function abrirModalRetificacao(regId) {
+  // Procura a batida nos registros já carregados
+  const reg = allRegistros.find(r => r.id === regId);
+  if (!reg) { T('Batida não encontrada.', 'error'); return; }
+  regEditando = reg;
+
+  const d = new Date(reg.registrado_em);
+  const hhmm = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+
+  document.getElementById('edit-reg-id').value     = reg.id;
+  document.getElementById('edit-reg-atual').value  = `${hhmm} · ${reg.tipo.toUpperCase()}`;
+  document.getElementById('edit-reg-novo').value   = hhmm;
+  document.getElementById('edit-reg-motivo').value = reg.motivo_edicao || '';
+
+  document.getElementById('ff-edit-novo').classList.remove('has-error');
+  document.getElementById('ff-edit-motivo').classList.remove('has-error');
+  modalEditReg.classList.add('show');
+  setTimeout(() => document.getElementById('edit-reg-novo').focus(), 100);
+}
+
+document.getElementById('edit-reg-cancel').addEventListener('click', () => modalEditReg.classList.remove('show'));
+modalEditReg.addEventListener('click', (e) => { if (e.target === modalEditReg) modalEditReg.classList.remove('show'); });
+
+document.getElementById('form-edit-reg').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!regEditando) return;
+
+  const novoTime = document.getElementById('edit-reg-novo').value;     // 'HH:MM'
+  const motivo   = document.getElementById('edit-reg-motivo').value.trim();
+  document.getElementById('ff-edit-novo').classList.remove('has-error');
+  document.getElementById('ff-edit-motivo').classList.remove('has-error');
+
+  if (!novoTime) { document.getElementById('ff-edit-novo').classList.add('has-error'); return; }
+  if (motivo.length < 5) {
+    document.getElementById('ff-edit-motivo').classList.add('has-error');
+    T('Motivo é obrigatório (mínimo 5 caracteres) — compliance fiscal.', 'error');
+    return;
+  }
+
+  // Mantém o dia da batida original e só substitui hora/minuto
+  const original  = new Date(regEditando.registrado_em);
+  const [hh, mm]  = novoTime.split(':').map(Number);
+  const novoTs    = new Date(original.getFullYear(), original.getMonth(), original.getDate(), hh, mm, 0);
+
+  const btn = document.getElementById('edit-reg-save');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const { error } = await sb.from('registros_ponto')
+    .update({
+      registrado_em: novoTs.toISOString(),
+      audit_status:  'EDITADO_ADMIN',
+      motivo_edicao: motivo,
+      editado_por:   profile.id,
+      editado_em:    new Date().toISOString()
+    })
+    .eq('id', regEditando.id);
+
+  btn.classList.remove('loading'); btn.disabled = false;
+  if (error) { T(error.message, 'error'); return; }
+
+  T('Batida retificada. Registro marcado como EDITADO_ADMIN para auditoria.', 'success');
+  modalEditReg.classList.remove('show');
+  regEditando = null;
+  await loadData();
+});
+
+/* ════════════════════════════════════════════════════════════════
+   ESPELHO DE PONTO LEGAL — MTE Portaria 671 + hash SHA-256
+   ════════════════════════════════════════════════════════════════ */
+const modalEsp = document.getElementById('modal-espelho');
+
+document.getElementById('btn-espelho-legal').addEventListener('click', () => {
+  // Popula o select com funcionários ativos
+  const sel = document.getElementById('esp-func');
+  sel.innerHTML = allFuncs.map(f =>
+    `<option value="${f.id}">${escapeHtml(f.nome)} — ${escapeHtml(CARGO_LBL[f.cargo] || f.cargo)}</option>`
+  ).join('');
+  // Default mês = mês atualmente selecionado na tela
+  const d = new Date(document.getElementById('inp-date').value || todayISO());
+  document.getElementById('esp-mes').value =
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  modalEsp.classList.add('show');
+});
+
+document.getElementById('esp-cancel').addEventListener('click', () => modalEsp.classList.remove('show'));
+modalEsp.addEventListener('click', (e) => { if (e.target === modalEsp) modalEsp.classList.remove('show'); });
+
+document.getElementById('esp-gerar').addEventListener('click', async () => {
+  const funcId = document.getElementById('esp-func').value;
+  const mesStr = document.getElementById('esp-mes').value;
+  if (!funcId || !mesStr) { T('Selecione funcionário e mês.', 'error'); return; }
+
+  const btn = document.getElementById('esp-gerar');
+  btn.classList.add('loading'); btn.disabled = true;
+  try {
+    await gerarEImprimirEspelho(funcId, mesStr);
+    modalEsp.classList.remove('show');
+  } catch (err) {
+    T('Erro ao gerar espelho: ' + (err.message || 'desconhecido'), 'error');
+  } finally {
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+});
+
+/* Gera SHA-256 hex de uma string usando Web Crypto API */
+async function sha256Hex(str) {
+  const enc = new TextEncoder().encode(str);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function gerarEImprimirEspelho(funcionarioId, mesStr) {
+  const [ano, mes] = mesStr.split('-').map(Number);
+  const inicio = `${ano}-${String(mes).padStart(2,'0')}-01`;
+  const ultimoDia = new Date(ano, mes, 0).getDate();
+  const fim    = `${ano}-${String(mes).padStart(2,'0')}-${String(ultimoDia).padStart(2,'0')}`;
+
+  // Busca dados em paralelo
+  const [resFunc, resReg, resCondo] = await Promise.all([
+    sb.from('funcionarios').select('*').eq('id', funcionarioId).single(),
+    sb.from('registros_ponto').select('*').eq('funcionario_id', funcionarioId)
+      .gte('registrado_em', `${inicio}T00:00:00.000Z`)
+      .lt('registrado_em',  new Date(ano, mes, 1).toISOString())
+      .order('registrado_em', { ascending: true }),
+    sb.from('condominios').select('nome, endereco, cnpj')
+      .eq('id', profile.condominio_id).maybeSingle()
+  ]);
+  if (resFunc.error)  throw resFunc.error;
+  if (resReg.error)   throw resReg.error;
+  const func = resFunc.data;
+  const regs = resReg.data || [];
+  const condo = resCondo.data || {};
+
+  // Métricas usando o motor existente
+  const metrica = await calcularMetricasPeriodo(funcionarioId, inicio, fim);
+
+  // Agrupa batidas por dia
+  const porDia = {};
+  regs.forEach(r => {
+    const d = new Date(r.registrado_em);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    (porDia[k] ||= []).push(r);
+  });
+
+  // Hash de integridade — SHA-256 do payload dos registros
+  const payloadHash = JSON.stringify({
+    condo_cnpj: condo.cnpj, condo_nome: condo.nome,
+    func_id: func.id, func_cpf: func.cpf, func_nome: func.nome,
+    periodo: { inicio, fim },
+    batidas: regs.map(r => ({
+      id: r.id, t: r.tipo, ts: r.registrado_em,
+      au: r.audit_status, ed: r.motivo_edicao || null
+    }))
+  });
+  const hash = await sha256Hex(payloadHash);
+
+  // Monta HTML do espelho
+  const labelAudit = (au, motivo) => {
+    if (!au || au === 'OK') return '';
+    const map = {
+      'FRAUDE_SUSPECT': ['red',   '⚠ FRAUDE GPS'],
+      'MOCK_SUSPECT':   ['amber', '⚠ MOCK GPS'],
+      'LOW_ACCURACY':   ['blue',  '📍 BAIXA PREC.'],
+      'EDITADO_ADMIN':  ['amber', '✏ RETIFICADO']
+    };
+    const [cls, txt] = map[au] || ['', au];
+    const t = motivo ? ` (${escapeHtml(motivo).slice(0,40)})` : '';
+    return ` <span class="audit-flag ${cls}">${txt}${t}</span>`;
+  };
+
+  const linhas = [];
+  for (let d = 1; d <= ultimoDia; d++) {
+    const k = `${ano}-${String(mes).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const eventos = (porDia[k] || []).sort((a,b) => new Date(a.registrado_em) - new Date(b.registrado_em));
+    const data = new Date(ano, mes-1, d);
+    const dow = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][data.getDay()];
+    const horarios = eventos.length === 0
+      ? '<span style="color:#999;">—</span>'
+      : eventos.map(e => {
+          const t = new Date(e.registrado_em);
+          const hhmm = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+          return `<strong>${e.tipo === 'entrada' ? '→' : '←'}</strong> ${hhmm}${labelAudit(e.audit_status, e.motivo_edicao)}`;
+        }).join('<br>');
+    // Calcula horas trabalhadas do dia
+    let msDia = 0; let entAtual = null;
+    eventos.forEach(e => {
+      if (e.tipo === 'entrada' && !entAtual) entAtual = e;
+      else if (e.tipo === 'saida' && entAtual) {
+        msDia += new Date(e.registrado_em) - new Date(entAtual.registrado_em);
+        entAtual = null;
+      }
+    });
+    const hDia = Math.floor(msDia / 3600000);
+    const mDia = Math.round((msDia % 3600000) / 60000);
+    const totalDia = msDia > 0 ? `${hDia}h${String(mDia).padStart(2,'0')}` : '—';
+    const temAudit = eventos.some(e => e.audit_status && e.audit_status !== 'OK');
+    linhas.push(`
+      <tr ${temAudit ? 'class="audit-row"' : ''}>
+        <td class="mono" style="white-space:nowrap;">${String(d).padStart(2,'0')}/${String(mes).padStart(2,'0')} <span style="color:#666;">${dow}</span></td>
+        <td>${horarios}</td>
+        <td class="mono" style="text-align:center;">${totalDia}</td>
+      </tr>
+    `);
+  }
+
+  const gerado = new Date();
+  const ger = `${String(gerado.getDate()).padStart(2,'0')}/${String(gerado.getMonth()+1).padStart(2,'0')}/${gerado.getFullYear()} ${String(gerado.getHours()).padStart(2,'0')}:${String(gerado.getMinutes()).padStart(2,'0')}`;
+  const mesNomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  const fmtCnpj = (c) => c ? c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, '$1.$2.$3/$4-$5') : 'Não informado';
+  const fmtCpf  = (c) => c ? c.replace(/^(\d{3})(\d{3})(\d{3})(\d{2}).*/, '$1.$2.$3-$4') : 'Não informado';
+
+  const html = `
+    <div class="print-header">
+      <div>
+        <h1>Espelho de Ponto</h1>
+        <div class="sub">MTE PORTARIA 671/2021 · CLT Art. 74 §2º</div>
+      </div>
+      <div class="codice">
+        Mês/ano: <strong>${mesNomes[mes-1]}/${ano}</strong><br>
+        Gerado em: ${ger}<br>
+        Doc-ID: ${hash.substring(0, 12).toUpperCase()}
+      </div>
+    </div>
+
+    <div class="meta-block">
+      <div>
+        <div class="lbl">EMPREGADOR</div>
+        <div class="val">${escapeHtml(condo.nome || 'Condomínio não identificado')}</div>
+        <div style="font-size:9pt;">CNPJ: ${fmtCnpj(condo.cnpj)}</div>
+        <div style="font-size:9pt;">${escapeHtml(condo.endereco || 'Endereço não informado')}</div>
+      </div>
+      <div>
+        <div class="lbl">FUNCIONÁRIO</div>
+        <div class="val">${escapeHtml(func.nome)}</div>
+        <div style="font-size:9pt;">CPF: ${fmtCpf(func.cpf)}</div>
+        <div style="font-size:9pt;">Cargo: ${escapeHtml(CARGO_LBL[func.cargo] || func.cargo)} · Turno: ${escapeHtml(func.turno || 'Integral')}</div>
+        ${func.data_admissao ? `<div style="font-size:9pt;">Admissão: ${new Date(func.data_admissao).toLocaleDateString('pt-BR')}</div>` : ''}
+      </div>
+    </div>
+
+    <table class="espelho">
+      <thead>
+        <tr>
+          <th style="width:90px;">Data</th>
+          <th>Marcações</th>
+          <th style="width:80px;">Horas</th>
+        </tr>
+      </thead>
+      <tbody>${linhas.join('')}</tbody>
+    </table>
+
+    <div class="totalizadores">
+      <div class="tot">
+        <div class="lbl">Horas trabalhadas</div>
+        <div class="val">${metrica.totalHorasFormatado}</div>
+      </div>
+      <div class="tot">
+        <div class="lbl">Hora noturna (CLT 73)</div>
+        <div class="val">${metrica.horasNoturnasFormatado}</div>
+      </div>
+      <div class="tot">
+        <div class="lbl">Dias trabalhados</div>
+        <div class="val">${metrica.diasTrabalhados}</div>
+      </div>
+      <div class="tot">
+        <div class="lbl">Faltas + afastam.</div>
+        <div class="val">${metrica.faltasInjustificadas + metrica.totalDiasAfastado}</div>
+      </div>
+    </div>
+
+    <div class="signatures">
+      <div class="sig-block">
+        <div class="lbl">Assinatura do empregado</div>
+      </div>
+      <div class="sig-block">
+        <div class="lbl">Assinatura do empregador / síndico</div>
+      </div>
+    </div>
+
+    <div class="hash-block">
+      <span class="lbl">Hash de Integridade SHA-256 · Auditoria</span>
+      ${hash}
+    </div>
+    <div class="legal-note">
+      Este espelho foi emitido eletronicamente pelo StaFlow. O hash acima é gerado a partir dos
+      metadados das batidas e identifica unicamente este documento. Alterações posteriores
+      no banco de dados modificam o hash, permitindo verificação de integridade em auditorias
+      fiscais. Batidas marcadas como "RETIFICADO" foram editadas pelo administrador conforme
+      motivo registrado entre parênteses.
+    </div>
+  `;
+
+  document.getElementById('print-area').innerHTML = html;
+  // Aguarda o paint e dispara a impressão
+  setTimeout(() => window.print(), 250);
+}
 
 // ── Modal detalhe ───────────────────────────────────────────────────────────────
 const modalDet = document.getElementById('modal-det');
