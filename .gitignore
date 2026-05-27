@@ -28,3 +28,4 @@ supabase/.branches/
 # Versões locais dos scripts de deploy com secrets preenchidos
 deploy-stripe.local.sh
 deploy-stripe.local.ps1
+_tmp_*
