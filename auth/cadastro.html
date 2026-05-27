@@ -104,6 +104,46 @@
   color: var(--teal);
   border-color: var(--teal-border);
 }
+
+/* ─── Banner de erro persistente (não desaparece sozinho) ─── */
+.error-banner {
+  display: none;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  margin: 0 0 18px;
+  background: rgba(239,68,68,0.10);
+  border: 1px solid rgba(239,68,68,0.35);
+  border-left: 4px solid var(--red);
+  border-radius: var(--radius);
+  animation: bannerSlide 0.2s ease;
+}
+.error-banner.show { display: flex; }
+@keyframes bannerSlide {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.error-banner .ico-x {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--red);
+  color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 14px;
+}
+.error-banner .body { flex: 1; min-width: 0; }
+.error-banner .ttl {
+  font-weight: 700; font-size: 13px;
+  color: var(--white);
+  margin-bottom: 2px;
+}
+.error-banner .msg {
+  font-size: 12px;
+  color: var(--white-dim);
+  line-height: 1.45;
+}
 </style>
 </head>
 <body>
@@ -190,47 +230,46 @@
 
     <!-- ETAPA 2 -->
     <section id="etapa-2" style="display:none;">
-      <h1 class="auth-title">Sobre o condomínio</h1>
-      <p class="auth-sub">Personalizamos sua experiência com base nisso.</p>
+      <h1 class="auth-title">Dados do condomínio</h1>
+      <p class="auth-sub">Só o essencial para começar.</p>
+
+      <!-- Banner de erro persistente (validação fiscal) -->
+      <div class="error-banner" id="err-banner-2">
+        <span class="ico-x">!</span>
+        <div class="body">
+          <div class="ttl" id="err-banner-2-ttl">Dado inválido</div>
+          <div class="msg" id="err-banner-2-msg">—</div>
+        </div>
+      </div>
 
       <form id="form-2" novalidate>
         <div class="field" id="f-condo">
           <label for="condo">Nome do condomínio</label>
           <input class="input" id="condo" type="text" placeholder="Ed. Vista Mar" required>
-          <span class="field-error">Obrigatório.</span>
+          <span class="field-error">Informe o nome do condomínio.</span>
         </div>
 
         <div class="field" id="f-cnpj">
-          <label for="cnpj">CNPJ do condomínio <span style="color:var(--white-muted);font-size:12px;">(opcional, mas se informar precisa ser válido)</span></label>
+          <label for="cnpj">CNPJ <span style="color:var(--white-muted);font-size:12px;">(opcional — se informar, precisa ser real)</span></label>
           <input class="input" id="cnpj" type="text" inputmode="numeric" autocomplete="off" placeholder="00.000.000/0000-00" maxlength="18">
           <span class="field-error">CNPJ inválido. Verifique os dígitos.</span>
         </div>
 
-        <div class="field">
-          <label for="end">Endereço (opcional)</label>
-          <input class="input" id="end" type="text" placeholder="R. das Flores, 123 — Rio de Janeiro/RJ">
-        </div>
-
-        <div class="field">
-          <label>Seu cargo</label>
-          <div class="radio-row">
-            <label class="radio-card selected" data-role="sindico">
-              <input type="radio" name="role" value="sindico" checked>
-              <div class="rc-title">Síndico</div>
-              <div class="rc-desc">Gerencia todo o condomínio</div>
-            </label>
-            <label class="radio-card" data-role="admin">
-              <input type="radio" name="role" value="admin">
-              <div class="rc-title">Administrador</div>
-              <div class="rc-desc">Apoia a gestão</div>
-            </label>
-          </div>
+        <div class="field" id="f-scpf">
+          <label for="scpf">Seu CPF</label>
+          <input class="input" id="scpf" type="text" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" required>
+          <span class="field-error">CPF inválido. Verifique os dígitos.</span>
         </div>
 
         <div class="field" id="f-fone">
-          <label for="fone">Telefone</label>
+          <label for="fone">Seu telefone</label>
           <input class="input" id="fone" type="tel" autocomplete="tel" placeholder="(21) 99999-9999" required>
           <span class="field-error">Telefone inválido.</span>
+        </div>
+
+        <div class="field">
+          <label for="end">Endereço <span style="color:var(--white-muted);font-size:12px;">(opcional)</span></label>
+          <input class="input" id="end" type="text" placeholder="R. das Flores, 123">
         </div>
 
         <button class="btn" id="btn-submit" type="submit">
@@ -281,9 +320,21 @@
    ════════════════════════════════════════════════════════════════ */
 const state = {
   nome:'', email:'', senha:'',
-  condo:'', cnpj:'', end:'', fone:'',
+  condo:'', cnpj:'', scpf:'', end:'', fone:'',
   role: 'sindico'   // 'sindico' | 'colaborador' (escolhido no toggle)
 };
+
+// Banner persistente de erro (etapa 2)
+function showErrorBanner(ttl, msg) {
+  const b = document.getElementById('err-banner-2');
+  document.getElementById('err-banner-2-ttl').textContent = ttl;
+  document.getElementById('err-banner-2-msg').textContent = msg;
+  b.classList.add('show');
+  b.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function hideErrorBanner() {
+  document.getElementById('err-banner-2').classList.remove('show');
+}
 
 /* ── Toggle de papel ───────────────────────────────────────── */
 const btnSindico = document.getElementById('role-sindico');
@@ -386,25 +437,31 @@ const cnpjEl = document.getElementById('cnpj');
 const fCnpj  = document.getElementById('f-cnpj');
 cnpjEl.addEventListener('input', () => {
   cnpjEl.value = window.staflowValidators.formatarCNPJ(cnpjEl.value);
-  // Limpa erro enquanto digita
   fCnpj.classList.remove('has-error');
+  hideErrorBanner();
 });
 cnpjEl.addEventListener('blur', () => {
   const v = cnpjEl.value.trim();
   if (!v) return;
-  if (!window.staflowValidators.validarCNPJ(v)) {
-    fCnpj.classList.add('has-error');
-  }
+  if (!window.staflowValidators.validarCNPJ(v)) fCnpj.classList.add('has-error');
 });
 
-// Radio visual
-document.querySelectorAll('.radio-card').forEach(card => {
-  card.addEventListener('click', () => {
-    document.querySelectorAll('.radio-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    card.querySelector('input').checked = true;
-  });
+// Máscara CPF do síndico + validação visual em tempo real
+const scpfEl = document.getElementById('scpf');
+const fScpf  = document.getElementById('f-scpf');
+scpfEl.addEventListener('input', () => {
+  scpfEl.value = window.staflowValidators.formatarCPF(scpfEl.value);
+  fScpf.classList.remove('has-error');
+  hideErrorBanner();
 });
+scpfEl.addEventListener('blur', () => {
+  const v = scpfEl.value.trim();
+  if (!v) return;
+  if (!window.staflowValidators.validarCPF(v)) fScpf.classList.add('has-error');
+});
+
+// (radio cards de cargo removidos — role do síndico é sempre 'sindico' no cadastro inicial;
+//  admins são promovidos posteriormente pelo painel)
 
 // ---- Etapa 1 → 2 (síndico) ou Etapa 1 → signUp direto (colaborador) ----
 document.getElementById('form-1').addEventListener('submit', async (e) => {
@@ -471,35 +528,42 @@ document.getElementById('btn-back').addEventListener('click', () => irPara(1));
 // ---- Etapa 2 → submit ----
 document.getElementById('form-2').addEventListener('submit', async (e) => {
   e.preventDefault();
+  hideErrorBanner();
   const condo = document.getElementById('condo').value.trim();
   const cnpj  = cnpjEl.value.trim();
+  const scpf  = scpfEl.value.trim();
   const end   = document.getElementById('end').value.trim();
-  const role  = document.querySelector('input[name=role]:checked').value;
   const fone  = foneEl.value.trim();
 
-  document.getElementById('f-condo').classList.remove('has-error');
-  document.getElementById('f-cnpj').classList.remove('has-error');
-  document.getElementById('f-fone').classList.remove('has-error');
+  ['f-condo','f-cnpj','f-scpf','f-fone'].forEach(id => document.getElementById(id).classList.remove('has-error'));
 
-  let bad = false;
-  if (!condo) {
-    document.getElementById('f-condo').classList.add('has-error'); bad = true;
-  }
-  if (fone.replace(/\D/g,'').length < 10) {
-    document.getElementById('f-fone').classList.add('has-error'); bad = true;
-  }
-  // ★ CNPJ é OPCIONAL, mas se preenchido precisa ser MATEMATICAMENTE VÁLIDO
+  // ★ TRAVA FISCAL ANTIFRAUDE — banner persistente
   if (cnpj && !window.staflowValidators.validarCNPJ(cnpj)) {
     document.getElementById('f-cnpj').classList.add('has-error');
-    toast('CNPJ inválido. Verifique os dígitos verificadores ou deixe o campo em branco.', 'error');
-    return;   // bloqueia o submit impiedosamente
+    showErrorBanner('CNPJ inválido',
+      'O CNPJ informado não passou na verificação dos dígitos. Corrija ou deixe em branco para continuar.');
+    return;
   }
-  if (bad) return;
+  if (!scpf || !window.staflowValidators.validarCPF(scpf)) {
+    document.getElementById('f-scpf').classList.add('has-error');
+    showErrorBanner('CPF inválido',
+      'Seu CPF é obrigatório e precisa ser real. Verifique os dígitos verificadores.');
+    return;
+  }
+
+  let bad = false;
+  if (!condo)                              { document.getElementById('f-condo').classList.add('has-error'); bad = true; }
+  if (fone.replace(/\D/g,'').length < 10)  { document.getElementById('f-fone').classList.add('has-error');  bad = true; }
+  if (bad) {
+    showErrorBanner('Campos obrigatórios incompletos', 'Preencha os campos destacados em vermelho para continuar.');
+    return;
+  }
 
   state.condo = condo;
   state.cnpj  = cnpj ? window.staflowValidators.limparDigitos(cnpj) : '';
+  state.scpf  = window.staflowValidators.limparDigitos(scpf);
   state.end   = end;
-  state.role  = role;
+  state.role  = 'sindico';   // role fixo nesta etapa (era radio)
   state.fone  = fone;
 
   const btn = document.getElementById('btn-submit');
@@ -508,6 +572,7 @@ document.getElementById('form-2').addEventListener('submit', async (e) => {
   const res = await staflowAuth.signUp(state.email, state.senha, {
     full_name: state.nome,
     phone: state.fone,
+    cpf: state.scpf,
     role: state.role,
     condominio_nome: state.condo,
     condominio_cnpj: state.cnpj || null,

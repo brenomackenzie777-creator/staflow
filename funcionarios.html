@@ -212,6 +212,57 @@
   padding-left: 36px !important;
   font-family: var(--font-mono);
 }
+
+/* ── Accordion "Mais detalhes" ──────────────────── */
+.details-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  margin: 6px 0 12px;
+  background: var(--navy-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--white-dim);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: left;
+}
+.details-toggle:hover { border-color: var(--teal); color: var(--teal); }
+.details-toggle .chev {
+  transition: transform 0.2s ease;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--white-muted);
+}
+.details-toggle.open .chev { transform: rotate(180deg); color: var(--teal); }
+.details-body {
+  display: none;
+  animation: detSlide 0.2s ease;
+}
+.details-body.open { display: block; }
+@keyframes detSlide {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Indicador de essenciais ─────────────────── */
+.essentials-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--teal);
+  text-transform: uppercase;
+  margin-left: 8px;
+}
 </style>
 </head>
 <body>
@@ -287,40 +338,36 @@
 <div class="modal-backdrop" id="modal-func">
   <div class="modal">
     <h2 id="m-title">Novo funcionário</h2>
-    <p class="modal-sub">Dados básicos. Você pode completar depois.</p>
+    <p class="modal-sub">Só o essencial. Foto, telefone e outros campos ficam em "Mais detalhes".</p>
 
     <form id="form-func" novalidate>
       <input type="hidden" id="f-id">
 
-      <!-- Foto -->
-      <div class="field">
-        <label>Foto <span style="color:var(--white-muted);font-size:12px;">(opcional)</span></label>
-        <div class="foto-upload-area">
-          <div class="foto-preview" id="foto-preview">
-            <span class="foto-initials" id="foto-initials">?</span>
-            <img id="foto-img" src="" alt="" style="display:none;">
-          </div>
-          <div class="foto-controls">
-            <div class="foto-controls-row">
-              <label class="btn-foto-pick" for="foto-file">📷 Escolher foto</label>
-              <input type="file" id="foto-file" accept="image/jpeg,image/png,image/webp" style="display:none;">
-              <button type="button" id="btn-foto-remove" class="btn-foto-remove" style="display:none;">✕ Remover</button>
-            </div>
-            <div id="foto-filename" class="foto-filename" style="display:none;"></div>
-            <div class="foto-hint">JPG, PNG ou WebP · máx. 5 MB</div>
-          </div>
-        </div>
+      <!-- ═══ BLOCO ESSENCIAL — nome, e-mail login, CPF, cargo, salário ═══ -->
+      <div class="field" id="ff-nome">
+        <label for="f-nome">Nome completo <span class="essentials-tag">★ ESSENCIAL</span></label>
+        <input class="input" id="f-nome" type="text" placeholder="Ex: João da Silva" required>
+        <span class="field-error">Informe o nome completo (mínimo 3 caracteres).</span>
       </div>
 
-      <div class="field" id="ff-nome">
-        <label for="f-nome">Nome completo</label>
-        <input class="input" id="f-nome" type="text" placeholder="Nome do funcionário" required>
-        <span class="field-error">Mínimo 3 caracteres.</span>
+      <div class="field" id="ff-email">
+        <label for="f-email-i">E-mail para login <span class="essentials-tag">★ ESSENCIAL</span></label>
+        <input class="input" id="f-email-i" type="email" placeholder="joao@exemplo.com" autocomplete="off">
+        <span class="field-error">E-mail inválido.</span>
+        <span style="display:block;font-family:var(--font-mono);font-size:10px;letter-spacing:1px;color:var(--white-muted);text-transform:uppercase;margin-top:6px;">
+          🔒 Será usado pelo funcionário para entrar no app de bolso
+        </span>
+      </div>
+
+      <div class="field" id="ff-cpf">
+        <label for="f-cpf">CPF <span class="essentials-tag">★ ESSENCIAL</span></label>
+        <input class="input" id="f-cpf" type="text" inputmode="numeric" placeholder="000.000.000-00" maxlength="14">
+        <span class="field-error">CPF inválido. Verifique os dígitos verificadores.</span>
       </div>
 
       <div class="field-row">
         <div class="field">
-          <label for="f-cargo-i">Cargo</label>
+          <label for="f-cargo-i">Cargo <span class="essentials-tag">★</span></label>
           <select class="input" id="f-cargo-i">
             <option value="porteiro">Porteiro</option>
             <option value="zelador">Zelador</option>
@@ -331,18 +378,14 @@
           </select>
         </div>
         <div class="field">
-          <label for="f-turno-i">Turno</label>
-          <select class="input" id="f-turno-i">
-            <option value="integral">Integral</option>
-            <option value="manha">Manhã</option>
-            <option value="tarde">Tarde</option>
-            <option value="noite">Noite</option>
-            <option value="escala">Escala</option>
-          </select>
+          <label for="f-salario">Salário base <span class="essentials-tag">★</span></label>
+          <div class="input-money">
+            <input class="input" id="f-salario" type="number" step="0.01" min="0" placeholder="0,00" autocomplete="off">
+          </div>
         </div>
       </div>
 
-      <!-- ⚠ Alerta de compliance — só aparece para cargos insalubres -->
+      <!-- ⚠ Alerta CCT/NR-15 — só aparece para cargos insalubres -->
       <div class="compliance-alert" id="cargo-alert">
         <span class="ico">⚠</span>
         <div class="body">
@@ -358,57 +401,77 @@
         </div>
       </div>
 
-      <div class="field-row">
+      <div class="field">
+        <label>Adicional NR-15</label>
+        <label class="field-check" id="ck-ins-wrap" for="f-insalubridade">
+          <input type="checkbox" id="f-insalubridade">
+          <span class="ck-label">Insalubridade 20%</span>
+          <span class="ck-hint" id="ck-ins-hint">CCT · NR-15</span>
+        </label>
+      </div>
+
+      <!-- ═══ MAIS DETALHES (recolhível) — foto, turno, telefone, etc ═══ -->
+      <button type="button" class="details-toggle" id="btn-details">
+        <span>Mais detalhes (opcional) — foto, telefone, turno, admissão</span>
+        <span class="chev">▼</span>
+      </button>
+
+      <div class="details-body" id="details-body">
+        <!-- Foto -->
         <div class="field">
-          <label for="f-salario">Salário base <span style="color:var(--white-muted);font-size:12px;">(opcional)</span></label>
-          <div class="input-money">
-            <input class="input" id="f-salario" type="number" step="0.01" min="0" placeholder="0,00" autocomplete="off">
+          <label>Foto</label>
+          <div class="foto-upload-area">
+            <div class="foto-preview" id="foto-preview">
+              <span class="foto-initials" id="foto-initials">?</span>
+              <img id="foto-img" src="" alt="" style="display:none;">
+            </div>
+            <div class="foto-controls">
+              <div class="foto-controls-row">
+                <label class="btn-foto-pick" for="foto-file">📷 Escolher foto</label>
+                <input type="file" id="foto-file" accept="image/jpeg,image/png,image/webp" style="display:none;">
+                <button type="button" id="btn-foto-remove" class="btn-foto-remove" style="display:none;">✕ Remover</button>
+              </div>
+              <div id="foto-filename" class="foto-filename" style="display:none;"></div>
+              <div class="foto-hint">JPG, PNG ou WebP · máx. 5 MB</div>
+            </div>
           </div>
         </div>
-        <div class="field">
-          <label>Adicional NR-15</label>
-          <label class="field-check" id="ck-ins-wrap" for="f-insalubridade">
-            <input type="checkbox" id="f-insalubridade">
-            <span class="ck-label">Insalubridade 20%</span>
-            <span class="ck-hint" id="ck-ins-hint">CCT · NR-15</span>
-          </label>
-        </div>
-      </div>
 
-      <div class="field-row">
-        <div class="field">
-          <label for="f-tel">Telefone</label>
-          <input class="input" id="f-tel" type="tel" placeholder="(21) 99999-9999">
+        <div class="field-row">
+          <div class="field">
+            <label for="f-tel">Telefone</label>
+            <input class="input" id="f-tel" type="tel" placeholder="(21) 99999-9999">
+          </div>
+          <div class="field">
+            <label for="f-turno-i">Turno</label>
+            <select class="input" id="f-turno-i">
+              <option value="integral">Integral</option>
+              <option value="manha">Manhã</option>
+              <option value="tarde">Tarde</option>
+              <option value="noite">Noite</option>
+              <option value="escala">Escala</option>
+            </select>
+          </div>
         </div>
-        <div class="field" id="ff-cpf">
-          <label for="f-cpf">CPF</label>
-          <input class="input" id="f-cpf" type="text" inputmode="numeric" placeholder="000.000.000-00" maxlength="14">
-          <span class="field-error">CPF inválido. Verifique os dígitos.</span>
-        </div>
-      </div>
 
-      <div class="field">
-        <label for="f-email-i">E-mail (opcional)</label>
-        <input class="input" id="f-email-i" type="email" placeholder="funcionario@email.com">
-      </div>
-
-      <div class="field-row">
-        <div class="field">
-          <label for="f-adm">Data de admissão</label>
-          <input class="input" id="f-adm" type="date">
+        <div class="field-row">
+          <div class="field">
+            <label for="f-adm">Data de admissão</label>
+            <input class="input" id="f-adm" type="date">
+          </div>
+          <div class="field">
+            <label for="f-ativo">Status</label>
+            <select class="input" id="f-ativo">
+              <option value="true">Ativo</option>
+              <option value="false">Inativo</option>
+            </select>
+          </div>
         </div>
-        <div class="field">
-          <label for="f-ativo">Status</label>
-          <select class="input" id="f-ativo">
-            <option value="true">Ativo</option>
-            <option value="false">Inativo</option>
-          </select>
-        </div>
-      </div>
 
-      <div class="field">
-        <label for="f-obs">Observações</label>
-        <input class="input" id="f-obs" type="text" placeholder="Anotações internas (opcional)">
+        <div class="field">
+          <label for="f-obs">Observações internas</label>
+          <input class="input" id="f-obs" type="text" placeholder="Anotações (não vai para o funcionário)">
+        </div>
       </div>
 
       <div class="modal-actions">
@@ -546,6 +609,22 @@ function aplicarRegraCargo(cargo) {
 }
 
 elCargoSel.addEventListener('change', (e) => aplicarRegraCargo(e.target.value));
+
+/* ── Accordion "Mais detalhes" ── */
+const btnDetails  = document.getElementById('btn-details');
+const detailsBody = document.getElementById('details-body');
+btnDetails.addEventListener('click', () => {
+  btnDetails.classList.toggle('open');
+  detailsBody.classList.toggle('open');
+});
+function abrirDetalhes() {
+  btnDetails.classList.add('open');
+  detailsBody.classList.add('open');
+}
+function fecharDetalhes() {
+  btnDetails.classList.remove('open');
+  detailsBody.classList.remove('open');
+}
 
 // ── Foto: preview no modal ─────────────────────────────────────
 function showFotoImg(src) {
@@ -735,6 +814,8 @@ function openNew() {
   elAlert.classList.remove('show');
   elInsWrap.classList.remove('auto-marked');
   aplicarRegraCargo(elCargoSel.value);
+  // Detalhes começam fechados (essenciais em foco)
+  fecharDetalhes();
   modal.classList.add('show');
   setTimeout(() => document.getElementById('f-nome').focus(), 100);
 }
@@ -753,7 +834,6 @@ async function openEdit(row) {
   document.getElementById('f-obs').value     = row.observacoes || '';
 
   // ── Campos de compliance ──────────────────────────────────────
-  // Salário base já salvo → marca como "tocado" para não sobrescrever
   if (row.salario_base != null) {
     elSalario.value = Number(row.salario_base).toFixed(2);
     salarioTocado = true;
@@ -762,11 +842,16 @@ async function openEdit(row) {
     salarioTocado = false;
   }
   elInsCk.checked = !!row.adicional_insalubridade;
-  // Aplica a regra visual do cargo (alerta + auto-fill se vazio)
   aplicarRegraCargo(row.cargo || 'porteiro');
-  // Se já está marcado por edição prévia, ainda assim destaca quando cargo é insalubre
   if (!CARGOS_INSALUBRES.has(row.cargo)) {
     elInsWrap.classList.remove('auto-marked');
+  }
+
+  // Se houver dados em campos opcionais, abre o accordion automaticamente
+  if (row.telefone || row.turno || row.data_admissao || row.observacoes || row.foto_path || row.ativo === false) {
+    abrirDetalhes();
+  } else {
+    fecharDetalhes();
   }
 
   // Foto
@@ -803,24 +888,35 @@ modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); }
 // ── Salvar ────────────────────────────────────────────────────
 document.getElementById('form-func').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const ffNome = document.getElementById('ff-nome');
-  const ffCpf  = document.getElementById('ff-cpf');
+  const ffNome  = document.getElementById('ff-nome');
+  const ffEmail = document.getElementById('ff-email');
+  const ffCpf   = document.getElementById('ff-cpf');
   ffNome.classList.remove('has-error');
+  ffEmail.classList.remove('has-error');
   ffCpf.classList.remove('has-error');
 
   const nome    = document.getElementById('f-nome').value.trim();
+  const email   = document.getElementById('f-email-i').value.trim();
   const cpfRaw  = document.getElementById('f-cpf').value.trim();
 
-  if (nome.length < 3) { ffNome.classList.add('has-error'); return; }
+  if (nome.length < 3) {
+    ffNome.classList.add('has-error');
+    T('Informe o nome completo do funcionário.', 'error');
+    return;
+  }
 
-  // ★ TRAVA ANTIFRAUDE — CPF é opcional, mas se informado precisa passar
-  // no algoritmo oficial dos dígitos verificadores. Não aceitamos
-  // placeholders (111.111.111-11), sequências repetidas nem strings
-  // sintaticamente válidas com DV errado.
-  if (cpfRaw && !window.staflowValidators.validarCPF(cpfRaw)) {
+  // ★ E-mail é ESSENCIAL para login do colaborador
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    ffEmail.classList.add('has-error');
+    T('E-mail inválido. Esse será o login do funcionário no app de bolso.', 'error');
+    return;
+  }
+
+  // ★ TRAVA ANTIFRAUDE — CPF agora ESSENCIAL e validado matematicamente
+  if (!cpfRaw || !window.staflowValidators.validarCPF(cpfRaw)) {
     ffCpf.classList.add('has-error');
-    T('CPF inválido. Verifique os dígitos verificadores ou deixe o campo em branco.', 'error');
-    return;   // bloqueia o submit
+    T('CPF inválido ou ausente. Verifique os dígitos verificadores.', 'error');
+    return;
   }
 
   const salarioRaw = document.getElementById('f-salario').value.trim();

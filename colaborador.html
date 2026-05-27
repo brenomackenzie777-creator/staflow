@@ -58,10 +58,10 @@ body {
   50%      { transform: scale(1);    opacity: 1; }
 }
 
-/* ───── Header ───── */
+/* ───── Header — logout GRANDE e visível ───── */
 .colab-header {
-  display: flex; align-items: center; gap: 12px;
-  padding: 6px 4px 12px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 4px 14px;
   border-bottom: 1px solid var(--border);
 }
 .colab-header .avatar {
@@ -92,17 +92,31 @@ body {
   margin-top: 1px;
 }
 .colab-header .btn-logout {
-  background: transparent;
-  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center; gap: 6px;
+  background: rgba(239,68,68,0.10);
+  border: 1.5px solid rgba(239,68,68,0.35);
   border-radius: var(--radius);
-  color: var(--white-dim);
-  font-family: inherit; font-size: 13px;
-  padding: 8px 12px;
+  color: var(--red);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 18px;
   cursor: pointer;
   transition: var(--transition);
   flex-shrink: 0;
+  min-height: 44px;  /* alvo de toque WCAG */
+  -webkit-tap-highlight-color: transparent;
 }
-.colab-header .btn-logout:hover { border-color: var(--red); color: var(--red); }
+.colab-header .btn-logout:hover,
+.colab-header .btn-logout:active {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+}
+.colab-header .btn-logout .ico {
+  font-size: 16px; line-height: 1;
+}
 
 /* ───── Card base ───── */
 .colab-card {
@@ -133,16 +147,19 @@ body {
   border-color: rgba(255,107,107,0.30);
 }
 
-/* ───── Ponto: botão big-action ───── */
-.ponto-card { text-align: center; }
+/* ───── Ponto: BIG-ACTION (foco absoluto da página) ───── */
+.ponto-card {
+  text-align: center;
+  padding: 22px 16px 26px;
+}
 .ponto-status {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 28px;
+  font-size: 22px;
   color: var(--white);
-  letter-spacing: -0.5px;
-  margin: 8px 0 4px;
-  line-height: 1.1;
+  letter-spacing: -0.3px;
+  margin: 4px 0 4px;
+  line-height: 1.15;
 }
 .ponto-status.green { color: var(--teal); }
 .ponto-status.amber { color: var(--amber); }
@@ -150,42 +167,50 @@ body {
   font-family: var(--font-mono);
   font-size: 13px;
   color: var(--white-dim);
-  margin-bottom: 18px;
+  margin-bottom: 22px;
   letter-spacing: 1px;
 }
+
+/* O BOTÃO — gigante, contraste alto, alvo de toque XL */
 .btn-ponto {
-  width: 200px; height: 200px;
-  max-width: 80vw;
-  max-height: 80vw;
+  width: 240px; height: 240px;
+  max-width: 82vw;
+  max-height: 82vw;
   border-radius: 50%;
   border: none;
-  background: conic-gradient(var(--teal) 0deg, rgba(6,214,160,0.3) 360deg);
-  color: var(--navy-deep);
+  /* ENTRADA → verde sólido com brilho */
+  background: var(--teal);
+  color: #0F1624;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 18px;
-  letter-spacing: 2px;
+  font-size: 28px;          /* texto ENORME */
+  letter-spacing: 3px;
   text-transform: uppercase;
   cursor: pointer;
   display: inline-flex; flex-direction: column;
   align-items: center; justify-content: center;
-  gap: 8px;
+  gap: 10px;
   box-shadow:
-    0 0 0 12px rgba(6,214,160,0.06),
-    0 0 60px rgba(6,214,160,0.25),
-    0 12px 32px rgba(0,0,0,0.4);
-  transition: transform 0.15s ease, box-shadow 0.25s ease;
+    0 0 0 10px rgba(6,214,160,0.10),
+    0 0 80px rgba(6,214,160,0.45),
+    0 16px 40px rgba(0,0,0,0.5);
+  transition: transform 0.12s ease, box-shadow 0.25s ease, background 0.2s ease;
   position: relative;
   margin: 8px auto 0;
+  -webkit-tap-highlight-color: transparent;
 }
-.btn-ponto:active { transform: scale(0.96); }
+.btn-ponto:active { transform: scale(0.95); }
+
+/* SAÍDA → vermelho sólido, contraste oposto */
 .btn-ponto.saida {
-  background: conic-gradient(var(--amber) 0deg, rgba(255,209,102,0.3) 360deg);
+  background: var(--red);
+  color: #fff;
   box-shadow:
-    0 0 0 12px rgba(255,209,102,0.06),
-    0 0 60px rgba(255,209,102,0.25),
-    0 12px 32px rgba(0,0,0,0.4);
+    0 0 0 10px rgba(239,68,68,0.10),
+    0 0 80px rgba(239,68,68,0.45),
+    0 16px 40px rgba(0,0,0,0.5);
 }
+
 .btn-ponto.loading {
   pointer-events: none;
   opacity: 0.65;
@@ -196,8 +221,15 @@ body {
   box-shadow: none;
   pointer-events: none;
 }
-.btn-ponto .icon { font-size: 36px; line-height: 1; }
-.btn-ponto .label { font-size: 14px; }
+.btn-ponto .icon {
+  font-size: 44px;          /* ícone maior */
+  line-height: 1;
+}
+.btn-ponto .label {
+  font-size: 24px;          /* texto principal: ENTRADA / SAÍDA */
+  letter-spacing: 4px;
+  font-weight: 800;
+}
 
 .geo-status {
   margin-top: 16px;
@@ -441,7 +473,9 @@ body {
       <div class="name" id="u-name">…</div>
       <div class="condo" id="u-condo">—</div>
     </div>
-    <button class="btn-logout" id="btn-logout">Sair</button>
+    <button class="btn-logout" id="btn-logout" aria-label="Sair / Logout">
+      <span class="ico">⏻</span> Sair
+    </button>
   </header>
 
   <!-- ───── Card de ponto ───── -->
@@ -450,9 +484,9 @@ body {
     <div class="ponto-status" id="ponto-status">—</div>
     <div class="ponto-clock" id="ponto-clock">—</div>
 
-    <button class="btn-ponto" id="btn-ponto" disabled>
+    <button class="btn-ponto" id="btn-ponto" disabled aria-label="Bater ponto">
       <span class="icon">⏱</span>
-      <span class="label" id="btn-ponto-lbl">Carregando…</span>
+      <span class="label" id="btn-ponto-lbl">CARREGANDO</span>
     </button>
 
     <div class="geo-status" id="geo-status">📍 Aguardando primeira batida…</div>
@@ -465,12 +499,12 @@ body {
       <div class="bi-stat teal">
         <div class="lbl">Horas trabalhadas</div>
         <div class="val" id="bi-horas">—</div>
-        <div class="sub" id="bi-horas-sub">No mês atual</div>
+        <div class="sub" id="bi-horas-sub">no mês atual</div>
       </div>
       <div class="bi-stat">
         <div class="lbl">Hora noturna</div>
         <div class="val" id="bi-noturno">—</div>
-        <div class="sub" id="bi-noturno-sub">CLT Art.73 §1º</div>
+        <div class="sub" id="bi-noturno-sub">entre 22h e 05h</div>
       </div>
     </div>
   </section>
@@ -728,27 +762,31 @@ function renderPonto() {
   const status = document.getElementById('ponto-status');
   const btn    = document.getElementById('btn-ponto');
   const lbl    = document.getElementById('btn-ponto-lbl');
+  const ico    = btn.querySelector('.icon');
   const geo    = document.getElementById('geo-status');
 
   btn.classList.remove('saida','disabled','loading');
   btn.disabled = false;
 
   if (!ent) {
-    status.textContent = 'Você ainda não bateu o ponto';
+    status.textContent = 'Pronto pra começar?';
     status.className   = 'ponto-status amber';
     btn.classList.remove('saida');
-    lbl.textContent    = 'Bater entrada';
+    lbl.textContent    = 'ENTRADA';
+    ico.textContent    = '▶';
   } else if (ent && !sai) {
     status.textContent = 'Trabalhando agora';
     status.className   = 'ponto-status green';
     btn.classList.add('saida');
-    lbl.textContent    = 'Bater saída';
+    lbl.textContent    = 'SAÍDA';
+    ico.textContent    = '■';
   } else {
-    status.textContent = 'Jornada encerrada';
+    status.textContent = 'Jornada encerrada hoje';
     status.className   = 'ponto-status';
     btn.classList.add('disabled');
     btn.disabled       = true;
-    lbl.textContent    = 'Ponto fechado';
+    lbl.textContent    = 'FECHADO';
+    ico.textContent    = '✓';
   }
 
   // Mostra dados do GPS da última batida, se houver
@@ -980,11 +1018,12 @@ async function loadHorasMes() {
   const notInt      = Math.floor(noturnoDec);
   const notMin      = Math.round((noturnoDec - notInt) * 60);
 
-  document.getElementById('bi-horas').textContent      = `${horasInt}h${String(horasMin).padStart(2,'0')}`;
-  document.getElementById('bi-horas-sub').textContent  = `${brl0(horasDec)}h decimais`;
-  document.getElementById('bi-noturno').textContent    = `${notInt}h${String(notMin).padStart(2,'0')}`;
-  document.getElementById('bi-noturno-sub').textContent =
-    totalMinNot > 0 ? `${Math.round(totalMinNot)}min cronol.` : 'CLT Art.73 §1º';
+  // ★ Formato relógio LIMPO — sem decimais confusos. "8h 30m"
+  const fmtRelogio = (h, m) => `${h}h ${String(m).padStart(2,'0')}m`;
+  document.getElementById('bi-horas').textContent       = fmtRelogio(horasInt, horasMin);
+  document.getElementById('bi-horas-sub').textContent   = 'no mês atual';
+  document.getElementById('bi-noturno').textContent     = fmtRelogio(notInt, notMin);
+  document.getElementById('bi-noturno-sub').textContent = 'entre 22h e 05h';
 }
 
 /* ════════════════════════════════════════════════════════════════
