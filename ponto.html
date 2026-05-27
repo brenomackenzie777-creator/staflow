@@ -1064,6 +1064,25 @@ document.getElementById('esp-gerar').addEventListener('click', async () => {
   }
 });
 
+/* Monta string de endereço priorizando os campos estruturados
+   (vindos de /configuracoes), com fallback no `endereco` legado. */
+function montarEnderecoCompleto(condo) {
+  if (!condo) return '';
+  const partes = [];
+  if (condo.logradouro) {
+    partes.push(condo.logradouro + (condo.numero ? ', ' + condo.numero : ''));
+  }
+  if (condo.bairro) partes.push(condo.bairro);
+  if (condo.cidade && condo.estado) partes.push(condo.cidade + '/' + condo.estado);
+  else if (condo.cidade) partes.push(condo.cidade);
+  if (condo.cep) {
+    const cepFmt = String(condo.cep).replace(/\D/g,'').replace(/(\d{5})(\d{3})/, '$1-$2');
+    if (cepFmt) partes.push('CEP ' + cepFmt);
+  }
+  if (partes.length > 0) return partes.join(' — ');
+  return condo.endereco || '';
+}
+
 /* Gera SHA-256 hex de uma string usando Web Crypto API */
 async function sha256Hex(str) {
   const enc = new TextEncoder().encode(str);
@@ -1085,7 +1104,7 @@ async function gerarEImprimirEspelho(funcionarioId, mesStr) {
       .gte('registrado_em', `${inicio}T00:00:00.000Z`)
       .lt('registrado_em',  new Date(ano, mes, 1).toISOString())
       .order('registrado_em', { ascending: true }),
-    sb.from('condominios').select('nome, endereco, cnpj')
+    sb.from('condominios').select('nome, endereco, cnpj, email_admin, logradouro, numero, bairro, cidade, estado, cep')
       .eq('id', profile.condominio_id).maybeSingle()
   ]);
   if (resFunc.error)  throw resFunc.error;
@@ -1191,7 +1210,8 @@ async function gerarEImprimirEspelho(funcionarioId, mesStr) {
         <div class="lbl">EMPREGADOR</div>
         <div class="val">${escapeHtml(condo.nome || 'Condomínio não identificado')}</div>
         <div style="font-size:9pt;">CNPJ: ${fmtCnpj(condo.cnpj)}</div>
-        <div style="font-size:9pt;">${escapeHtml(condo.endereco || 'Endereço não informado')}</div>
+        <div style="font-size:9pt;">${escapeHtml(montarEnderecoCompleto(condo) || 'Endereço não informado em Configurações')}</div>
+        ${condo.email_admin ? `<div style="font-size:9pt;">E-mail: ${escapeHtml(condo.email_admin)}</div>` : ''}
       </div>
       <div>
         <div class="lbl">FUNCIONÁRIO</div>

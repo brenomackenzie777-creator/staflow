@@ -19,6 +19,118 @@
   }
   .card .head h2 { margin-bottom: 2px; }
   .card .head p { font-size: 13px; color: var(--white-dim); }
+
+  /* ── Seção do condomínio (3 blocos) ── */
+  .condo-section {
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .sub-section {
+    background: var(--navy-deep);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+  }
+  .sub-section .h {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 12px; margin-bottom: 14px;
+  }
+  .sub-section .h h3 {
+    font-family: var(--font-display);
+    font-weight: 700; font-size: 14px;
+    color: var(--white);
+    letter-spacing: -0.2px;
+  }
+  .sub-section .h .tag {
+    font-family: var(--font-mono);
+    font-size: 9px; letter-spacing: 2px;
+    color: var(--white-muted);
+    text-transform: uppercase;
+  }
+
+  .grid-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 700px) {
+    .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  /* ── Read-only field (CNPJ vindo do cadastro) ── */
+  .input.readonly,
+  .input:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+  .input.readonly { background: rgba(240,244,255,0.03); }
+
+  /* ── Upload CCT ── */
+  .cct-upload {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px;
+    background: var(--navy-deep);
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius);
+    transition: var(--transition);
+  }
+  .cct-upload:hover { border-color: var(--teal); }
+  .cct-upload .icon-wrap {
+    width: 44px; height: 44px;
+    border-radius: var(--radius);
+    background: var(--teal-dim);
+    color: var(--teal);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .cct-upload .info { flex: 1; min-width: 0; }
+  .cct-upload .ttl { font-size: 13px; font-weight: 600; color: var(--white); }
+  .cct-upload .desc {
+    font-size: 11px; color: var(--white-dim);
+    margin-top: 2px; line-height: 1.4;
+  }
+  .cct-upload .cct-current {
+    font-family: var(--font-mono);
+    font-size: 11px; color: var(--teal);
+    margin-top: 4px;
+  }
+  .cct-pick {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--white);
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+  }
+  .cct-pick:hover { border-color: var(--teal); color: var(--teal); }
+  .cct-view {
+    padding: 9px 14px;
+    background: var(--teal-dim);
+    border: 1px solid var(--teal-border);
+    border-radius: var(--radius);
+    color: var(--teal);
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  /* ── Tolerância (numérico + sufixo) ── */
+  .input-suffix {
+    position: relative;
+  }
+  .input-suffix::after {
+    content: 'min';
+    position: absolute;
+    right: 14px; top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--white-muted);
+    pointer-events: none;
+  }
+  .input-suffix input { padding-right: 50px !important; }
 </style>
 </head>
 <body>
@@ -34,17 +146,147 @@
     <div class="topbar">
       <div>
         <h1>Configurações</h1>
-        <p class="sub">Seus dados pessoais e do condomínio.</p>
+        <p class="sub">Dados do condomínio que alimentam relatórios e o espelho de ponto legal.</p>
       </div>
     </div>
 
-    <div class="grid-two">
-      <!-- Perfil -->
+    <!-- ═══ CONDOMÍNIO (3 sub-seções) ═══ -->
+    <section class="card">
+      <div class="head">
+        <div>
+          <h2>Condomínio</h2>
+          <p>Estas informações aparecem no espelho de ponto (MTE Portaria 671), relatórios e cabeçalhos de PDF.</p>
+        </div>
+      </div>
+
+      <form id="form-condo" novalidate>
+        <div class="condo-section">
+
+          <!-- 1. INFORMAÇÕES GERAIS -->
+          <div class="sub-section">
+            <div class="h">
+              <h3>Informações gerais</h3>
+              <span class="tag">RAZÃO SOCIAL · CNPJ · CONTATO</span>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="c-nome">Nome / Razão social</label>
+                <input class="input" id="c-nome" type="text" required maxlength="200">
+              </div>
+              <div class="field">
+                <label for="c-cnpj">CNPJ <span style="color:var(--white-muted);font-size:11px;">(vindo do cadastro)</span></label>
+                <input class="input readonly" id="c-cnpj" type="text" readonly placeholder="—">
+              </div>
+            </div>
+            <div class="field" style="margin-top:12px;">
+              <label for="c-email-admin">E-mail administrativo</label>
+              <input class="input" id="c-email-admin" type="email" placeholder="sindico@meucondominio.com.br" maxlength="120">
+            </div>
+          </div>
+
+          <!-- 2. ENDEREÇO -->
+          <div class="sub-section">
+            <div class="h">
+              <h3>Endereço</h3>
+              <span class="tag">USADO NO ESPELHO LEGAL</span>
+            </div>
+            <div class="grid-3">
+              <div class="field">
+                <label for="c-logradouro">Logradouro / Av.</label>
+                <input class="input" id="c-logradouro" type="text" placeholder="Av. das Flores" maxlength="160">
+              </div>
+              <div class="field">
+                <label for="c-numero">Número</label>
+                <input class="input" id="c-numero" type="text" placeholder="123" maxlength="12">
+              </div>
+              <div class="field">
+                <label for="c-cep">CEP</label>
+                <input class="input" id="c-cep" type="text" inputmode="numeric" placeholder="00000-000" maxlength="9">
+              </div>
+            </div>
+            <div class="grid-3" style="margin-top:12px;">
+              <div class="field">
+                <label for="c-bairro">Bairro</label>
+                <input class="input" id="c-bairro" type="text" placeholder="Centro" maxlength="80">
+              </div>
+              <div class="field">
+                <label for="c-cidade">Cidade</label>
+                <input class="input" id="c-cidade" type="text" placeholder="Rio de Janeiro" maxlength="80">
+              </div>
+              <div class="field">
+                <label for="c-estado">Estado</label>
+                <select class="input" id="c-estado">
+                  <option value="">—</option>
+                  <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option>
+                  <option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option>
+                  <option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option>
+                  <option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+                  <option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option>
+                  <option>SE</option><option>TO</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. DOCUMENTOS & PARÂMETROS -->
+          <div class="sub-section">
+            <div class="h">
+              <h3>Documentos e parâmetros</h3>
+              <span class="tag">CCT · TOLERÂNCIA</span>
+            </div>
+
+            <div class="field">
+              <label>Convenção Coletiva de Trabalho (CCT) vigente</label>
+              <div class="cct-upload">
+                <div class="icon-wrap">📄</div>
+                <div class="info">
+                  <div class="ttl">CCT em PDF</div>
+                  <div class="desc">Anexe a convenção do sindicato da categoria para consulta rápida do síndico. Máx. 20 MB.</div>
+                  <div class="cct-current" id="cct-current"></div>
+                </div>
+                <a href="#" class="cct-view" id="cct-view" style="display:none;" target="_blank" rel="noopener">↗ Ver atual</a>
+                <label class="cct-pick" for="cct-file">📎 Anexar / trocar</label>
+                <input type="file" id="cct-file" accept="application/pdf" style="display:none;">
+              </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:12px;">
+              <div class="field">
+                <label for="c-tolerancia">Tolerância de atraso na batida</label>
+                <div class="input-suffix">
+                  <input class="input" id="c-tolerancia" type="number" min="0" max="60" step="1" value="10">
+                </div>
+                <div class="field-hint">Padrão CLT: até 10 minutos por dia, máximo 5 vezes na semana.</div>
+              </div>
+              <div class="field">
+                <label for="c-plano">Plano contratado</label>
+                <select class="input" id="c-plano" disabled>
+                  <option value="starter">Starter</option>
+                  <option value="pro">Pro</option>
+                  <option value="scale">Scale</option>
+                  <option value="enterprise">Enterprise</option>
+                </select>
+                <div class="field-hint">Mude o plano na <a href="/planos.html" style="color:var(--teal);">página de planos</a>.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <button class="btn" id="btn-save-condo" type="submit" style="margin-top:18px;width:auto;padding:13px 28px;background:var(--teal);color:var(--navy-deep);font-weight:600;">
+          <span class="spinner"></span>
+          <span class="btn-label">💾 Salvar configurações</span>
+        </button>
+      </form>
+    </section>
+
+    <!-- ═══ PERFIL + SEGURANÇA (mantido em row inferior) ═══ -->
+    <div class="grid-two" style="margin-top:16px;">
       <section class="card">
         <div class="head">
           <div>
             <h2>Meu perfil</h2>
-            <p>Estes dados aparecem em outras telas.</p>
+            <p>Seus dados pessoais como administrador.</p>
           </div>
         </div>
 
@@ -55,83 +297,39 @@
           </div>
           <div class="field">
             <label for="p-email">E-mail</label>
-            <input class="input" id="p-email" type="email" disabled>
+            <input class="input readonly" id="p-email" type="email" disabled>
             <div class="field-hint">Para mudar o e-mail entre em contato com o suporte.</div>
           </div>
           <div class="field">
             <label for="p-fone">Telefone</label>
             <input class="input" id="p-fone" type="tel" placeholder="(21) 99999-9999">
           </div>
-          <div class="field">
-            <label for="p-role">Cargo</label>
-            <select class="input" id="p-role">
-              <option value="sindico">Síndico</option>
-              <option value="admin">Administrador</option>
-              <option value="funcionario">Funcionário</option>
-            </select>
-          </div>
 
-          <button class="btn" id="btn-save-profile" type="submit" style="width:auto; padding:11px 22px;">
+          <button class="btn" id="btn-save-profile" type="submit" style="width:auto;padding:11px 22px;">
             <span class="spinner"></span>
             <span class="btn-label">Salvar perfil</span>
           </button>
         </form>
       </section>
 
-      <!-- Condomínio -->
       <section class="card">
         <div class="head">
           <div>
-            <h2>Condomínio</h2>
-            <p>Dados que aparecem nos relatórios e cabeçalhos.</p>
-          </div>
-        </div>
-
-        <form id="form-condo" novalidate>
-          <div class="field">
-            <label for="c-nome">Nome do condomínio</label>
-            <input class="input" id="c-nome" type="text" required>
-          </div>
-          <div class="field">
-            <label for="c-end">Endereço</label>
-            <input class="input" id="c-end" type="text" placeholder="Rua, número — Cidade/UF">
-          </div>
-          <div class="field">
-            <label for="c-plano">Plano</label>
-            <select class="input" id="c-plano" disabled>
-              <option value="starter">Starter</option>
-              <option value="pro">Pro</option>
-              <option value="scale">Scale</option>
-              <option value="enterprise">Enterprise</option>
-            </select>
-            <div class="field-hint">Para mudar o plano use a área de cobrança (em breve).</div>
-          </div>
-
-          <button class="btn" id="btn-save-condo" type="submit" style="width:auto; padding:11px 22px;">
-            <span class="spinner"></span>
-            <span class="btn-label">Salvar condomínio</span>
-          </button>
-        </form>
-      </section>
-
-      <!-- Sessão / segurança -->
-      <section class="card" style="grid-column: 1 / -1;">
-        <div class="head">
-          <div>
             <h2>Segurança</h2>
-            <p>Sessão atual e ações da conta.</p>
+            <p>Sessão e ações da conta.</p>
           </div>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="btn btn-ghost" id="btn-reset-pass" style="width:auto; padding:11px 22px;">
+          <button class="btn btn-ghost" id="btn-reset-pass" style="width:auto;padding:11px 22px;">
             <span class="btn-label">Trocar minha senha</span>
           </button>
-          <button class="btn btn-ghost" id="btn-signout-here" style="width:auto; padding:11px 22px;">
+          <button class="btn btn-ghost" id="btn-signout-here" style="width:auto;padding:11px 22px;">
             <span class="btn-label">Sair desta sessão</span>
           </button>
         </div>
       </section>
     </div>
+
   </main>
 </div>
 
@@ -140,37 +338,227 @@
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/route-guard.js"></script>
+<script src="js/validadores.js"></script>
 <script src="js/app-shell.js"></script>
 
 <script>
 const sb = window.staflowSupabase;
 const T  = window.staflowApp.toast;
-let profile = null;
-let condo   = null;
+const V  = window.staflowValidators;
 
-// máscara telefone
+let profile  = null;
+let condo    = null;
+let cctNewFile = null;   // novo PDF da CCT selecionado pelo síndico
+
+/* ── Máscaras ─────────────────────────────────── */
 function maskTel(v){
-  v=(v||'').replace(/\D/g,'').slice(0,11);
+  v = (v||'').replace(/\D/g,'').slice(0,11);
   if (v.length>10) return v.replace(/(\d{2})(\d{5})(\d{4}).*/,'($1) $2-$3');
   if (v.length>6)  return v.replace(/(\d{2})(\d{4})(\d{0,4}).*/,'($1) $2-$3');
   if (v.length>2)  return v.replace(/(\d{2})(\d{0,5}).*/,'($1) $2');
   if (v.length>0)  return '('+v;
   return '';
 }
-document.getElementById('p-fone').addEventListener('input', e => e.target.value = maskTel(e.target.value));
+function maskCEP(v) {
+  v = (v||'').replace(/\D/g,'').slice(0,8);
+  if (v.length > 5) return v.replace(/(\d{5})(\d{0,3})/,'$1-$2');
+  return v;
+}
 
-// ---------- carregar condomínio ----------
+document.getElementById('p-fone').addEventListener('input', e => e.target.value = maskTel(e.target.value));
+document.getElementById('c-cep').addEventListener('input',  e => e.target.value = maskCEP(e.target.value));
+
+/* Auto-fill via ViaCEP quando o CEP estiver completo (8 dígitos) */
+document.getElementById('c-cep').addEventListener('blur', async (e) => {
+  const cep = (e.target.value || '').replace(/\D/g, '');
+  if (cep.length !== 8) return;
+  try {
+    const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const d = await r.json();
+    if (d && !d.erro) {
+      const log = document.getElementById('c-logradouro');
+      const bai = document.getElementById('c-bairro');
+      const cid = document.getElementById('c-cidade');
+      const uf  = document.getElementById('c-estado');
+      if (!log.value && d.logradouro) log.value = d.logradouro;
+      if (!bai.value && d.bairro)     bai.value = d.bairro;
+      if (!cid.value && d.localidade) cid.value = d.localidade;
+      if (!uf.value  && d.uf)         uf.value  = d.uf;
+    }
+  } catch (_) { /* ViaCEP é bonus — falha silenciosa */ }
+});
+
+/* ── Trocar todos os inputs do form em modo readonly (UI otimista) ── */
+function setFormDisabled(formEl, disabled) {
+  formEl.querySelectorAll('input,select,button,textarea,label.cct-pick').forEach(el => {
+    if (disabled) {
+      el.setAttribute('data-was-disabled', el.disabled ? '1' : '0');
+      el.disabled = true;
+      if (el.tagName === 'LABEL') el.style.pointerEvents = 'none';
+    } else {
+      // Restaura disabled apenas para campos originalmente desabilitados (cnpj, plano)
+      if (el.getAttribute('data-was-disabled') === '1') {
+        el.disabled = true;
+      } else {
+        el.disabled = false;
+      }
+      if (el.tagName === 'LABEL') el.style.pointerEvents = '';
+      el.removeAttribute('data-was-disabled');
+    }
+  });
+}
+
+/* ── Upload de CCT — seleção do arquivo ── */
+document.getElementById('cct-file').addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  if (f.size > 20 * 1024 * 1024) {
+    T('Arquivo maior que 20 MB.', 'error');
+    e.target.value = '';
+    return;
+  }
+  if (f.type !== 'application/pdf') {
+    T('Apenas PDF é aceito para a CCT.', 'error');
+    e.target.value = '';
+    return;
+  }
+  cctNewFile = f;
+  document.getElementById('cct-current').textContent =
+    `📌 Pronto para envio: ${f.name} (${(f.size/1024).toFixed(0)} KB)`;
+});
+
+/* ── Carrega o condomínio do banco ─────────────── */
 async function loadCondominio() {
-  if (!profile.condominio_id) return;
+  if (!profile.condominio_id) {
+    // Sem condomínio vinculado — usuário deve cadastrar via Funcionários primeiro
+    return;
+  }
   const { data, error } = await sb.from('condominios').select('*').eq('id', profile.condominio_id).single();
   if (error) { T(error.message, 'error'); return; }
   condo = data;
-  document.getElementById('c-nome').value  = data.nome || '';
-  document.getElementById('c-end').value   = data.endereco || '';
-  document.getElementById('c-plano').value = data.plano || 'starter';
+
+  // Informações gerais
+  document.getElementById('c-nome').value         = data.nome          || '';
+  document.getElementById('c-cnpj').value         = data.cnpj ? V.formatarCNPJ(data.cnpj) : '';
+  document.getElementById('c-email-admin').value  = data.email_admin   || '';
+
+  // Endereço estruturado
+  document.getElementById('c-logradouro').value   = data.logradouro    || '';
+  document.getElementById('c-numero').value       = data.numero        || '';
+  document.getElementById('c-cep').value          = data.cep ? maskCEP(data.cep) : '';
+  document.getElementById('c-bairro').value       = data.bairro        || '';
+  document.getElementById('c-cidade').value       = data.cidade        || '';
+  document.getElementById('c-estado').value       = data.estado        || '';
+
+  // Documentos e parâmetros
+  document.getElementById('c-tolerancia').value   = (data.tolerancia_atraso_min != null) ? data.tolerancia_atraso_min : 10;
+  document.getElementById('c-plano').value        = data.plano         || 'starter';
+
+  // CCT existente
+  if (data.cct_path) {
+    document.getElementById('cct-current').textContent = '✓ CCT carregada no sistema';
+    // Gera signed URL p/ visualização
+    try {
+      const { data: signed } = await sb.storage
+        .from('documentos-condominio')
+        .createSignedUrl(data.cct_path, 3600);
+      if (signed?.signedUrl) {
+        const a = document.getElementById('cct-view');
+        a.href = signed.signedUrl;
+        a.style.display = 'inline-flex';
+      }
+    } catch(_) { /* signed url é opcional */ }
+  }
 }
 
-// ---------- salvar perfil ----------
+/* ── Salvar condomínio (UPDATE real + upload CCT) ── */
+document.getElementById('form-condo').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formEl = e.target;
+  const nome   = document.getElementById('c-nome').value.trim();
+  const email  = document.getElementById('c-email-admin').value.trim();
+
+  if (nome.length < 2) {
+    T('Informe um nome para o condomínio.', 'error');
+    return;
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    T('E-mail administrativo inválido.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-save-condo');
+  btn.classList.add('loading');
+  setFormDisabled(formEl, true);
+
+  try {
+    if (!profile.condominio_id) {
+      throw new Error('Condomínio ainda não cadastrado. Use o cadastro inicial.');
+    }
+
+    // 1) Upload da nova CCT (se houver)
+    let cctPath = condo?.cct_path || null;
+    if (cctNewFile) {
+      const path = `${profile.condominio_id}/cct/${Date.now()}.pdf`;
+      const up = await sb.storage.from('documentos-condominio')
+        .upload(path, cctNewFile, { contentType: 'application/pdf', upsert: false });
+      if (up.error) throw new Error('Upload CCT: ' + up.error.message);
+      // Remove CCT anterior, se houver
+      if (condo?.cct_path) {
+        try { await sb.storage.from('documentos-condominio').remove([condo.cct_path]); } catch(_) {}
+      }
+      cctPath = path;
+    }
+
+    // 2) UPDATE em condominios
+    const tolerancia = parseInt(document.getElementById('c-tolerancia').value, 10);
+    const patch = {
+      nome,
+      email_admin:           email || null,
+      logradouro:            document.getElementById('c-logradouro').value.trim() || null,
+      numero:                document.getElementById('c-numero').value.trim() || null,
+      bairro:                document.getElementById('c-bairro').value.trim() || null,
+      cidade:                document.getElementById('c-cidade').value.trim() || null,
+      estado:                document.getElementById('c-estado').value || null,
+      cep:                   V.limparDigitos(document.getElementById('c-cep').value) || null,
+      tolerancia_atraso_min: isNaN(tolerancia) ? 10 : Math.max(0, Math.min(60, tolerancia)),
+      cct_path:              cctPath
+    };
+
+    // Reconstrói o endereço-string legado (compatibilidade com relatórios antigos)
+    const partes = [];
+    if (patch.logradouro) partes.push(patch.logradouro + (patch.numero ? ', ' + patch.numero : ''));
+    if (patch.bairro)     partes.push(patch.bairro);
+    if (patch.cidade && patch.estado) partes.push(patch.cidade + '/' + patch.estado);
+    else if (patch.cidade) partes.push(patch.cidade);
+    if (patch.cep)        partes.push('CEP ' + patch.cep.replace(/(\d{5})(\d{3})/,'$1-$2'));
+    patch.endereco = partes.join(' — ') || null;
+
+    const { data, error } = await sb.from('condominios')
+      .update(patch).eq('id', profile.condominio_id).select().single();
+    if (error) throw error;
+    condo = data;
+
+    // Sincroniza profile.condominio_nome/endereco para coerência visual no app-shell
+    await sb.from('profiles').update({
+      condominio_nome:     condo.nome,
+      condominio_endereco: condo.endereco
+    }).eq('id', profile.id);
+
+    cctNewFile = null;
+    document.getElementById('cct-file').value = '';
+    T('✓ Configurações do condomínio atualizadas com sucesso!', 'success');
+    // Recarrega o estado da CCT (gera signed url nova)
+    await loadCondominio();
+  } catch (err) {
+    T(err.message || 'Erro ao salvar.', 'error');
+  } finally {
+    btn.classList.remove('loading');
+    setFormDisabled(formEl, false);
+  }
+});
+
+/* ── Salvar perfil (mantido) ── */
 document.getElementById('form-profile').addEventListener('submit', async (e) => {
   e.preventDefault();
   const nome = document.getElementById('p-nome').value.trim();
@@ -181,66 +569,24 @@ document.getElementById('form-profile').addEventListener('submit', async (e) => 
 
   const patch = {
     full_name: nome,
-    phone:     document.getElementById('p-fone').value.trim() || null,
-    role:      document.getElementById('p-role').value
+    phone:     document.getElementById('p-fone').value.trim() || null
   };
   const { ok, data, error } = await window.staflowAuth.updateProfile(profile.id, patch);
 
   btn.classList.remove('loading'); btn.disabled = false;
   if (!ok) { T(error, 'error'); return; }
   profile = data;
-  T('Perfil atualizado.', 'success');
-  // atualiza nome na sidebar
-  document.getElementById('u-name').textContent = data.full_name;
+  T('✓ Perfil atualizado.', 'success');
+  document.getElementById('u-name').textContent  = data.full_name;
   document.getElementById('u-avatar').textContent = window.staflowApp.iniciais(data.full_name);
 });
 
-// ---------- salvar condomínio ----------
-document.getElementById('form-condo').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const nome = document.getElementById('c-nome').value.trim();
-  if (nome.length < 2) { T('Informe um nome para o condomínio.', 'error'); return; }
-
-  const btn = document.getElementById('btn-save-condo');
-  btn.classList.add('loading'); btn.disabled = true;
-
-  const patch = {
-    nome,
-    endereco: document.getElementById('c-end').value.trim() || null
-  };
-
-  let resp;
-  if (profile.condominio_id) {
-    resp = await sb.from('condominios').update(patch).eq('id', profile.condominio_id).select().single();
-  } else {
-    patch.sindico_id = profile.id;
-    resp = await sb.from('condominios').insert(patch).select().single();
-    if (!resp.error) {
-      // vincula no perfil
-      await sb.from('profiles').update({ condominio_id: resp.data.id }).eq('id', profile.id);
-      profile.condominio_id = resp.data.id;
-    }
-  }
-
-  btn.classList.remove('loading'); btn.disabled = false;
-  if (resp.error) { T(resp.error.message, 'error'); return; }
-
-  condo = resp.data;
-  // também sincroniza profiles.condominio_nome para coerência visual
-  await sb.from('profiles').update({
-    condominio_nome:     condo.nome,
-    condominio_endereco: condo.endereco
-  }).eq('id', profile.id);
-
-  T('Condomínio salvo.', 'success');
-});
-
-// ---------- segurança ----------
+/* ── Segurança ── */
 document.getElementById('btn-reset-pass').addEventListener('click', async () => {
   if (!profile?.email) return;
   const res = await window.staflowAuth.resetPassword(profile.email);
   if (!res.ok) { T(res.error, 'error'); return; }
-  T('Enviamos um link de redefinição para o seu e-mail.', 'success');
+  T('✓ Enviamos um link de redefinição para o seu e-mail.', 'success');
 });
 
 document.getElementById('btn-signout-here').addEventListener('click', async () => {
@@ -249,19 +595,18 @@ document.getElementById('btn-signout-here').addEventListener('click', async () =
   location.replace('/auth/login.html');
 });
 
-// ---------- boot ----------
+/* ── Boot — protegido pelo route-guard via bootstrapShell ── */
 (async () => {
   window.staflowApp.renderSidebar('sidebar');
   profile = await window.staflowApp.bootstrapShell({ route: 'configuracoes' });
-  if (!profile) return;
+  if (!profile) return;   // guard já redirecionou se não for sindico/admin
 
-  // popula perfil
+  // Popula perfil
   document.getElementById('p-nome').value  = profile.full_name || '';
   document.getElementById('p-email').value = profile.email || '';
   document.getElementById('p-fone').value  = profile.phone || '';
-  document.getElementById('p-role').value  = profile.role || 'sindico';
 
-  // popula condomínio
+  // Carrega condomínio
   await loadCondominio();
 })();
 </script>
