@@ -17,8 +17,8 @@
 ───────────────────────────────────────────── */
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
   margin-bottom: 28px;
 }
 .stat {
@@ -328,12 +328,27 @@
 /* ─────────────────────────────────────────────
    Responsivo
 ───────────────────────────────────────────── */
+@media (max-width: 1300px) {
+  .stats { grid-template-columns: repeat(3, 1fr); }
+}
 @media (max-width: 1100px) {
   .provisao-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 980px) {
   .stats { grid-template-columns: repeat(2, 1fr); }
   .row { grid-template-columns: 1fr; }
+}
+
+/* Pill no card de auditoria */
+.stat .stat-foot .pill.audit-red {
+  background: rgba(255,107,107,0.14);
+  color: var(--red);
+  border: 1px solid rgba(255,107,107,0.30);
+}
+.stat .stat-foot .pill.audit-amber {
+  background: rgba(255,209,102,0.10);
+  color: var(--amber);
+  border: 1px solid rgba(255,209,102,0.25);
 }
 @media (max-width: 560px) {
   .provisao-grid { grid-template-columns: 1fr; }
@@ -381,6 +396,11 @@
         <div class="stat-label">Faltas na semana</div>
         <div class="stat-value" id="s-faltas">—</div>
         <div class="stat-foot" id="s-faltas-foot">Ver registro de faltas</div>
+      </a>
+      <a href="/ponto.html" class="stat" id="card-audit">
+        <div class="stat-label">Auditoria GPS · hoje</div>
+        <div class="stat-value" id="s-audit">—</div>
+        <div class="stat-foot" id="s-audit-foot">Sem inconformidades</div>
       </a>
     </section>
 
@@ -518,7 +538,7 @@ function tempoAtras(d) {
    (lógica original mantida, apenas reorganizada para clareza)
    ════════════════════════════════════════════════════════════════ */
 async function loadStats() {
-  window.staflowApp.skeletonStats(['s-funcionarios','s-presentes','s-tarefas','s-faltas']);
+  window.staflowApp.skeletonStats(['s-funcionarios','s-presentes','s-tarefas','s-faltas','s-audit']);
   const recentArea = document.getElementById('recent-area');
   if (recentArea) {
     recentArea.innerHTML = Array.from({ length: 4 }).map(() => `
@@ -546,14 +566,16 @@ async function loadStats() {
     { count: tarefasPendentes },
     { data: faltasSemanaRows },
     { data: faltasHoje },
-    { data: ultimos }
+    { data: ultimos },
+    { data: auditoriaHoje }
   ] = await Promise.all([
     sb.from('funcionarios').select('id', { count:'exact', head:true }).eq('ativo', true),
     sb.from('registros_ponto').select('funcionario_id, tipo').gte('registrado_em', inicioDia).lt('registrado_em', fimDia),
     sb.from('tarefas').select('id', { count:'exact', head:true }).in('status', ['pendente','em_andamento']),
     sb.from('faltas').select('id, tipo, justificada, data').gte('data', inicioSemana.split('T')[0]),
     sb.from('faltas').select('funcionario_id, tipo, justificada').eq('data', hojeISO),
-    sb.from('funcionarios').select('id, nome, cargo, created_at, ativo').order('created_at', { ascending:false }).limit(5)
+    sb.from('funcionarios').select('id, nome, cargo, created_at, ativo').order('created_at', { ascending:false }).limit(5),
+    sb.from('registros_ponto').select('audit_status').gte('registrado_em', inicioDia).lt('registrado_em', fimDia).not('audit_status','is',null)
   ]);
 
   // Presentes hoje
@@ -598,6 +620,33 @@ async function loadStats() {
     footFaltas.innerHTML = parts.join(' ') || 'Ver registro de faltas';
   } else {
     footFaltas.textContent = 'Ver registro de faltas';
+  }
+
+  // ── Card de Auditoria GPS — varre audit_status do dia ──
+  const audit = auditoriaHoje || [];
+  const cFraude = audit.filter(r => r.audit_status === 'FRAUDE_SUSPECT').length;
+  const cMock   = audit.filter(r => r.audit_status === 'MOCK_SUSPECT').length;
+  const cLow    = audit.filter(r => r.audit_status === 'LOW_ACCURACY').length;
+  const totalRisco = cFraude + cMock;
+  const auditEl   = document.getElementById('s-audit');
+  const auditFoot = document.getElementById('s-audit-foot');
+
+  if (totalRisco === 0 && cLow === 0) {
+    auditEl.textContent   = '✓';
+    auditEl.style.color   = 'var(--teal)';
+    auditFoot.innerHTML   = '<span class="pill teal">Tudo OK hoje</span>';
+  } else if (totalRisco > 0) {
+    auditEl.textContent   = totalRisco;
+    auditEl.style.color   = 'var(--red)';
+    const parts = [];
+    if (cFraude > 0) parts.push(`<span class="pill audit-red">${cFraude} fraude</span>`);
+    if (cMock > 0)   parts.push(`<span class="pill audit-amber">${cMock} suspeita</span>`);
+    if (cLow > 0)    parts.push(`<span class="pill audit-amber">${cLow} baixa prec.</span>`);
+    auditFoot.innerHTML = parts.join(' ');
+  } else {
+    auditEl.textContent   = cLow;
+    auditEl.style.color   = 'var(--amber)';
+    auditFoot.innerHTML   = `<span class="pill audit-amber">${cLow} baixa precisão</span>`;
   }
 
   // Equipe recente

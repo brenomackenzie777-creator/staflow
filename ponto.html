@@ -155,6 +155,35 @@
 .tbl tbody tr:hover td { background: rgba(240,244,255,0.02); }
 .tbl tbody tr td:last-child { cursor: default; }
 
+/* ── Audit badges (antifraude GPS vindo do app de bolso) ── */
+.audit-pill {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  margin-left: 6px;
+  border-radius: 3px;
+  vertical-align: middle;
+  text-transform: uppercase;
+  cursor: help;
+}
+.audit-pill.danger {
+  background: rgba(255,107,107,0.12);
+  color: var(--red);
+  border: 1px solid rgba(255,107,107,0.30);
+}
+.audit-pill.warn {
+  background: rgba(255,209,102,0.10);
+  color: var(--amber);
+  border: 1px solid rgba(255,209,102,0.25);
+}
+.audit-pill.info {
+  background: rgba(74,158,255,0.10);
+  color: #4a9eff;
+  border: 1px solid rgba(74,158,255,0.25);
+}
+
 /* today highlight pill */
 .today-pill {
   font-family: var(--font-mono);
@@ -459,6 +488,21 @@ function getStatus(row) {
   return 'AUSENTE';
 }
 
+/* Pill antifraude para uma batida individual baseada em audit_status */
+function auditPill(reg) {
+  if (!reg || !reg.audit_status || reg.audit_status === 'OK') return '';
+  switch (reg.audit_status) {
+    case 'FRAUDE_SUSPECT':
+      return ' <span class="audit-pill danger" title="Risco de fraude de GPS: múltiplos sinais de localização simulada (mock) detectados nesta batida.">⚠️ Risco de Fraude de GPS</span>';
+    case 'MOCK_SUSPECT':
+      return ' <span class="audit-pill warn" title="Sinal único de mock location detectado — investigar com o funcionário.">⚠️ GPS Suspeito</span>';
+    case 'LOW_ACCURACY':
+      return ' <span class="audit-pill info" title="Precisão de GPS acima de 150m no momento da batida — local fechado ou sinal fraco.">📍 Baixa Precisão</span>';
+    default:
+      return '';
+  }
+}
+
 // ── Renderizar tabela ──────────────────────────────────────────────────────────
 function renderTable() {
   const q     = document.getElementById('q').value.trim().toLowerCase();
@@ -538,10 +582,10 @@ function renderTable() {
           </div>
         </td>
         <td>
-          <span class="hora-cell ${hasEnt ? 'has' : 'dash'}">${horaEnt}</span>
+          <span class="hora-cell ${hasEnt ? 'has' : 'dash'}">${horaEnt}</span>${auditPill(row.entrada)}
         </td>
         <td>
-          <span class="hora-cell ${hasSai ? 'has' : 'dash'}">${horaSai}</span>
+          <span class="hora-cell ${hasSai ? 'has' : 'dash'}">${horaSai}</span>${auditPill(row.saida)}
         </td>
         <td>
           <span class="total-cell ${total !== '—' ? 'has' : ''}">${escapeHtml(total)}</span>

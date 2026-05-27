@@ -2,612 +2,1108 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0F1624">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d0f12">
 <title>Meu painel — StaFlow</title>
 <meta name="description" content="App do colaborador StaFlow — ponto, tarefas e atestados.">
 <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
+
+<!-- TRONCO SUPERIOR DE ROTEAMENTO — carregado antes de tudo -->
+<script src="/js/route-guard.js"></script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="auth/auth.css">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-/* ════════════════════════════════════════════════════════════════
-   StaFlow — App de bolso do colaborador (mobile-first)
-   Reusa tokens do auth.css. Layout independente de app.css
-   porque NÃO há sidebar/grid administrativo aqui.
-════════════════════════════════════════════════════════════════ */
+  :root {
+    --bg:         #0d0f12;
+    --surface:    #161a20;
+    --surface2:   #1e2530;
+    --border:     #252d38;
+    --accent:     #00e5a0;
+    --accent-dim: rgba(0,229,160,0.12);
+    --warn:       #ff9633;
+    --warn-dim:   rgba(255,150,51,0.12);
+    --danger:     #ef4444;
+    --danger-dim: rgba(239,68,68,0.12);
+    --blue:       #4a9eff;
+    --blue-dim:   rgba(74,158,255,0.12);
+    --amber:      #ffd166;
+    --amber-dim:  rgba(255,209,102,0.14);
+    --text:       #e8edf4;
+    --text-muted: #6b7a8d;
+    --text-faint: #3d4a58;
+    --radius:     16px;
+    --radius-sm:  10px;
+  }
 
-* { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
-body {
-  background: var(--navy-deep);
-  color: var(--white);
-  font-family: var(--font-body);
-  min-height: 100vh;
-  min-height: 100dvh;
-  -webkit-tap-highlight-color: transparent;
-  padding-bottom: env(safe-area-inset-bottom, 0);
-}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-.colab-shell {
-  max-width: 560px;
-  margin: 0 auto;
-  padding: 18px 18px 80px;
-  display: flex; flex-direction: column;
-  gap: 14px;
-}
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 24px 16px 48px;
+    padding-bottom: calc(48px + env(safe-area-inset-bottom, 0));
+    -webkit-tap-highlight-color: transparent;
+  }
 
-/* ───── Splash ───── */
-.splash {
-  position: fixed; inset: 0;
-  background: var(--navy-deep);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 1000;
-  transition: opacity 0.3s ease;
-}
-.splash.hide { opacity: 0; pointer-events: none; }
-.splash .dot {
-  width: 16px; height: 16px;
-  border-radius: 50%;
-  background: var(--teal);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%, 100% { transform: scale(0.85); opacity: 0.6; }
-  50%      { transform: scale(1);    opacity: 1; }
-}
+  .phone-shell {
+    width: 100%;
+    max-width: 420px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
 
-/* ───── Header — logout GRANDE e visível ───── */
-.colab-header {
-  display: flex; align-items: center; gap: 10px;
-  padding: 6px 4px 14px;
-  border-bottom: 1px solid var(--border);
-}
-.colab-header .avatar {
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  background: var(--navy-brand);
-  color: #fff;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-family: var(--font-display);
-  font-weight: 800; font-size: 16px;
-  flex-shrink: 0;
-}
-.colab-header .info { flex: 1; min-width: 0; }
-.colab-header .greeting {
-  font-family: var(--font-mono);
-  font-size: 10px; letter-spacing: 1.5px;
-  color: var(--white-muted); text-transform: uppercase;
-}
-.colab-header .name {
-  font-family: var(--font-display);
-  font-weight: 800; font-size: 17px;
-  color: var(--white);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  margin-top: 2px;
-}
-.colab-header .condo {
-  font-size: 12px; color: var(--white-dim);
-  margin-top: 1px;
-}
-.colab-header .btn-logout {
-  display: inline-flex;
-  align-items: center; gap: 6px;
-  background: rgba(239,68,68,0.10);
-  border: 1.5px solid rgba(239,68,68,0.35);
-  border-radius: var(--radius);
-  color: var(--red);
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 12px 18px;
-  cursor: pointer;
-  transition: var(--transition);
-  flex-shrink: 0;
-  min-height: 44px;  /* alvo de toque WCAG */
-  -webkit-tap-highlight-color: transparent;
-}
-.colab-header .btn-logout:hover,
-.colab-header .btn-logout:active {
-  background: var(--red);
-  color: #fff;
-  border-color: var(--red);
-}
-.colab-header .btn-logout .ico {
-  font-size: 16px; line-height: 1;
-}
+  /* ── Splash ── */
+  .splash {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2000;
+    transition: opacity 0.3s ease;
+  }
+  .splash.hide { opacity: 0; pointer-events: none; }
+  .splash .dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse-dot 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { transform: scale(0.85); opacity: 0.6; }
+    50%      { transform: scale(1);    opacity: 1; }
+  }
 
-/* ───── Card base ───── */
-.colab-card {
-  background: var(--navy);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 16px 16px 18px;
-}
-.colab-card .h {
-  font-family: var(--font-mono);
-  font-size: 10px; letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--white-muted);
-  display: flex; align-items: center; gap: 8px;
-  margin-bottom: 12px;
-}
-.colab-card .h .pill {
-  font-size: 9px; padding: 2px 6px; border-radius: 2px;
-  background: var(--teal-dim); color: var(--teal);
-  border: 1px solid var(--teal-border);
-}
-.colab-card .h .pill.amber {
-  background: rgba(255,209,102,0.10); color: var(--amber);
-  border-color: rgba(255,209,102,0.25);
-}
-.colab-card .h .pill.red {
-  background: rgba(255,107,107,0.12); color: var(--red);
-  border-color: rgba(255,107,107,0.30);
-}
+  /* ── Status Bar (decorativa) ── */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .signal-icons { display: flex; gap: 4px; align-items: center; }
+  .bar { width: 3px; border-radius: 1px; background: var(--text-muted); }
 
-/* ───── Ponto: BIG-ACTION (foco absoluto da página) ───── */
-.ponto-card {
-  text-align: center;
-  padding: 22px 16px 26px;
-}
-.ponto-status {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 22px;
-  color: var(--white);
-  letter-spacing: -0.3px;
-  margin: 4px 0 4px;
-  line-height: 1.15;
-}
-.ponto-status.green { color: var(--teal); }
-.ponto-status.amber { color: var(--amber); }
-.ponto-clock {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--white-dim);
-  margin-bottom: 22px;
-  letter-spacing: 1px;
-}
+  /* ── Header (logo + avatar + LOGOUT GIGANTE) ── */
+  .app-header {
+    padding: 8px 20px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    flex: 1;
+  }
+  .logo .flow { color: var(--accent); }
+  .avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e3a5f, #00e5a040);
+    border: 2px solid var(--border);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .btn-logout {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--danger-dim);
+    border: 1.5px solid rgba(239,68,68,0.4);
+    border-radius: 12px;
+    color: var(--danger);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 14px;
+    min-height: 44px;       /* alvo de toque WCAG */
+    min-width: 44px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .btn-logout:hover,
+  .btn-logout:active {
+    background: var(--danger);
+    color: #fff;
+  }
+  .btn-logout .ico { font-size: 16px; line-height: 1; }
 
-/* O BOTÃO — gigante, contraste alto, alvo de toque XL */
-.btn-ponto {
-  width: 240px; height: 240px;
-  max-width: 82vw;
-  max-height: 82vw;
-  border-radius: 50%;
-  border: none;
-  /* ENTRADA → verde sólido com brilho */
-  background: var(--teal);
-  color: #0F1624;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 28px;          /* texto ENORME */
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  cursor: pointer;
-  display: inline-flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 10px;
-  box-shadow:
-    0 0 0 10px rgba(6,214,160,0.10),
-    0 0 80px rgba(6,214,160,0.45),
-    0 16px 40px rgba(0,0,0,0.5);
-  transition: transform 0.12s ease, box-shadow 0.25s ease, background 0.2s ease;
-  position: relative;
-  margin: 8px auto 0;
-  -webkit-tap-highlight-color: transparent;
-}
-.btn-ponto:active { transform: scale(0.95); }
+  /* ── Greeting ── */
+  .greeting { padding: 0 20px 20px; }
+  .greeting-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 4px;
+  }
+  .greeting-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1.1;
+  }
 
-/* SAÍDA → vermelho sólido, contraste oposto */
-.btn-ponto.saida {
-  background: var(--red);
-  color: #fff;
-  box-shadow:
-    0 0 0 10px rgba(239,68,68,0.10),
-    0 0 80px rgba(239,68,68,0.45),
-    0 16px 40px rgba(0,0,0,0.5);
-}
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    padding: 0 20px;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+  .tab {
+    flex: 1;
+    padding: 12px 6px;
+    min-height: 44px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .tab.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
 
-.btn-ponto.loading {
-  pointer-events: none;
-  opacity: 0.65;
-}
-.btn-ponto.disabled {
-  background: rgba(240,244,255,0.06);
-  color: var(--white-muted);
-  box-shadow: none;
-  pointer-events: none;
-}
-.btn-ponto .icon {
-  font-size: 44px;          /* ícone maior */
-  line-height: 1;
-}
-.btn-ponto .label {
-  font-size: 24px;          /* texto principal: ENTRADA / SAÍDA */
-  letter-spacing: 4px;
-  font-weight: 800;
-}
+  /* ── Panels ── */
+  .panel { display: none; padding: 0 20px; flex-direction: column; gap: 16px; }
+  .panel.active { display: flex; }
 
-.geo-status {
-  margin-top: 16px;
-  font-family: var(--font-mono);
-  font-size: 11px; letter-spacing: 1px;
-  color: var(--white-muted);
-  display: flex; align-items: center; justify-content: center;
-  gap: 6px;
-  min-height: 16px;
-}
-.geo-status.ok    { color: var(--teal); }
-.geo-status.err   { color: var(--amber); }
+  /* ── Ponto: status card ── */
+  .ponto-status-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .status-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--warn);
+    box-shadow: 0 0 0 4px var(--warn-dim);
+    flex-shrink: 0;
+    transition: all 0.4s;
+  }
+  .status-dot.active {
+    background: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-dim);
+  }
+  .status-dot.danger {
+    background: var(--danger);
+    box-shadow: 0 0 0 4px var(--danger-dim);
+  }
+  .status-info { flex: 1; min-width: 0; }
+  .status-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  .status-value {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+    transition: color 0.3s;
+  }
+  .status-value.green { color: var(--accent); }
+  .status-value.amber { color: var(--warn); }
+  .status-value.red   { color: var(--danger); }
+  .clock-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
 
-/* ───── Stats trabalhistas ───── */
-.bi-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 4px;
-}
-.bi-stat {
-  background: var(--navy-deep);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-}
-.bi-stat .lbl {
-  font-family: var(--font-mono);
-  font-size: 9px; letter-spacing: 1.5px;
-  color: var(--white-muted);
-  text-transform: uppercase;
-}
-.bi-stat .val {
-  font-family: var(--font-display);
-  font-weight: 800; font-size: 22px;
-  color: var(--white);
-  margin-top: 6px; line-height: 1;
-  letter-spacing: -0.5px;
-}
-.bi-stat.teal .val { color: var(--teal); }
-.bi-stat .sub {
-  font-size: 10px; color: var(--white-dim);
-  margin-top: 4px;
-  font-family: var(--font-mono);
-}
+  /* ── PUNCH BUTTON MONUMENTAL — 240px ── */
+  .punch-btn-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 0 8px;
+  }
+  .punch-btn {
+    width: 240px; height: 240px;
+    max-width: 82vw;
+    max-height: 82vw;
+    border-radius: 50%;
+    border: 3px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+    color: var(--text-muted);
+  }
+  .punch-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, var(--accent-dim) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .punch-btn:hover::before, .punch-btn:active::before { opacity: 1; }
+  .punch-btn:active { transform: scale(0.95); }
 
-/* ───── Tarefas ───── */
-.task-item {
-  display: flex; gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-}
-.task-item:last-child { border-bottom: none; padding-bottom: 0; }
-.task-item:first-child { padding-top: 0; }
-.task-item .check {
-  width: 22px; height: 22px;
-  flex-shrink: 0;
-  border: 1.5px solid var(--border-strong);
-  border-radius: 50%;
-  background: var(--navy-deep);
-  margin-top: 1px;
-}
-.task-item .check.done {
-  background: var(--teal);
-  border-color: var(--teal);
-  position: relative;
-}
-.task-item .check.done::after {
-  content: '✓';
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 13px; color: var(--navy-deep);
-}
-.task-item .body { flex: 1; min-width: 0; }
-.task-item .body .titulo {
-  font-weight: 600; font-size: 14px;
-  color: var(--white);
-  line-height: 1.35;
-}
-.task-item .body .titulo.done { text-decoration: line-through; color: var(--white-muted); }
-.task-item .body .meta {
-  display: flex; align-items: center; gap: 8px;
-  margin-top: 4px;
-  font-size: 11px; color: var(--white-dim);
-  font-family: var(--font-mono);
-  letter-spacing: 0.5px;
-}
-.task-item .body .meta .prio {
-  padding: 1px 6px; border-radius: 2px;
-  font-size: 9px; letter-spacing: 1px;
-  text-transform: uppercase;
-}
-.task-item .body .meta .prio.alta  { background: rgba(255,107,107,0.12); color: var(--red); }
-.task-item .body .meta .prio.media { background: rgba(255,209,102,0.10); color: var(--amber); }
-.task-item .body .meta .prio.baixa { background: var(--teal-dim); color: var(--teal); }
+  .punch-btn.entrada {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #0d0f12;
+    box-shadow: 0 0 0 10px var(--accent-dim), 0 0 80px rgba(0,229,160,0.35), 0 16px 40px rgba(0,0,0,0.5);
+  }
+  .punch-btn.almoco {
+    border-color: var(--warn);
+    background: var(--warn);
+    color: #0d0f12;
+    box-shadow: 0 0 0 10px var(--warn-dim), 0 0 80px rgba(255,150,51,0.35), 0 16px 40px rgba(0,0,0,0.5);
+  }
+  .punch-btn.volta {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #0d0f12;
+    box-shadow: 0 0 0 10px var(--accent-dim), 0 0 80px rgba(0,229,160,0.35), 0 16px 40px rgba(0,0,0,0.5);
+  }
+  .punch-btn.saida {
+    border-color: var(--danger);
+    background: var(--danger);
+    color: #fff;
+    box-shadow: 0 0 0 10px var(--danger-dim), 0 0 80px rgba(239,68,68,0.35), 0 16px 40px rgba(0,0,0,0.5);
+  }
+  .punch-btn.fechado {
+    background: var(--surface);
+    color: var(--text-faint);
+    border-color: var(--border);
+    pointer-events: none;
+    box-shadow: none;
+  }
+  .punch-btn.loading {
+    opacity: 0.65;
+    pointer-events: none;
+  }
+  .punch-icon {
+    font-size: 44px;
+    line-height: 1;
+    transition: all 0.3s;
+  }
+  .punch-label {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    transition: color 0.3s;
+  }
+  .punch-hint {
+    font-size: 12px;
+    color: var(--text-faint);
+    font-family: 'DM Mono', monospace;
+    text-align: center;
+    min-height: 16px;
+  }
 
-/* ───── LGPD: upload atestado ───── */
-.upload-area {
-  display: flex; flex-direction: column;
-  gap: 10px;
-}
-.upload-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 14px;
-  background: var(--navy-deep);
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius);
-  transition: var(--transition);
-}
-.upload-row:hover { border-color: var(--teal); }
-.upload-row .icon-big {
-  width: 40px; height: 40px;
-  border-radius: var(--radius);
-  background: var(--teal-dim);
-  color: var(--teal);
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 18px;
-  flex-shrink: 0;
-}
-.upload-row .col {
-  flex: 1; min-width: 0;
-}
-.upload-row .ttl {
-  font-size: 13px; font-weight: 600; color: var(--white);
-}
-.upload-row .desc {
-  font-size: 11px; color: var(--white-dim);
-  margin-top: 2px;
-  line-height: 1.4;
-}
-.btn-attach {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 14px;
-  background: var(--teal);
-  color: var(--navy-deep);
-  border: none;
-  border-radius: var(--radius);
-  font-family: inherit; font-weight: 600; font-size: 13px;
-  cursor: pointer;
-  transition: var(--transition);
-}
-.btn-attach:hover { filter: brightness(1.1); }
-.btn-attach.loading { opacity: 0.6; pointer-events: none; }
-.upload-data {
-  display: flex; gap: 8px; align-items: center;
-}
-.upload-data input[type="date"] {
-  flex: 1;
-  background: var(--navy-deep);
-  border: 1px solid var(--border-strong);
-  color: var(--white);
-  border-radius: var(--radius);
-  padding: 9px 12px;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color-scheme: dark;
-}
-.lgpd-note {
-  font-family: var(--font-mono);
-  font-size: 9px; letter-spacing: 1px;
-  color: var(--white-muted);
-  text-transform: uppercase;
-  display: flex; align-items: center; gap: 6px;
-  padding-top: 4px;
-}
-.lgpd-note .lock { color: var(--teal); }
+  /* ── Timeline ── */
+  .timeline-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+  }
+  .card-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-title .badge-mini {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; letter-spacing: 1px;
+    padding: 2px 7px; border-radius: 3px;
+    background: var(--accent-dim); color: var(--accent);
+    text-transform: uppercase;
+  }
+  .timeline-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .timeline-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .timeline-row:first-child { padding-top: 0; }
+  .tl-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .tl-dot.green { background: var(--accent); }
+  .tl-dot.amber { background: var(--warn); }
+  .tl-dot.red   { background: var(--danger); }
+  .tl-dot.empty { background: transparent; border: 1.5px dashed var(--text-faint); }
+  .tl-label { flex: 1; font-size: 13px; color: var(--text-muted); }
+  .tl-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .tl-audit {
+    margin-left: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  .tl-audit.warn { background: var(--amber-dim); color: var(--amber); }
+  .tl-audit.danger { background: var(--danger-dim); color: var(--danger); }
 
-/* ───── Empty states ───── */
-.colab-empty {
-  text-align: center;
-  padding: 18px 8px;
-  color: var(--white-dim);
-  font-size: 13px;
-}
-.colab-empty .ico {
-  font-size: 28px;
-  color: var(--white-muted);
-  margin-bottom: 8px;
-  display: block;
-}
+  /* ── Stats trabalhistas ── */
+  .bi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .bi-stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+  }
+  .bi-stat .lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .bi-stat .val {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 22px;
+    color: var(--text);
+    margin-top: 6px; line-height: 1;
+  }
+  .bi-stat.teal .val { color: var(--accent); }
+  .bi-stat .sub {
+    font-size: 11px; color: var(--text-faint);
+    margin-top: 4px;
+    font-family: 'DM Mono', monospace;
+  }
 
-/* ───── Erro de vínculo ───── */
-.link-error {
-  text-align: center;
-  padding: 28px 18px;
-  background: var(--navy);
-  border: 1px solid rgba(255,107,107,0.28);
-  border-radius: var(--radius-md);
-}
-.link-error .ico {
-  font-size: 32px; color: var(--red);
-  display: block; margin-bottom: 12px;
-}
-.link-error h2 {
-  font-family: var(--font-display);
-  font-weight: 800; font-size: 18px;
-  margin: 0 0 8px;
-}
-.link-error p {
-  color: var(--white-dim); font-size: 13px;
-  line-height: 1.5; margin: 0 0 16px;
-}
-.link-error code {
-  font-family: var(--font-mono);
-  background: var(--navy-deep);
-  padding: 2px 6px; border-radius: 2px;
-  font-size: 12px;
-  color: var(--teal);
-}
-.link-error .btn-out {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--white);
-  border-radius: var(--radius);
-  padding: 10px 18px;
-  font-family: inherit; font-size: 13px;
-  cursor: pointer;
-}
+  /* ── Justificativa ── */
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .section-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
 
-/* ───── Toast (já está no auth.css) ───── */
+  .form-group { display: flex; flex-direction: column; gap: 8px; }
+  .form-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+  }
 
-/* ───── Telas pequenas ───── */
-@media (max-width: 360px) {
-  .ponto-status { font-size: 24px; }
-  .btn-ponto { width: 170px; height: 170px; font-size: 16px; }
-  .bi-grid { grid-template-columns: 1fr; }
-}
+  .tipo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .tipo-btn {
+    padding: 14px 10px;
+    min-height: 44px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 6px;
+  }
+  .tipo-btn .tipo-icon { font-size: 20px; }
+  .tipo-btn.selected {
+    border-color: var(--warn);
+    background: var(--warn-dim);
+    color: var(--warn);
+  }
+
+  .form-input, .form-textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+    color-scheme: dark;
+  }
+  .form-input:focus, .form-textarea:focus { border-color: var(--blue); }
+  .form-textarea { resize: none; height: 90px; line-height: 1.5; }
+  .form-input::placeholder, .form-textarea::placeholder { color: var(--text-faint); }
+
+  .upload-area {
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 24px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+  }
+  .upload-area:hover, .upload-area.has-file {
+    border-color: var(--blue);
+    background: var(--blue-dim);
+  }
+  .upload-icon { font-size: 28px; margin-bottom: 8px; }
+  .upload-text { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .upload-text strong { color: var(--blue); }
+
+  .submit-btn {
+    width: 100%;
+    padding: 16px;
+    min-height: 50px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--warn);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .submit-btn:active { transform: scale(0.98); opacity: 0.9; }
+  .submit-btn.loading { opacity: 0.6; pointer-events: none; }
+
+  /* ── Tarefas ── */
+  .turno-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--blue-dim);
+    border: 1px solid var(--blue);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 11px;
+    color: var(--blue);
+    font-family: 'DM Mono', monospace;
+    align-self: flex-start;
+  }
+
+  .progress-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .progress-ring-wrap {
+    position: relative;
+    width: 56px; height: 56px; flex-shrink: 0;
+  }
+  .progress-ring { transform: rotate(-90deg); }
+  .progress-track { fill: none; stroke: var(--border); stroke-width: 5; }
+  .progress-fill {
+    fill: none; stroke: var(--accent); stroke-width: 5;
+    stroke-linecap: round;
+    stroke-dasharray: 138;
+    stroke-dashoffset: 138;
+    transition: stroke-dashoffset 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .progress-pct {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 13px;
+    color: var(--accent);
+  }
+  .progress-info { flex: 1; min-width: 0; }
+  .progress-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 15px;
+    margin-bottom: 4px;
+  }
+  .progress-sub { font-size: 12px; color: var(--text-muted); }
+
+  .task-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .task-item:active { transform: scale(0.99); }
+  .task-item.done { opacity: 0.5; border-color: var(--accent); }
+  .task-checkbox {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    font-size: 13px;
+    color: #0d0f12;
+    font-weight: 700;
+  }
+  .task-item.done .task-checkbox {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .task-info { flex: 1; min-width: 0; }
+  .task-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 2px;
+    line-height: 1.35;
+  }
+  .task-item.done .task-name {
+    text-decoration: line-through;
+    color: var(--text-muted);
+  }
+  .task-meta {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: 'DM Mono', monospace;
+  }
+  .task-priority {
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'DM Mono', monospace;
+    flex-shrink: 0;
+  }
+  .priority-alta  { background: var(--danger-dim); color: var(--danger); }
+  .priority-media { background: var(--blue-dim); color: var(--blue); }
+  .priority-baixa { background: var(--accent-dim); color: var(--accent); }
+
+  .empty-tasks {
+    text-align: center;
+    padding: 30px 16px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .empty-tasks .ico {
+    font-size: 32px;
+    color: var(--text-faint);
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 30px;
+    padding: 14px 22px;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+    opacity: 0;
+    z-index: 999;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    max-width: 90vw;
+    text-align: center;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast.success { border-color: var(--accent); }
+  .toast.error   { border-color: var(--danger); }
+  .toast.info    { border-color: var(--blue); }
+
+  /* ── TELA DE BLOQUEIO — Aguardando ativação ── */
+  .block-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+    text-align: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  .block-screen.show { display: flex; }
+  .block-icon {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: var(--amber-dim);
+    border: 2px solid var(--amber);
+    color: var(--amber);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 40px;
+    margin-bottom: 20px;
+  }
+  .block-screen h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    margin-bottom: 10px;
+    color: var(--text);
+  }
+  .block-screen p {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 6px;
+    max-width: 380px;
+  }
+  .block-screen code {
+    font-family: 'DM Mono', monospace;
+    background: var(--surface);
+    padding: 4px 10px;
+    border-radius: 4px;
+    color: var(--amber);
+    font-size: 13px;
+    display: inline-block;
+    margin: 4px 0;
+  }
+  .block-screen .btn-out {
+    margin-top: 24px;
+    background: var(--danger);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 14px 28px;
+    min-height: 50px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .block-screen .btn-out:active { transform: scale(0.97); }
+
+  /* ── Bottom Nav ── */
+  .bottom-nav {
+    margin-top: auto;
+    padding: 16px 20px 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0));
+    display: flex;
+    justify-content: space-around;
+    border-top: 1px solid var(--border);
+    margin-top: 32px;
+  }
+  .nav-item {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 4px;
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: 'DM Mono', monospace;
+    cursor: pointer;
+    transition: color 0.2s;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 4px 8px;
+  }
+  .nav-item span:first-child { font-size: 22px; }
+  .nav-item.active { color: var(--accent); }
+
+  /* ── Animations ── */
+  @keyframes pulse-ring {
+    0%   { box-shadow: 0 0 0 0 var(--accent-dim); }
+    70%  { box-shadow: 0 0 0 14px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+  .punch-btn.entrada, .punch-btn.volta {
+    animation: pulse-ring 2.5s ease-out infinite;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .panel.active > * { animation: fadeIn 0.3s ease forwards; }
+  .panel.active > *:nth-child(2) { animation-delay: 0.05s; }
+  .panel.active > *:nth-child(3) { animation-delay: 0.10s; }
+  .panel.active > *:nth-child(4) { animation-delay: 0.15s; }
 </style>
 </head>
 <body>
 
+<!-- ════════ SPLASH (durante boot) ════════ -->
 <div class="splash" id="splash"><div class="dot"></div></div>
 
-<div class="colab-shell" id="shell" style="display:none;">
+<!-- ════════ TELA DE BLOQUEIO (vínculo não encontrado) ════════ -->
+<div class="block-screen" id="block-screen">
+  <div class="block-icon">⏳</div>
+  <h1>Aguardando ativação do Síndico</h1>
+  <p>
+    Peça para o administrador cadastrar seu e-mail
+  </p>
+  <code id="block-email">—</code>
+  <p>
+    no painel <strong>Funcionários</strong> do StaFlow. Assim que ele te
+    cadastrar, saia e entre novamente para ativar seu acesso ao app de bolso.
+  </p>
+  <button class="btn-out" id="btn-logout-block">
+    <span>⏻</span> Sair / Logout
+  </button>
+</div>
 
-  <!-- ───── Header ───── -->
-  <header class="colab-header">
-    <div class="avatar" id="u-avatar">?</div>
-    <div class="info">
-      <div class="greeting" id="greeting">…</div>
-      <div class="name" id="u-name">…</div>
-      <div class="condo" id="u-condo">—</div>
+<!-- ════════ PHONE SHELL (app principal) ════════ -->
+<div class="phone-shell" id="phone-shell" style="display:none;">
+
+  <!-- Status Bar (decorativa) -->
+  <div class="status-bar">
+    <span id="live-time">--:--</span>
+    <div class="signal-icons">
+      <div class="bar" style="height:5px"></div>
+      <div class="bar" style="height:8px"></div>
+      <div class="bar" style="height:11px"></div>
+      <div class="bar" style="height:14px; background: var(--text)"></div>
+      <span style="margin-left:4px">🔋</span>
     </div>
+  </div>
+
+  <!-- Header com logo + avatar + LOGOUT -->
+  <div class="app-header">
+    <div class="logo">Sta<span class="flow">Flow</span></div>
+    <div class="avatar" id="avatar-el">JP</div>
     <button class="btn-logout" id="btn-logout" aria-label="Sair / Logout">
       <span class="ico">⏻</span> Sair
     </button>
-  </header>
+  </div>
 
-  <!-- ───── Card de ponto ───── -->
-  <section class="colab-card ponto-card">
-    <div class="h">Meu ponto · <span id="hoje-pill">HOJE</span></div>
-    <div class="ponto-status" id="ponto-status">—</div>
-    <div class="ponto-clock" id="ponto-clock">—</div>
+  <!-- Greeting -->
+  <div class="greeting">
+    <div class="greeting-sub" id="greet-sub">📍 Carregando…</div>
+    <div class="greeting-name" id="greet-name">Olá!</div>
+  </div>
 
-    <button class="btn-ponto" id="btn-ponto" disabled aria-label="Bater ponto">
-      <span class="icon">⏱</span>
-      <span class="label" id="btn-ponto-lbl">CARREGANDO</span>
-    </button>
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="ponto"   id="tab-ponto">⏱ Ponto</button>
+    <button class="tab"        data-tab="tarefas" id="tab-tarefas">✅ Tarefas</button>
+    <button class="tab"        data-tab="justif"  id="tab-justif">📎 Justif.</button>
+  </div>
 
-    <div class="geo-status" id="geo-status">📍 Aguardando primeira batida…</div>
-  </section>
+  <!-- ═══ PANEL: PONTO ═══ -->
+  <div class="panel active" id="panel-ponto">
 
-  <!-- ───── Card BI trabalhista ───── -->
-  <section class="colab-card">
-    <div class="h">Minhas horas · <span class="pill" id="mes-pill">MAIO</span></div>
+    <div class="ponto-status-card">
+      <div class="status-dot" id="status-dot"></div>
+      <div class="status-info">
+        <div class="status-label">Status do turno</div>
+        <div class="status-value" id="status-value">Aguardando entrada</div>
+      </div>
+      <div class="clock-badge" id="clock-display">--:--</div>
+    </div>
+
+    <div class="punch-btn-wrapper">
+      <button class="punch-btn" id="punch-btn" disabled>
+        <div class="punch-icon" id="punch-icon">⏱</div>
+        <div class="punch-label" id="punch-label">CARREGANDO</div>
+      </button>
+      <div class="punch-hint" id="punch-hint">📍 Aguardando GPS…</div>
+    </div>
+
+    <!-- Stats simples (sem decimais) -->
     <div class="bi-grid">
       <div class="bi-stat teal">
         <div class="lbl">Horas trabalhadas</div>
         <div class="val" id="bi-horas">—</div>
-        <div class="sub" id="bi-horas-sub">no mês atual</div>
+        <div class="sub">no mês atual</div>
       </div>
       <div class="bi-stat">
         <div class="lbl">Hora noturna</div>
         <div class="val" id="bi-noturno">—</div>
-        <div class="sub" id="bi-noturno-sub">entre 22h e 05h</div>
+        <div class="sub">entre 22h e 05h</div>
       </div>
     </div>
-  </section>
 
-  <!-- ───── Card de tarefas ───── -->
-  <section class="colab-card">
-    <div class="h">Tarefas do condomínio · <span class="pill amber" id="tasks-pill">CARREGANDO…</span></div>
-    <div id="tasks-area">
-      <div class="colab-empty"><span class="ico">…</span>Carregando tarefas…</div>
+    <!-- Timeline -->
+    <div class="timeline-card">
+      <div class="card-title">
+        <span>Registros de hoje</span>
+        <span class="badge-mini" id="tl-status-pill">—</span>
+      </div>
+      <div class="timeline-row">
+        <div class="tl-dot empty" id="tl-1-dot"></div>
+        <span class="tl-label">Entrada</span>
+        <span class="tl-time" id="tl-1">--:--</span>
+      </div>
+      <div class="timeline-row">
+        <div class="tl-dot empty" id="tl-2-dot"></div>
+        <span class="tl-label">Início almoço</span>
+        <span class="tl-time" id="tl-2">--:--</span>
+      </div>
+      <div class="timeline-row">
+        <div class="tl-dot empty" id="tl-3-dot"></div>
+        <span class="tl-label">Volta almoço</span>
+        <span class="tl-time" id="tl-3">--:--</span>
+      </div>
+      <div class="timeline-row">
+        <div class="tl-dot empty" id="tl-4-dot"></div>
+        <span class="tl-label">Saída</span>
+        <span class="tl-time" id="tl-4">--:--</span>
+      </div>
     </div>
-  </section>
+  </div>
 
-  <!-- ───── Card de atestado LGPD ───── -->
-  <section class="colab-card">
-    <div class="h">Enviar atestado médico</div>
-    <div class="upload-area">
-      <div class="upload-row">
-        <div class="icon-big">📎</div>
-        <div class="col">
-          <div class="ttl">Atestado em PDF, JPG ou PNG</div>
-          <div class="desc">Será enviado direto ao síndico. Apenas ele pode visualizar.</div>
+  <!-- ═══ PANEL: TAREFAS ═══ -->
+  <div class="panel" id="panel-tarefas">
+    <div class="turno-badge"><span>📋</span> <span id="tasks-turno">Tarefas do condomínio</span></div>
+
+    <div class="progress-card">
+      <div class="progress-ring-wrap">
+        <svg class="progress-ring" width="56" height="56" viewBox="0 0 56 56">
+          <circle class="progress-track" cx="28" cy="28" r="22"/>
+          <circle class="progress-fill"  id="prog-circle" cx="28" cy="28" r="22"/>
+        </svg>
+        <div class="progress-pct" id="prog-pct">0%</div>
+      </div>
+      <div class="progress-info">
+        <div class="progress-title" id="prog-title">0 de 0 tarefas</div>
+        <div class="progress-sub">Síndico notificado em tempo real</div>
+      </div>
+    </div>
+
+    <div id="tasks-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+  </div>
+
+  <!-- ═══ PANEL: JUSTIFICATIVAS ═══ -->
+  <div class="panel" id="panel-justif">
+    <div>
+      <div class="section-title">Enviar justificativa</div>
+      <div class="section-sub">Falta, atraso, atestado ou saída antecipada</div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-label">Tipo de ocorrência</div>
+      <div class="tipo-grid">
+        <button class="tipo-btn selected" data-tipo="atestado">
+          <span class="tipo-icon">🏥</span> Atestado médico
+        </button>
+        <button class="tipo-btn" data-tipo="atraso">
+          <span class="tipo-icon">⏰</span> Atraso
+        </button>
+        <button class="tipo-btn" data-tipo="falta">
+          <span class="tipo-icon">📋</span> Falta justificada
+        </button>
+        <button class="tipo-btn" data-tipo="saida_antec">
+          <span class="tipo-icon">🚪</span> Saída antecipada
+        </button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-label">Data da ocorrência</div>
+      <input type="date" class="form-input" id="just-data" />
+    </div>
+
+    <div class="form-group">
+      <div class="form-label">Descrição</div>
+      <textarea class="form-textarea" id="just-desc" placeholder="Descreva brevemente o motivo…"></textarea>
+    </div>
+
+    <div class="form-group">
+      <div class="form-label">Documento (obrigatório p/ atestado)</div>
+      <div class="upload-area" id="upload-area">
+        <div class="upload-icon" id="upload-icon">📎</div>
+        <div class="upload-text" id="upload-text">
+          Toque para anexar<br>
+          <strong>Foto, PDF</strong> — máx. 10 MB
         </div>
-        <button class="btn-attach" id="btn-pick">Anexar</button>
-        <input type="file" id="atestado-file" accept="image/jpeg,image/png,application/pdf" style="display:none;">
-      </div>
-      <div class="upload-data">
-        <input type="date" id="atestado-data" aria-label="Data do atestado">
-        <button class="btn-attach" id="btn-enviar" style="background:var(--navy-brand);color:#fff;">Enviar</button>
-      </div>
-      <div class="lgpd-note">
-        <span class="lock">🔒</span>
-        LGPD ART.11 · DADO SENSÍVEL · CRIPTOGRAFADO
+        <input type="file" id="file-input" style="display:none" accept="image/*,application/pdf">
       </div>
     </div>
-  </section>
 
-  <!-- ───── Erro de vínculo (escondido por padrão) ───── -->
-  <section class="link-error" id="link-error" style="display:none;">
-    <span class="ico">⏳</span>
-    <h2>Aguardando ativação do Síndico</h2>
-    <p>
-      Peça para o administrador cadastrar seu e-mail
-      <code id="link-email">—</code> no painel <strong>Funcionários</strong>
-      do StaFlow. Assim que ele te cadastrar, faça logout e login novamente
-      para ativar seu acesso ao app de bolso.
-    </p>
-    <button class="btn-out" id="btn-logout-err">Sair / Logout</button>
-  </section>
+    <button class="submit-btn" id="btn-enviar-just">Enviar para o síndico →</button>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <div class="nav-item active" data-tab="ponto"><span>⏱</span><span>Ponto</span></div>
+    <div class="nav-item" data-tab="tarefas"><span>✅</span><span>Tarefas</span></div>
+    <div class="nav-item" data-tab="justif"><span>📎</span><span>Justif.</span></div>
+  </div>
 
 </div>
 
-<!-- Toast container (criado dinamicamente pelo app-shell, mas inicializamos aqui) -->
-<div class="toast" id="toast"><span class="ico"></span><span class="msg"></span></div>
+<!-- Toast -->
+<div class="toast" id="toast"></div>
 
-<!-- Scripts -->
+<!-- Supabase + StaFlow scripts -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-client.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/route-guard.js"></script>
+<script src="/js/supabase-client.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/validadores.js"></script>
 
 <script>
+/* ════════════════════════════════════════════════════════════════
+   StaFlow — App do colaborador (mobile-first)
+   - Tronco superior de roteamento (route-guard)
+   - GPS antifraude com classificarGPS()
+   - Tarefas reais com toggle no banco
+   - Upload de atestado LGPD para bucket privado
+═══════════════════════════════════════════════════════════════ */
+
 const sb   = window.staflowSupabase;
 const auth = window.staflowAuth;
+const FATOR_HORA_NOTURNA = 60 / 52.5;
 
-/* ════════════════════════════════════════════════════════════════
-   COLABORADOR — App de bolso
-   ════════════════════════════════════════════════════════════════ */
+/* ── Estado ── */
+let user        = null;
+let profile     = null;
+let funcionario = null;
+let pontosHoje  = [];
+let tarefas     = [];
+let tipoJustif  = 'atestado';
+let arquivoJustif = null;
 
-const FATOR_HORA_NOTURNA = 60 / 52.5;   // CLT Art.73 §1º (mesmo de ponto.html)
+/* ── Helpers visuais ── */
+function showSplash() { document.getElementById('splash').classList.remove('hide'); }
+function hideSplash() { document.getElementById('splash').classList.add('hide'); }
 
-/* ── Toast minimalista ── */
-function toast(msg, type = 'success') {
+function toast(msg, type = 'info') {
   const t = document.getElementById('toast');
+  t.textContent = msg;
   t.className = 'toast show ' + type;
-  t.querySelector('.ico').textContent = type === 'success' ? '✓' : (type === 'error' ? '✕' : '!');
-  t.querySelector('.msg').textContent = msg;
   clearTimeout(window.__tt);
-  window.__tt = setTimeout(() => t.className = 'toast', 4500);
+  window.__tt = setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-function hideSplash() {
-  document.getElementById('splash').classList.add('hide');
-  document.getElementById('shell').style.display = 'flex';
+function iniciais(nome) {
+  if (!nome) return '?';
+  const p = nome.trim().split(/\s+/);
+  return ((p[0]?.[0] || '') + (p[p.length - 1]?.[0] || '')).toUpperCase();
 }
-
 function saudacao() {
   const h = new Date().getHours();
   if (h < 12) return 'Bom dia';
   if (h < 18) return 'Boa tarde';
   return 'Boa noite';
 }
-function iniciais(nome) {
-  if (!nome) return '?';
-  const p = nome.trim().split(/\s+/);
-  return ((p[0]?.[0] || '') + (p[p.length - 1]?.[0] || '')).toUpperCase();
-}
-function brl0(n) {
-  return Number(n||0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+function fmtHHMM(d) {
+  const h = String(d.getHours()).padStart(2,'0');
+  const m = String(d.getMinutes()).padStart(2,'0');
+  return `${h}:${m}`;
 }
 
-/* ────────────────────────────────────────────────────────────────
-   HORA NOTURNA — mesma fórmula de ponto.html (CLT Art.73 §1º)
-──────────────────────────────────────────────────────────────── */
+/* ── Relógio (status bar + clock badge) ── */
+function tickClock() {
+  const now = new Date();
+  document.getElementById('live-time').textContent     = fmtHHMM(now);
+  document.getElementById('clock-display').textContent = fmtHHMM(now);
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+/* ════════════════════════════════════════════════════════════════
+   GPS + ANTIFRAUDE (audit_status)
+   ════════════════════════════════════════════════════════════════ */
+function detectarSinaisDeMock(pos) {
+  const sinais = [];
+  const acc = pos.coords.accuracy;
+  if (acc === 0 || acc === 1 || acc === 5 || acc === 10) sinais.push('accuracy_round_' + acc);
+  if (pos.coords.mocked === true) sinais.push('coords_mocked_flag');
+  const drift = Math.abs(Date.now() - pos.timestamp);
+  if (drift > 5 * 60 * 1000) sinais.push('timestamp_drift');
+  if (pos.coords.altitudeAccuracy === null && acc < 5 && pos.coords.altitude === null) {
+    sinais.push('mock_profile_missing_altitude');
+  }
+  return sinais;
+}
+function classificarGPS(pos) {
+  const acc = pos.coords.accuracy;
+  const sinais = detectarSinaisDeMock(pos);
+  if (sinais.length >= 2) return { status: 'FRAUDE_SUSPECT', sinais };
+  if (sinais.length === 1) return { status: 'MOCK_SUSPECT',  sinais };
+  if (acc > 150) return { status: 'LOW_ACCURACY', sinais: [], accuracy: acc };
+  return { status: 'OK', sinais: [] };
+}
+function pegarPosicaoGPS() {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) return resolve(null);
+    const timer = setTimeout(() => resolve(null), 8000);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        clearTimeout(timer);
+        const audit = classificarGPS(pos);
+        resolve({
+          latitude:    pos.coords.latitude,
+          longitude:   pos.coords.longitude,
+          accuracy_m:  Math.round(pos.coords.accuracy),
+          audit_status: audit.status,
+          audit_sinais: audit.sinais
+        });
+      },
+      (err) => { clearTimeout(timer); resolve(null); },
+      { enableHighAccuracy: true, timeout: 7000, maximumAge: 30000 }
+    );
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   HORA NOTURNA REDUZIDA (CLT Art.73 §1º)
+   ════════════════════════════════════════════════════════════════ */
 function minutosNoturnos(entradaTs, saidaTs) {
   const start = new Date(entradaTs);
   const end   = new Date(saidaTs);
@@ -631,297 +1127,117 @@ function minutosNoturnos(entradaTs, saidaTs) {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   ESTADO GLOBAL
+   PONTO — 4 batidas mapeadas para schema (entrada/saida alternando)
+   Batida 1 = entrada  → "ALMOÇO" (próxima)
+   Batida 2 = saida    → "VOLTA"
+   Batida 3 = entrada  → "SAÍDA"
+   Batida 4 = saida    → fechado
    ════════════════════════════════════════════════════════════════ */
-let user             = null;
-let profile          = null;
-let funcionario      = null;   // { id, nome, condominio_id, ... }
-let pontosHoje       = [];     // batidas do funcionário no dia
-let lastGeoTimestamp = 0;
+const ESTADOS = [
+  { idx: 0, classe: 'entrada', icon: '▶',  label: 'ENTRADA',
+    hint: 'Toque pra registrar sua entrada',
+    statusText: 'Aguardando entrada', statusClass: 'amber',
+    dotClass: '' },
+  { idx: 1, classe: 'almoco',  icon: '🍽', label: 'ALMOÇO',
+    hint: 'Em serviço — toque pra iniciar o almoço',
+    statusText: 'Trabalhando agora', statusClass: 'green',
+    dotClass: 'active' },
+  { idx: 2, classe: 'volta',   icon: '☀',  label: 'VOLTA',
+    hint: 'Em intervalo — toque ao voltar do almoço',
+    statusText: 'Intervalo de almoço', statusClass: 'amber',
+    dotClass: '' },
+  { idx: 3, classe: 'saida',   icon: '■',  label: 'SAÍDA',
+    hint: 'De volta — toque para encerrar o turno',
+    statusText: 'Trabalhando agora', statusClass: 'green',
+    dotClass: 'active' },
+  { idx: 4, classe: 'fechado', icon: '✓',  label: 'FECHADO',
+    hint: 'Jornada de hoje encerrada. Bom descanso!',
+    statusText: 'Turno encerrado', statusClass: '',
+    dotClass: '' }
+];
 
-/* ════════════════════════════════════════════════════════════════
-   BOOT
-   ════════════════════════════════════════════════════════════════ */
-(async () => {
-  // 1. Carrega sessão completa (faz claim internamente)
-  const session = await auth.loadFullSession();
-  user = session.user;
-  profile = session.profile;
-
-  // 2. ★ TRONCO SUPERIOR DE ROTEAMENTO — única decisão autoritativa
-  //    Se o user não for funcionário (e não tiver flag pending), o guard
-  //    ejeta automaticamente para /dashboard. Se nem estiver logado, vai
-  //    pra /auth/login.
-  const g = window.staflowGuard.executarRoteamentoSeguro(user, profile);
-  if (!g.allow) return;
-
-  // 3. Aqui é seguro: profile.role === 'funcionario' OU flag pending ativa.
-  //    Tenta recuperar o registro de funcionario vinculado.
-  let funcId = null;
-  const claimRes = await sb.rpc('claim_funcionario_by_email').single();
-  if (claimRes?.data?.funcionario_id) {
-    funcId = claimRes.data.funcionario_id;
-    // Vínculo deu certo → limpa a flag de pending (se houvesse)
-    window.staflowGuard.limparPendingColabClaim();
-  }
-
-  if (!funcId) {
-    // Vínculo não existe — mostra erro elegante e oculta resto
-    document.getElementById('shell').querySelectorAll('section:not(.link-error)').forEach(s => s.style.display = 'none');
-    document.getElementById('link-error').style.display = 'block';
-    document.getElementById('link-email').textContent = user.email;
-    document.getElementById('btn-logout-err').addEventListener('click', logout);
-    setupHeader(profile.full_name || user.email, profile.condominio_nome);
-    hideSplash();
-    return;
-  }
-
-  // 5. Carrega ficha do funcionario (já com policy "self read" da migração 012)
-  const { data: f, error: fErr } = await sb.from('funcionarios')
-    .select('id, nome, cargo, condominio_id')
-    .eq('id', funcId)
-    .single();
-  if (fErr) { toast(fErr.message, 'error'); return; }
-  funcionario = f;
-
-  // Busca nome do condomínio
-  const { data: condo } = await sb.from('condominios')
-    .select('nome')
-    .eq('id', funcionario.condominio_id)
-    .maybeSingle();
-
-  // 6. Header + saudação
-  setupHeader(funcionario.nome, condo?.nome);
-
-  // 7. Carga inicial dos cards em paralelo
-  await Promise.all([
-    loadPonto(),
-    loadHorasMes(),
-    loadTarefas()
-  ]);
-
-  // 8. Default da data do atestado = hoje
-  document.getElementById('atestado-data').value = new Date().toISOString().slice(0,10);
-
-  // 9. Liga handlers
-  document.getElementById('btn-ponto').addEventListener('click', registrarPonto);
-  document.getElementById('btn-logout').addEventListener('click', logout);
-  document.getElementById('btn-pick').addEventListener('click', () => document.getElementById('atestado-file').click());
-  document.getElementById('atestado-file').addEventListener('change', onPickFile);
-  document.getElementById('btn-enviar').addEventListener('click', enviarAtestado);
-
-  // 10. Relógio em tempo real
-  setInterval(updateClock, 1000);
-  updateClock();
-
-  hideSplash();
-})();
-
-function setupHeader(nome, condo) {
-  document.getElementById('u-avatar').textContent = iniciais(nome);
-  document.getElementById('u-name').textContent   = nome || '—';
-  document.getElementById('u-condo').textContent  = condo ? `Condomínio ${condo}` : '—';
-  document.getElementById('greeting').textContent = `${saudacao().toUpperCase()} ·`;
+/* Decide próximo tipo (entrada/saida) baseado em quantidade de batidas */
+function proximoTipo(qtd) {
+  // 0→entrada, 1→saida, 2→entrada, 3→saida
+  return qtd % 2 === 0 ? 'entrada' : 'saida';
 }
 
-async function logout() {
-  await auth.signOut();
-  location.replace('/auth/login.html');
+/* Renderiza estado do botão + timeline + status card */
+function renderPonto() {
+  const qtd = pontosHoje.length;
+  const estado = ESTADOS[Math.min(qtd, 4)];
+
+  const btn   = document.getElementById('punch-btn');
+  const icon  = document.getElementById('punch-icon');
+  const lbl   = document.getElementById('punch-label');
+  const hint  = document.getElementById('punch-hint');
+  const dot   = document.getElementById('status-dot');
+  const stat  = document.getElementById('status-value');
+  const pill  = document.getElementById('tl-status-pill');
+
+  btn.className = 'punch-btn ' + estado.classe;
+  btn.disabled  = (qtd >= 4);
+  icon.textContent  = estado.icon;
+  lbl.textContent   = estado.label;
+  hint.textContent  = estado.hint;
+  dot.className     = 'status-dot ' + (estado.dotClass || '');
+  stat.className    = 'status-value ' + (estado.statusClass || '');
+  stat.textContent  = estado.statusText;
+
+  pill.textContent = qtd + '/4 BATIDAS';
+  pill.style.background = qtd === 4 ? 'var(--accent-dim)' : 'var(--amber-dim)';
+  pill.style.color      = qtd === 4 ? 'var(--accent)'     : 'var(--amber)';
+
+  // Timeline
+  const labels = ['tl-1','tl-2','tl-3','tl-4'];
+  labels.forEach((id, i) => {
+    const tEl = document.getElementById(id);
+    const dEl = document.getElementById(id + '-dot');
+    const p   = pontosHoje[i];
+    if (p) {
+      tEl.textContent = fmtHHMM(new Date(p.registrado_em));
+      dEl.className = 'tl-dot green';
+      // Anota audit_status se houver
+      if (p.audit_status === 'FRAUDE_SUSPECT' || p.audit_status === 'MOCK_SUSPECT') {
+        dEl.className = 'tl-dot red';
+        tEl.innerHTML = fmtHHMM(new Date(p.registrado_em)) + ' <span class="tl-audit danger">⚠ FRAUDE</span>';
+      } else if (p.audit_status === 'LOW_ACCURACY') {
+        dEl.className = 'tl-dot amber';
+        tEl.innerHTML = fmtHHMM(new Date(p.registrado_em)) + ' <span class="tl-audit warn">📍 BAIXA</span>';
+      }
+    } else {
+      tEl.textContent = '--:--';
+      dEl.className = 'tl-dot empty';
+    }
+  });
 }
 
-function updateClock() {
-  const now = new Date();
-  document.getElementById('ponto-clock').textContent =
-    now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    + ' · ' + now.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' });
-}
-
-/* ════════════════════════════════════════════════════════════════
-   PONTO — leitura + registro
-   ════════════════════════════════════════════════════════════════ */
-async function loadPonto() {
-  const hoje      = new Date();
-  const inicioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
-  const fimDia    = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1).toISOString();
-
+/* Carrega batidas de HOJE */
+async function loadPontoHoje() {
+  const hoje = new Date();
+  const ini  = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
+  const fim  = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1).toISOString();
   const { data, error } = await sb.from('registros_ponto')
-    .select('tipo, registrado_em, latitude, longitude, accuracy_m')
+    .select('tipo, registrado_em, audit_status')
     .eq('funcionario_id', funcionario.id)
-    .gte('registrado_em', inicioDia)
-    .lt('registrado_em', fimDia)
+    .gte('registrado_em', ini)
+    .lt('registrado_em', fim)
     .order('registrado_em', { ascending: true });
-
   if (error) { toast(error.message, 'error'); return; }
   pontosHoje = data || [];
   renderPonto();
 }
 
-function renderPonto() {
-  const ent  = pontosHoje.find(r => r.tipo === 'entrada');
-  const sai  = [...pontosHoje].reverse().find(r => r.tipo === 'saida');
-  const status = document.getElementById('ponto-status');
-  const btn    = document.getElementById('btn-ponto');
-  const lbl    = document.getElementById('btn-ponto-lbl');
-  const ico    = btn.querySelector('.icon');
-  const geo    = document.getElementById('geo-status');
-
-  btn.classList.remove('saida','disabled','loading');
-  btn.disabled = false;
-
-  if (!ent) {
-    status.textContent = 'Pronto pra começar?';
-    status.className   = 'ponto-status amber';
-    btn.classList.remove('saida');
-    lbl.textContent    = 'ENTRADA';
-    ico.textContent    = '▶';
-  } else if (ent && !sai) {
-    status.textContent = 'Trabalhando agora';
-    status.className   = 'ponto-status green';
-    btn.classList.add('saida');
-    lbl.textContent    = 'SAÍDA';
-    ico.textContent    = '■';
-  } else {
-    status.textContent = 'Jornada encerrada hoje';
-    status.className   = 'ponto-status';
-    btn.classList.add('disabled');
-    btn.disabled       = true;
-    lbl.textContent    = 'FECHADO';
-    ico.textContent    = '✓';
-  }
-
-  // Mostra dados do GPS da última batida, se houver
-  const ultimo = pontosHoje[pontosHoje.length - 1];
-  if (ultimo?.latitude != null) {
-    geo.className = 'geo-status ok';
-    geo.innerHTML = `📍 Última batida com GPS · precisão ~${ultimo.accuracy_m || '?'}m`;
-  } else if (ultimo) {
-    geo.className = 'geo-status err';
-    geo.textContent = '📍 Última batida sem GPS';
-  } else {
-    geo.className = 'geo-status';
-    geo.textContent = '📍 Aguardando primeira batida…';
-  }
-}
-
-/* ════════════════════════════════════════════════════════════════
-   GPS + ANTIFRAUDE (audit_status)
-   ────────────────────────────────────────────────────────────────
-   Sinais examinados:
-   1. pos.coords.accuracy > 150m → LOW_ACCURACY (anomalia satélite)
-   2. heurísticas de mock location:
-      - accuracy exatamente 0, 1, 5, 10 (valores arredondados típicos
-        de extensões de spoof — GPS real raramente é tão "perfeito")
-      - timestamp do navegador muito divergente do Date.now() do device
-      - propriedade não-padrão pos.coords.altitudeAccuracy === null
-        em conjunto com accuracy < 5 (perfil típico de mock)
-      - pos.coords.mocked (Android Chrome com flag debug) — quando exposto
-   3. Combinação de 2+ sinais → FRAUDE_SUSPECT
-   Status retornados:
-     null            → não foi possível capturar GPS
-     'OK'            → GPS confiável
-     'LOW_ACCURACY'  → accuracy ruim, mas batida aceita
-     'MOCK_SUSPECT'  → 1 sinal de mock detectado
-     'FRAUDE_SUSPECT'→ 2+ sinais de mock combinados (auditar!)
-═══════════════════════════════════════════════════════════════ */
-
-function detectarSinaisDeMock(pos) {
-  const sinais = [];
-  const acc = pos.coords.accuracy;
-
-  // Sinal 1: precisão suspeitosamente "perfeita" (valores arredondados que
-  // GPS real raramente produz — chipset de smartphone reporta floats variados)
-  if (acc === 0 || acc === 1 || acc === 5 || acc === 10) {
-    sinais.push('accuracy_round_' + acc);
-  }
-
-  // Sinal 2: propriedade não-padrão exposta por Chromium Android com
-  // "Mock locations" ativado em Developer Options
-  if (pos.coords.mocked === true) {
-    sinais.push('coords_mocked_flag');
-  }
-
-  // Sinal 3: timestamp da posição muito divergente do relógio do device
-  //         (>5min) — fix muito antigo ou injetado
-  const drift = Math.abs(Date.now() - pos.timestamp);
-  if (drift > 5 * 60 * 1000) {
-    sinais.push('timestamp_drift_' + Math.round(drift / 1000) + 's');
-  }
-
-  // Sinal 4: altitudeAccuracy === null + accuracy < 5 + altitude null
-  //         (perfil típico de mock que só preenche lat/lng)
-  if (pos.coords.altitudeAccuracy === null && acc < 5 && pos.coords.altitude === null) {
-    sinais.push('mock_profile_missing_altitude');
-  }
-
-  return sinais;
-}
-
-function classificarGPS(pos) {
-  const acc = pos.coords.accuracy;
-  const sinais = detectarSinaisDeMock(pos);
-
-  // 2+ sinais combinados → fraude provável
-  if (sinais.length >= 2) {
-    return { status: 'FRAUDE_SUSPECT', sinais };
-  }
-  // 1 sinal de mock → suspeito
-  if (sinais.length === 1) {
-    return { status: 'MOCK_SUSPECT', sinais };
-  }
-  // Sem sinais de mock mas accuracy ruim
-  if (acc > 150) {
-    return { status: 'LOW_ACCURACY', sinais: [], accuracy: acc };
-  }
-  return { status: 'OK', sinais: [] };
-}
-
-/* Geolocalização com timeout (cai pra null se demorar) */
-function pegarPosicaoGPS() {
-  return new Promise(resolve => {
-    if (!navigator.geolocation) return resolve(null);
-    const timer = setTimeout(() => resolve(null), 8000);   // 8s
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        clearTimeout(timer);
-        lastGeoTimestamp = Date.now();
-        const audit = classificarGPS(pos);
-        resolve({
-          latitude:    pos.coords.latitude,
-          longitude:   pos.coords.longitude,
-          accuracy_m:  Math.round(pos.coords.accuracy),
-          audit_status: audit.status,
-          audit_sinais: audit.sinais
-        });
-      },
-      (err) => {
-        clearTimeout(timer);
-        console.warn('[GPS]', err.message);
-        resolve(null);
-      },
-      { enableHighAccuracy: true, timeout: 7000, maximumAge: 30000 }
-    );
-  });
-}
-
+/* Click handler do botão de ponto */
 async function registrarPonto() {
-  const btn = document.getElementById('btn-ponto');
+  const btn = document.getElementById('punch-btn');
   if (btn.disabled) return;
   btn.classList.add('loading');
 
-  // Decide tipo (entrada/saída) pelo estado atual
-  const ent = pontosHoje.find(r => r.tipo === 'entrada');
-  const sai = [...pontosHoje].reverse().find(r => r.tipo === 'saida');
-  const tipo = (!ent) ? 'entrada' : (!sai ? 'saida' : null);
+  const tipo = proximoTipo(pontosHoje.length);
+  const labelBatida = ['ENTRADA','ALMOÇO','VOLTA','SAÍDA'][pontosHoje.length] || 'BATIDA';
 
-  if (!tipo) {
-    btn.classList.remove('loading');
-    return toast('Ponto do dia já encerrado.', 'error');
-  }
-
-  // Pega GPS (não bloqueia se falhar)
-  const geo = document.getElementById('geo-status');
-  geo.className = 'geo-status';
-  geo.textContent = '📍 Capturando GPS…';
+  document.getElementById('punch-hint').textContent = '📍 Capturando GPS…';
   const pos = await pegarPosicaoGPS();
 
   const payload = {
@@ -933,61 +1249,44 @@ async function registrarPonto() {
     latitude:       pos?.latitude   ?? null,
     longitude:      pos?.longitude  ?? null,
     accuracy_m:     pos?.accuracy_m ?? null,
-    // audit_status só é gravado quando temos posição.
-    // Se pos for null (GPS off/negado) deixamos NULL → "não auditado".
     audit_status:   pos?.audit_status ?? null
   };
 
   const { error } = await sb.from('registros_ponto').insert(payload);
   btn.classList.remove('loading');
 
-  if (error) return toast(error.message, 'error');
+  if (error) { toast('❌ ' + error.message, 'error'); return; }
 
-  // ★ FEEDBACK ANTIFRAUDE — informa transparentemente o que foi registrado
-  let msgSucesso = (tipo === 'entrada' ? 'Entrada registrada ✓' : 'Saída registrada ✓');
+  // Toast contextual por audit_status
   if (pos?.audit_status === 'FRAUDE_SUSPECT') {
-    msgSucesso += ' (sinais de localização suspeita — síndico foi notificado)';
-    toast(msgSucesso, 'error');
+    toast('⚠️ ' + labelBatida + ' registrada (GPS suspeito — síndico notificado)', 'error');
   } else if (pos?.audit_status === 'MOCK_SUSPECT') {
-    msgSucesso += ' (verificando autenticidade do GPS)';
-    toast(msgSucesso, 'success');
+    toast('✅ ' + labelBatida + ' registrada (verificando GPS)', 'info');
   } else if (pos?.audit_status === 'LOW_ACCURACY') {
-    msgSucesso += ' (sinal de GPS fraco — tente em local aberto)';
-    toast(msgSucesso, 'success');
+    toast('✅ ' + labelBatida + ' registrada (GPS fraco)', 'info');
   } else {
-    toast(msgSucesso, 'success');
+    toast('✅ ' + labelBatida + ' registrada às ' + fmtHHMM(new Date()), 'success');
   }
 
-  // Log no console para debug do colaborador (não-bloqueante)
-  if (pos?.audit_sinais?.length) {
-    console.info('[ponto] audit:', pos.audit_status, pos.audit_sinais);
-  }
-
-  await loadPonto();
+  await loadPontoHoje();
   loadHorasMes();
 }
 
 /* ════════════════════════════════════════════════════════════════
-   BI TRABALHISTA — horas do mês + hora noturna computada
+   BI — horas do mês (formato relógio simples)
    ════════════════════════════════════════════════════════════════ */
 async function loadHorasMes() {
-  const hoje  = new Date();
-  const ini   = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-  const fim   = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+  const hoje = new Date();
+  const ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
 
-  document.getElementById('mes-pill').textContent =
-    hoje.toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase();
-
-  const { data, error } = await sb.from('registros_ponto')
+  const { data } = await sb.from('registros_ponto')
     .select('tipo, registrado_em')
     .eq('funcionario_id', funcionario.id)
     .gte('registrado_em', ini.toISOString())
     .lt('registrado_em',  fim.toISOString())
     .order('registrado_em', { ascending: true });
 
-  if (error) { console.warn(error); return; }
-
-  // Agrupa por dia local e pareia entrada→saida (mesmo motor de ponto.html)
   const porDia = {};
   (data || []).forEach(p => {
     const d = new Date(p.registrado_em);
@@ -995,87 +1294,105 @@ async function loadHorasMes() {
     (porDia[k] ||= []).push(p);
   });
 
-  let totalMs       = 0;
-  let totalMinNot   = 0;
+  let totalMs = 0, totalMinNot = 0;
   Object.values(porDia).forEach(evts => {
     evts.sort((a,b) => new Date(a.registrado_em) - new Date(b.registrado_em));
-    let entradaAtual = null;
+    let entAtual = null;
     for (const e of evts) {
-      if (e.tipo === 'entrada' && !entradaAtual) entradaAtual = e;
-      else if (e.tipo === 'saida' && entradaAtual) {
-        totalMs     += new Date(e.registrado_em) - new Date(entradaAtual.registrado_em);
-        totalMinNot += minutosNoturnos(entradaAtual.registrado_em, e.registrado_em);
-        entradaAtual = null;
+      if (e.tipo === 'entrada' && !entAtual) entAtual = e;
+      else if (e.tipo === 'saida' && entAtual) {
+        totalMs     += new Date(e.registrado_em) - new Date(entAtual.registrado_em);
+        totalMinNot += minutosNoturnos(entAtual.registrado_em, e.registrado_em);
+        entAtual = null;
       }
     }
   });
 
-  const horasDec    = totalMs / 3600000;
-  const horasInt    = Math.floor(horasDec);
-  const horasMin    = Math.round((horasDec - horasInt) * 60);
+  const h = Math.floor(totalMs / 3600000);
+  const m = Math.round((totalMs % 3600000) / 60000);
+  const ndec = (totalMinNot * FATOR_HORA_NOTURNA) / 60;
+  const nh   = Math.floor(ndec);
+  const nm   = Math.round((ndec - nh) * 60);
 
-  const noturnoDec  = (totalMinNot * FATOR_HORA_NOTURNA) / 60;
-  const notInt      = Math.floor(noturnoDec);
-  const notMin      = Math.round((noturnoDec - notInt) * 60);
-
-  // ★ Formato relógio LIMPO — sem decimais confusos. "8h 30m"
-  const fmtRelogio = (h, m) => `${h}h ${String(m).padStart(2,'0')}m`;
-  document.getElementById('bi-horas').textContent       = fmtRelogio(horasInt, horasMin);
-  document.getElementById('bi-horas-sub').textContent   = 'no mês atual';
-  document.getElementById('bi-noturno').textContent     = fmtRelogio(notInt, notMin);
-  document.getElementById('bi-noturno-sub').textContent = 'entre 22h e 05h';
+  const fmt = (h,m) => `${h}h ${String(m).padStart(2,'0')}m`;
+  document.getElementById('bi-horas').textContent   = fmt(h, m);
+  document.getElementById('bi-noturno').textContent = fmt(nh, nm);
 }
 
 /* ════════════════════════════════════════════════════════════════
-   TAREFAS — lista pendentes do condomínio
+   TAREFAS — listagem + toggle no banco
    ════════════════════════════════════════════════════════════════ */
 async function loadTarefas() {
   const { data, error } = await sb.from('tarefas')
-    .select('id, titulo, descricao, status, prioridade, prazo, created_at')
+    .select('id, titulo, descricao, status, prioridade, prazo')
     .eq('condominio_id', funcionario.condominio_id)
-    .in('status', ['pendente','em_andamento'])
-    .order('prioridade', { ascending: true })   // alta primeiro se enum
     .order('prazo', { ascending: true, nullsFirst: false })
-    .limit(20);
+    .limit(50);
 
-  const pill = document.getElementById('tasks-pill');
-  const area = document.getElementById('tasks-area');
+  if (error) { toast(error.message, 'error'); return; }
+  tarefas = data || [];
+  renderTarefas();
+}
 
-  if (error) {
-    pill.textContent = 'ERRO';
-    pill.className = 'pill red';
-    area.innerHTML = `<div class="colab-empty"><span class="ico">!</span>${error.message}</div>`;
+function renderTarefas() {
+  const area = document.getElementById('tasks-list');
+  if (tarefas.length === 0) {
+    area.innerHTML = '<div class="empty-tasks"><span class="ico">✓</span>Sem tarefas no momento. Bom trabalho!</div>';
+    updateProgress();
     return;
   }
-
-  const list = data || [];
-  pill.textContent = `${list.length} PEND.`;
-  pill.className = list.length === 0 ? 'pill' : (list.length > 5 ? 'pill red' : 'pill amber');
-
-  if (list.length === 0) {
-    area.innerHTML = `<div class="colab-empty"><span class="ico">✓</span>Sem tarefas pendentes. Bom trabalho!</div>`;
-    return;
-  }
-
-  area.innerHTML = list.map(t => {
+  area.innerHTML = tarefas.map(t => {
+    const done = t.status === 'concluida';
     const prio = (t.prioridade || 'media').toLowerCase();
     const prazoTxt = t.prazo
       ? new Date(t.prazo).toLocaleDateString('pt-BR', { day:'2-digit', month:'short' })
-      : '';
+      : 'sem prazo';
     return `
-      <div class="task-item">
-        <div class="check ${t.status==='em_andamento' ? '' : ''}"></div>
-        <div class="body">
-          <div class="titulo">${escapeHtml(t.titulo)}</div>
-          <div class="meta">
-            <span class="prio ${prio}">${prio.toUpperCase()}</span>
-            ${prazoTxt ? `· prazo: ${prazoTxt}` : ''}
-            ${t.status === 'em_andamento' ? '· em andamento' : ''}
-          </div>
+      <div class="task-item ${done ? 'done' : ''}" data-id="${t.id}">
+        <div class="task-checkbox">${done ? '✓' : ''}</div>
+        <div class="task-info">
+          <div class="task-name">${escapeHtml(t.titulo)}</div>
+          <div class="task-meta">prazo: ${prazoTxt}</div>
         </div>
+        <span class="task-priority priority-${prio}">${prio.toUpperCase()}</span>
       </div>
     `;
   }).join('');
+  area.querySelectorAll('.task-item').forEach(el => {
+    el.addEventListener('click', () => toggleTask(el.dataset.id));
+  });
+  updateProgress();
+}
+
+async function toggleTask(id) {
+  const t = tarefas.find(x => x.id === id);
+  if (!t) return;
+  const novoStatus = (t.status === 'concluida') ? 'pendente' : 'concluida';
+  // Otimista: atualiza estado local
+  t.status = novoStatus;
+  renderTarefas();
+  const { error } = await sb.from('tarefas')
+    .update({ status: novoStatus })
+    .eq('id', id);
+  if (error) {
+    toast('❌ ' + error.message, 'error');
+    // Rollback
+    t.status = (novoStatus === 'concluida') ? 'pendente' : 'concluida';
+    renderTarefas();
+    return;
+  }
+  if (novoStatus === 'concluida') toast('✅ Tarefa marcada — síndico atualizado', 'success');
+}
+
+function updateProgress() {
+  const done = tarefas.filter(t => t.status === 'concluida').length;
+  const total = tarefas.length;
+  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+  const circumference = 138;
+  const offset = circumference - (pct / 100) * circumference;
+  document.getElementById('prog-circle').style.strokeDashoffset = offset;
+  document.getElementById('prog-pct').textContent  = pct + '%';
+  document.getElementById('prog-title').textContent = `${done} de ${total} tarefas`;
 }
 
 function escapeHtml(s) {
@@ -1084,61 +1401,199 @@ function escapeHtml(s) {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   ATESTADO — upload LGPD para bucket privado
+   JUSTIFICATIVAS — upload LGPD para bucket privado
    ════════════════════════════════════════════════════════════════ */
-let atestadoFile = null;
+function bindJustificativas() {
+  // Seleção do tipo
+  document.querySelectorAll('.tipo-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.tipo-btn').forEach(x => x.classList.remove('selected'));
+      b.classList.add('selected');
+      tipoJustif = b.dataset.tipo;
+    });
+  });
 
-function onPickFile(e) {
-  const f = e.target.files[0];
-  if (!f) return;
-  if (f.size > 10 * 1024 * 1024) { toast('Arquivo maior que 10 MB.', 'error'); e.target.value = ''; return; }
-  atestadoFile = f;
-  toast(`Arquivo selecionado: ${f.name}`, 'success');
+  // Upload area
+  document.getElementById('upload-area').addEventListener('click', () => {
+    document.getElementById('file-input').click();
+  });
+  document.getElementById('file-input').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    if (f.size > 10 * 1024 * 1024) { toast('Arquivo maior que 10 MB', 'error'); return; }
+    arquivoJustif = f;
+    document.getElementById('upload-area').classList.add('has-file');
+    document.getElementById('upload-icon').textContent = '✅';
+    document.getElementById('upload-text').innerHTML =
+      `<strong style="color:var(--blue)">${escapeHtml(f.name)}</strong><br>` +
+      `<span style="color:var(--text-muted)">${(f.size/1024).toFixed(0)} KB — pronto p/ envio</span>`;
+  });
+
+  // Submit
+  document.getElementById('btn-enviar-just').addEventListener('click', enviarJustificativa);
+
+  // Data padrão = hoje
+  document.getElementById('just-data').value = new Date().toISOString().slice(0, 10);
 }
 
-async function enviarAtestado() {
-  if (!atestadoFile) { toast('Anexe o arquivo do atestado primeiro.', 'error'); return; }
-  const data = document.getElementById('atestado-data').value;
-  if (!data) { toast('Informe a data do atestado.', 'error'); return; }
+async function enviarJustificativa() {
+  const data = document.getElementById('just-data').value;
+  const desc = document.getElementById('just-desc').value.trim();
+  if (!data) { toast('Informe a data', 'error'); return; }
+  if (tipoJustif === 'atestado' && !arquivoJustif) {
+    toast('Atestado médico exige anexo', 'error'); return;
+  }
 
-  const btn = document.getElementById('btn-enviar');
-  btn.classList.add('loading'); btn.disabled = true;
+  const btn = document.getElementById('btn-enviar-just');
+  btn.classList.add('loading');
 
   try {
-    // 1. Upload no bucket privado — path: <condominio_id>/<funcionario_id>/<yyyymmdd-rand>.ext
-    const ext   = (atestadoFile.name.split('.').pop() || 'pdf').toLowerCase();
-    const rand  = Math.random().toString(36).slice(2, 8);
-    const stamp = data.replace(/-/g,'');
-    const path  = `${funcionario.condominio_id}/${funcionario.id}/${stamp}-${rand}.${ext}`;
+    let path = null;
+    if (arquivoJustif) {
+      const ext   = (arquivoJustif.name.split('.').pop() || 'pdf').toLowerCase();
+      const rand  = Math.random().toString(36).slice(2, 8);
+      const stamp = data.replace(/-/g,'');
+      path = `${funcionario.condominio_id}/${funcionario.id}/${stamp}-${rand}.${ext}`;
+      const up = await sb.storage
+        .from('atestados-medicos')
+        .upload(path, arquivoJustif, { contentType: arquivoJustif.type, upsert: false });
+      if (up.error) throw new Error('Upload: ' + up.error.message);
+    }
 
-    const up = await sb.storage
-      .from('atestados-medicos')
-      .upload(path, atestadoFile, { contentType: atestadoFile.type, upsert: false });
+    // Mapeia tipo da UI para schema da tabela faltas
+    const tipoMap = { atestado: 'atestado', atraso: 'falta', falta: 'falta', saida_antec: 'falta' };
+    const obsMap  = { atraso: 'Atraso', saida_antec: 'Saída antecipada', falta: 'Falta justificada', atestado: 'Atestado médico' };
+    const obs = (obsMap[tipoJustif] || '') + (desc ? ' — ' + desc : '');
 
-    if (up.error) throw new Error('Upload: ' + up.error.message);
-
-    // 2. Cria registro em faltas (tipo=atestado, justificada=true)
-    const insRes = await sb.from('faltas').insert({
+    const { error } = await sb.from('faltas').insert({
       condominio_id:  funcionario.condominio_id,
       funcionario_id: funcionario.id,
       data,
-      tipo: 'atestado',
-      justificada: true,
-      atestado_path: path,
-      observacao:    'Enviado pelo app do colaborador',
-      created_by:    user.id
+      tipo:           tipoMap[tipoJustif],
+      justificada:    true,
+      atestado_path:  path,
+      observacao:     obs || null,
+      created_by:     user.id
     });
-    if (insRes.error) throw new Error('Registro: ' + insRes.error.message);
+    if (error) throw new Error('Registro: ' + error.message);
 
-    toast('Atestado enviado com sucesso ✓', 'success');
-    atestadoFile = null;
-    document.getElementById('atestado-file').value = '';
+    toast('📤 Justificativa enviada ao síndico!', 'success');
+    // Reset
+    arquivoJustif = null;
+    document.getElementById('file-input').value = '';
+    document.getElementById('upload-area').classList.remove('has-file');
+    document.getElementById('upload-icon').textContent = '📎';
+    document.getElementById('upload-text').innerHTML =
+      'Toque para anexar<br><strong>Foto, PDF</strong> — máx. 10 MB';
+    document.getElementById('just-desc').value = '';
   } catch (err) {
-    toast(err.message || 'Erro ao enviar.', 'error');
+    toast('❌ ' + (err.message || 'Erro ao enviar'), 'error');
   } finally {
-    btn.classList.remove('loading'); btn.disabled = false;
+    btn.classList.remove('loading');
   }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   NAVEGAÇÃO DE TABS
+   ════════════════════════════════════════════════════════════════ */
+function switchTab(tabName) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + tabName).classList.add('active');
+  document.querySelectorAll('[data-tab="' + tabName + '"]').forEach(el => el.classList.add('active'));
+}
+
+function bindTabs() {
+  document.querySelectorAll('.tab, .nav-item').forEach(el => {
+    el.addEventListener('click', () => switchTab(el.dataset.tab));
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   LOGOUT
+   ════════════════════════════════════════════════════════════════ */
+async function logout() {
+  await auth.signOut();
+  location.replace('/auth/login.html');
+}
+
+/* ════════════════════════════════════════════════════════════════
+   TELA DE BLOQUEIO
+   ════════════════════════════════════════════════════════════════ */
+function mostrarBlock(email) {
+  document.getElementById('phone-shell').style.display = 'none';
+  document.getElementById('block-screen').classList.add('show');
+  document.getElementById('block-email').textContent = email || '—';
+  document.getElementById('btn-logout-block').addEventListener('click', logout);
+  hideSplash();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   BOOT — tronco superior + claim + carga inicial
+   ════════════════════════════════════════════════════════════════ */
+(async () => {
+  // 1. Carrega sessão completa
+  const session = await auth.loadFullSession();
+  user    = session.user;
+  profile = session.profile;
+
+  // 2. Tronco superior de roteamento (autoritativo)
+  const g = window.staflowGuard.executarRoteamentoSeguro(user, profile);
+  if (!g.allow) return;   // guard já redirecionou
+
+  // 3. Tenta vincular funcionário pelo email (idempotente)
+  const claimRes = await sb.rpc('claim_funcionario_by_email').single();
+  let funcId = claimRes?.data?.funcionario_id || null;
+  if (funcId) window.staflowGuard.limparPendingColabClaim();
+
+  // 4. Sem vínculo → tela de bloqueio
+  if (!funcId) {
+    mostrarBlock(user?.email);
+    return;
+  }
+
+  // 5. Carrega ficha do funcionário
+  const { data: f, error: fErr } = await sb.from('funcionarios')
+    .select('id, nome, cargo, condominio_id, turno')
+    .eq('id', funcId)
+    .single();
+  if (fErr) { toast(fErr.message, 'error'); return; }
+  funcionario = f;
+
+  // 6. Carrega condomínio
+  const { data: condo } = await sb.from('condominios')
+    .select('nome')
+    .eq('id', funcionario.condominio_id)
+    .maybeSingle();
+
+  // 7. Renderiza header
+  document.getElementById('avatar-el').textContent  = iniciais(funcionario.nome);
+  document.getElementById('greet-name').textContent = `${saudacao()}, ${funcionario.nome.split(' ')[0]}`;
+  document.getElementById('greet-sub').textContent  =
+    `📍 ${condo?.nome || 'Condomínio'} · ${funcionario.cargo || ''}`.toUpperCase();
+  if (funcionario.turno) {
+    document.getElementById('tasks-turno').textContent =
+      `Turno ${funcionario.turno.charAt(0).toUpperCase() + funcionario.turno.slice(1)}`;
+  }
+
+  // 8. Bind handlers
+  document.getElementById('punch-btn').addEventListener('click', registrarPonto);
+  document.getElementById('btn-logout').addEventListener('click', logout);
+  bindTabs();
+  bindJustificativas();
+
+  // 9. Carga paralela
+  await Promise.all([
+    loadPontoHoje(),
+    loadHorasMes(),
+    loadTarefas()
+  ]);
+
+  // 10. Exibe a tela e esconde splash
+  document.getElementById('phone-shell').style.display = 'flex';
+  hideSplash();
+})();
 </script>
 </body>
 </html>
