@@ -8,6 +8,14 @@
 <meta name="description" content="App do colaborador StaFlow — ponto, tarefas e atestados.">
 <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
 
+<!-- ── PWA: manifest + apple-touch-icon + meta ── -->
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/assets/logo-mark.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StaFlow">
+<meta name="mobile-web-app-capable" content="yes">
+
 <!-- TRONCO SUPERIOR DE ROTEAMENTO — carregado antes de tudo -->
 <script src="/js/route-guard.js"></script>
 
@@ -1593,6 +1601,16 @@ function mostrarBlock(email) {
   // 10. Exibe a tela e esconde splash
   document.getElementById('phone-shell').style.display = 'flex';
   hideSplash();
+
+  // 11. PWA — registra service worker (silencioso se falhar)
+  if ('serviceWorker' in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
+      console.info('[PWA] Service worker registrado:', reg.scope);
+    } catch (e) {
+      console.warn('[PWA] Falha ao registrar service worker:', e.message);
+    }
+  }
 })();
 </script>
 </body>

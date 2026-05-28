@@ -577,8 +577,10 @@ document.getElementById('form-profile').addEventListener('submit', async (e) => 
   if (!ok) { T(error, 'error'); return; }
   profile = data;
   T('✓ Perfil atualizado.', 'success');
-  document.getElementById('u-name').textContent  = data.full_name;
-  document.getElementById('u-avatar').textContent = window.staflowApp.iniciais(data.full_name);
+  const uName = document.getElementById('u-name');
+  const uAv   = document.getElementById('u-avatar');
+  if (uName) uName.textContent = data.full_name;
+  if (uAv)   uAv.textContent   = window.staflowApp.iniciais(data.full_name);
 });
 
 /* ── Segurança ── */

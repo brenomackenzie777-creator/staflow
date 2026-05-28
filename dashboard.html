@@ -898,6 +898,48 @@ async function loadCompliance() {
 }
 
 /* ════════════════════════════════════════════════════════════════
+   REALTIME — escuta postgres_changes em tempo real
+   ────────────────────────────────────────────────────────────────
+   Quando um funcionário bate ponto pelo app de bolso, este canal
+   dispara um re-fetch atômico dos cards de stats + compliance.
+   Debounce de 800ms evita rajada de queries em batidas múltiplas.
+═══════════════════════════════════════════════════════════════ */
+let realtimeChan = null;
+let realtimeDebounce = null;
+function scheduleRefresh() {
+  clearTimeout(realtimeDebounce);
+  realtimeDebounce = setTimeout(() => {
+    loadStats();
+    loadCompliance();
+  }, 800);
+}
+
+function ativarRealtime(condominioId) {
+  if (!condominioId || realtimeChan) return;
+  realtimeChan = sb.channel('dash-' + condominioId)
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'registros_ponto',
+        filter: 'condominio_id=eq.' + condominioId },
+      (payload) => {
+        console.info('[realtime] registros_ponto:', payload.eventType);
+        scheduleRefresh();
+      })
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'faltas',
+        filter: 'condominio_id=eq.' + condominioId },
+      () => scheduleRefresh())
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'tarefas',
+        filter: 'condominio_id=eq.' + condominioId },
+      () => scheduleRefresh())
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.info('[realtime] canal ativo para condomínio', condominioId);
+      }
+    });
+}
+
+/* ════════════════════════════════════════════════════════════════
    BOOT
    ════════════════════════════════════════════════════════════════ */
 (async () => {
@@ -911,8 +953,17 @@ async function loadCompliance() {
     ? `Condomínio ${profile.condominio_nome}.`
     : 'Configure o seu condomínio em Configurações.';
 
-  // Carga paralela: stats operacionais + camada de compliance
-  await Promise.all([ loadStats(), loadCompliance() ]);
+  // Carga inicial em paralelo — allSettled garante que falha em
+  // uma não trava a outra (defesa contra Promise.all rejeitando tudo)
+  const results = await Promise.allSettled([ loadStats(), loadCompliance() ]);
+  results.forEach((r, i) => {
+    if (r.status === 'rejected') {
+      console.error('[dashboard] carga ' + (i===0?'stats':'compliance') + ' falhou:', r.reason);
+    }
+  });
+
+  // Ativa realtime DEPOIS da carga inicial (evita race)
+  ativarRealtime(profile.condominio_id);
 })();
 </script>
 </body>

@@ -616,7 +616,8 @@ document.getElementById('form-2').addEventListener('submit', async (e) => {
   const condo = document.getElementById('condo').value.trim();
   const cnpj  = cnpjEl.value.trim();
   const scpf  = scpfEl.value.trim();
-  const end   = document.getElementById('end').value.trim();
+  // Nota: campo 'end' foi removido — endereço agora é estruturado
+  // (logradouro/numero/bairro/cidade/uf/cep) e montado mais abaixo
   const fone  = foneEl.value.trim();
 
   ['f-condo','f-cnpj','f-scpf','f-fone'].forEach(id => document.getElementById(id).classList.remove('has-error'));
