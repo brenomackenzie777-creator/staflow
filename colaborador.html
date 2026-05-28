@@ -350,6 +350,30 @@
     min-height: 16px;
   }
 
+  /* ── Pill de batidas offline pendentes ── */
+  .offline-pill {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    margin-top: 8px;
+    background: var(--warn-dim);
+    border: 1px solid var(--warn);
+    border-radius: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--warn);
+    text-transform: uppercase;
+    align-self: center;
+  }
+  .offline-pill.show { display: inline-flex; }
+  .offline-pill.syncing {
+    background: var(--blue-dim);
+    border-color: var(--blue);
+    color: var(--blue);
+  }
+
   /* ── Timeline ── */
   .timeline-card {
     background: var(--surface);
@@ -870,6 +894,11 @@
         <div class="punch-label" id="punch-label">CARREGANDO</div>
       </button>
       <div class="punch-hint" id="punch-hint">📍 Aguardando GPS…</div>
+
+      <!-- Indicador de batidas offline pendentes -->
+      <div class="offline-pill" id="offline-pill">
+        <span id="offline-pill-text">⚡ 0 batidas aguardando sincronização</span>
+      </div>
     </div>
 
     <!-- Stats simples (sem decimais) -->
@@ -1212,6 +1241,9 @@ function renderPonto() {
       } else if (p.audit_status === 'LOW_ACCURACY') {
         dEl.className = 'tl-dot amber';
         tEl.innerHTML = fmtHHMM(new Date(p.registrado_em)) + ' <span class="tl-audit warn">📍 BAIXA</span>';
+      } else if (p.audit_status === 'OFFLINE_PENDENTE') {
+        dEl.className = 'tl-dot amber';
+        tEl.innerHTML = fmtHHMM(new Date(p.registrado_em)) + ' <span class="tl-audit warn">⚡ OFFLINE</span>';
       }
     } else {
       tEl.textContent = '--:--';
@@ -1236,6 +1268,150 @@ async function loadPontoHoje() {
   renderPonto();
 }
 
+/* ════════════════════════════════════════════════════════════════
+   OFFLINE QUEUE — IndexedDB (staflow_offline_ponto / pontos_pendentes)
+   ────────────────────────────────────────────────────────────────
+   Engenharia de contingência: o app continua aceitando batidas
+   mesmo sem internet (essencial pra guarita com WiFi instável).
+   Toda operação tem try/catch — se IndexedDB não estiver disponível
+   (modo privado/incognito), o fluxo cai para o INSERT direto que
+   vai falhar com erro de rede e mostrar toast amigável.
+═══════════════════════════════════════════════════════════════ */
+const OfflineQueue = (() => {
+  const DB_NAME = 'staflow_offline_ponto';
+  const STORE   = 'pontos_pendentes';
+  const VERSION = 1;
+  let _db = null;
+
+  function open() {
+    if (_db) return Promise.resolve(_db);
+    return new Promise((resolve, reject) => {
+      try {
+        if (!window.indexedDB) return reject(new Error('IndexedDB indisponível'));
+        const req = indexedDB.open(DB_NAME, VERSION);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE)) {
+            db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+          }
+        };
+        req.onsuccess = (e) => { _db = e.target.result; resolve(_db); };
+        req.onerror   = () => reject(req.error);
+      } catch (e) { reject(e); }
+    });
+  }
+
+  async function enqueue(payload) {
+    try {
+      const db = await open();
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readwrite');
+        const store = tx.objectStore(STORE);
+        const item = { payload, queued_at: new Date().toISOString() };
+        const r = store.add(item);
+        r.onsuccess = () => resolve(r.result);
+        r.onerror   = () => reject(r.error);
+      });
+    } catch (e) {
+      console.warn('[offline] enqueue falhou:', e?.message);
+      throw e;
+    }
+  }
+
+  async function getAll() {
+    try {
+      const db = await open();
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readonly');
+        const r = tx.objectStore(STORE).getAll();
+        r.onsuccess = () => resolve(r.result || []);
+        r.onerror   = () => reject(r.error);
+      });
+    } catch (e) {
+      console.warn('[offline] getAll falhou:', e?.message);
+      return [];
+    }
+  }
+
+  async function remove(id) {
+    try {
+      const db = await open();
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readwrite');
+        const r = tx.objectStore(STORE).delete(id);
+        r.onsuccess = () => resolve();
+        r.onerror   = () => reject(r.error);
+      });
+    } catch (e) { console.warn('[offline] remove falhou:', e?.message); }
+  }
+
+  async function count() {
+    try {
+      const items = await getAll();
+      return items.length;
+    } catch { return 0; }
+  }
+
+  return { enqueue, getAll, remove, count };
+})();
+
+/* Atualiza o badge visual de batidas pendentes */
+async function atualizarPillOffline(opts = {}) {
+  const pill = document.getElementById('offline-pill');
+  const text = document.getElementById('offline-pill-text');
+  if (!pill) return;
+  const n = await OfflineQueue.count();
+  if (opts.syncing) {
+    pill.className = 'offline-pill show syncing';
+    text.textContent = '🔄 Sincronizando ' + n + ' batida(s)…';
+    return;
+  }
+  if (n === 0) {
+    pill.className = 'offline-pill';
+    return;
+  }
+  pill.className = 'offline-pill show';
+  text.textContent = '⚡ ' + n + ' batida(s) aguardando sincronização';
+}
+
+/* Sincronizador — drena a fila quando volta online */
+let syncRunning = false;
+async function sincronizarFilaOffline() {
+  if (syncRunning) return;            // evita reentrância
+  if (!navigator.onLine) return;      // checagem extra
+  const itens = await OfflineQueue.getAll();
+  if (itens.length === 0) return;
+
+  syncRunning = true;
+  atualizarPillOffline({ syncing: true });
+
+  let ok = 0, fail = 0;
+  for (const item of itens) {
+    try {
+      const { error } = await sb.from('registros_ponto').insert(item.payload);
+      if (error) { fail++; continue; }
+      await OfflineQueue.remove(item.id);
+      ok++;
+    } catch (_) {
+      fail++;
+      // Não remove — tenta novamente na próxima
+    }
+  }
+
+  syncRunning = false;
+  await atualizarPillOffline();
+  // Recarrega timeline + horas se algo foi sincronizado
+  if (ok > 0 && funcionario) {
+    await loadPontoHoje();
+    loadHorasMes();
+    if (fail === 0) {
+      toast('✓ ' + ok + ' batida(s) offline sincronizadas com sucesso com o servidor!', 'success');
+    } else {
+      toast('✓ ' + ok + ' sincronizadas, ' + fail + ' restante(s) — tentaremos de novo.', 'info');
+    }
+  }
+}
+
 /* Click handler do botão de ponto */
 async function registrarPonto() {
   const btn = document.getElementById('punch-btn');
@@ -1246,6 +1422,7 @@ async function registrarPonto() {
   const labelBatida = ['ENTRADA','ALMOÇO','VOLTA','SAÍDA'][pontosHoje.length] || 'BATIDA';
 
   document.getElementById('punch-hint').textContent = '📍 Capturando GPS…';
+  // GPS funciona offline (chip do device é independente da rede)
   const pos = await pegarPosicaoGPS();
 
   const payload = {
@@ -1260,10 +1437,54 @@ async function registrarPonto() {
     audit_status:   pos?.audit_status ?? null
   };
 
+  // ★ Bifurcação online vs offline ───────────────────────────────
+  const isOnline = navigator.onLine;
+
+  if (!isOnline) {
+    // OFFLINE — marca a batida e enfileira no IndexedDB
+    payload.audit_status = 'OFFLINE_PENDENTE';
+    try {
+      await OfflineQueue.enqueue(payload);
+      // Otimismo: adiciona localmente no array pra render imediato
+      pontosHoje.push({
+        tipo: payload.tipo,
+        registrado_em: payload.registrado_em,
+        audit_status: 'OFFLINE_PENDENTE'
+      });
+      renderPonto();
+      btn.classList.remove('loading');
+      toast('⚡ Ponto registrado offline! Será sincronizado automaticamente ao detectar internet.', 'info');
+      await atualizarPillOffline();
+    } catch (err) {
+      btn.classList.remove('loading');
+      toast('❌ Não foi possível salvar offline (storage bloqueado). Conecte-se à internet.', 'error');
+    }
+    return;
+  }
+
+  // ONLINE — fluxo original
   const { error } = await sb.from('registros_ponto').insert(payload);
   btn.classList.remove('loading');
 
-  if (error) { toast('❌ ' + error.message, 'error'); return; }
+  if (error) {
+    // Se o INSERT falhou e o navegador "achava" que estava online
+    // (ex: WiFi conectado mas sem internet real), salva offline como fallback
+    try {
+      payload.audit_status = 'OFFLINE_PENDENTE';
+      await OfflineQueue.enqueue(payload);
+      pontosHoje.push({
+        tipo: payload.tipo,
+        registrado_em: payload.registrado_em,
+        audit_status: 'OFFLINE_PENDENTE'
+      });
+      renderPonto();
+      await atualizarPillOffline();
+      toast('⚡ Sem resposta do servidor — batida salva offline e será sincronizada.', 'info');
+    } catch (_) {
+      toast('❌ ' + error.message, 'error');
+    }
+    return;
+  }
 
   // Toast contextual por audit_status
   if (pos?.audit_status === 'FRAUDE_SUSPECT') {
@@ -1602,7 +1823,23 @@ function mostrarBlock(email) {
   document.getElementById('phone-shell').style.display = 'flex';
   hideSplash();
 
-  // 11. PWA — registra service worker (silencioso se falhar)
+  // 11. OFFLINE QUEUE — listeners + sync inicial
+  //     Se o app abriu já online com batidas pendentes na fila,
+  //     drena imediatamente. Caso contrário, fica aguardando o
+  //     evento 'online' do navegador.
+  await atualizarPillOffline();
+  window.addEventListener('online',  () => {
+    toast('🌐 Conexão restabelecida — sincronizando…', 'info');
+    sincronizarFilaOffline();
+  });
+  window.addEventListener('offline', () => {
+    toast('⚡ Sem internet — batidas serão salvas localmente.', 'info');
+    atualizarPillOffline();
+  });
+  // Tenta drenar imediatamente caso já esteja online ao abrir
+  if (navigator.onLine) sincronizarFilaOffline();
+
+  // 12. PWA — registra service worker (silencioso se falhar)
   if ('serviceWorker' in navigator) {
     try {
       const reg = await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
