@@ -472,7 +472,7 @@
       </div>
       <div class="topbar-actions">
         <button class="btn" id="btn-espelho-legal" style="width:auto;padding:10px 18px;background:var(--navy-brand);color:#fff;" title="Espelho de ponto formal MTE Portaria 671">📄 Emitir Espelho de Ponto</button>
-        <button class="btn btn-ghost" id="btn-espelho" style="width:auto;padding:10px 18px;" title="CSV consolidado do mês (todos os funcionários)">⤓ CSV mensal</button>
+        <button class="btn btn-ghost" id="btn-espelho" style="width:auto;padding:10px 18px;" title="Relatório executivo do mês em Excel (todos os funcionários, dia a dia, com auditoria)">📊 Relatório Excel</button>
         <button class="btn btn-ghost" id="btn-export" style="width:auto;padding:10px 18px;">⤓ Exportar dia</button>
       </div>
     </div>
@@ -1523,72 +1523,219 @@ async function calcularMetricasPeriodo(funcionarioId, dataInicio, dataFim) {
 window.staflowApp.calcularMetricasPeriodo = calcularMetricasPeriodo;
 
 // ── Espelho mensal: consolidado de TODOS os funcionários ativos ───────────────
+/* ════════════════════════════════════════════════════════════════
+   RELATÓRIO EXECUTIVO XLS — dia × funcionário com auditoria
+   ────────────────────────────────────────────────────────────────
+   Substitui o CSV horizontal antigo (1 linha/func com totais) por
+   um relatório vertical executivo (1 linha/dia/func com horários,
+   GPS audit_status, justificativas). Visual com cores condicionais,
+   zebra, header navy. Mesmas métricas do espelho legal MTE 671 mas
+   em formato planilha pra contabilidade trabalhar em cima.
+═══════════════════════════════════════════════════════════════ */
+const AUDIT_LABEL = {
+  'OK':              'Auditado',
+  'LOW_ACCURACY':    'GPS fraco',
+  'MOCK_SUSPECT':    'GPS suspeito',
+  'FRAUDE_SUSPECT':  'Risco de fraude',
+  'EDITADO_ADMIN':   'Retificado',
+  'OFFLINE_PENDENTE':'Sincronizado'
+};
+const AUDIT_COLOR = {
+  'Auditado':         'green',
+  'GPS fraco':        'yellow',
+  'GPS suspeito':     'red',
+  'Risco de fraude':  'red',
+  'Retificado':       'yellow',
+  'Sincronizado':     'yellow',
+  'Falta':            'red',
+  'Atestado':         'yellow',
+  'Férias':           'yellow',
+  'Licença':          'yellow',
+  'Folga / sem batida': 'yellow'
+};
+
 document.getElementById('btn-espelho').addEventListener('click', async () => {
   if (allFuncs.length === 0) {
-    T('Cadastre funcionários antes de gerar o espelho.', 'error');
+    T('Cadastre funcionários antes de gerar o relatório.', 'error');
     return;
   }
 
-  // Usa o mês da data atualmente selecionada na tela
   const dateStr = document.getElementById('inp-date').value;
   const [ano, mes] = dateStr.split('-').map(Number);
   const dataInicio = `${ano}-${String(mes).padStart(2,'0')}-01`;
-  // Último dia do mês
   const ultimoDia = new Date(ano, mes, 0).getDate();
   const dataFim   = `${ano}-${String(mes).padStart(2,'0')}-${String(ultimoDia).padStart(2,'0')}`;
+  const mesNomes  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
   const btn = document.getElementById('btn-espelho');
   const label = btn.textContent;
   btn.disabled = true;
-  btn.textContent = 'Gerando…';
+  btn.textContent = '⏳ Gerando…';
 
   try {
-    // Calcula em paralelo para todos os funcionários
-    const metricas = await Promise.all(
-      allFuncs.map(f => calcularMetricasPeriodo(f.id, dataInicio, dataFim))
-    );
+    // Busca condomínio + todos os pontos + faltas do mês (paralelo)
+    const inicioISO = `${dataInicio}T00:00:00.000Z`;
+    const fimISO    = new Date(ano, mes, 1).toISOString();
+    const [resPontos, resFaltas, resCondo] = await Promise.all([
+      sb.from('registros_ponto')
+        .select('funcionario_id, tipo, registrado_em, audit_status, motivo_edicao, latitude, longitude')
+        .gte('registrado_em', inicioISO).lt('registrado_em', fimISO)
+        .in('funcionario_id', allFuncs.map(f => f.id))
+        .order('registrado_em', { ascending: true }),
+      sb.from('faltas')
+        .select('funcionario_id, data, tipo, justificada, observacao')
+        .gte('data', dataInicio).lte('data', dataFim)
+        .in('funcionario_id', allFuncs.map(f => f.id)),
+      sb.from('condominios')
+        .select('nome, cnpj, endereco, logradouro, numero, bairro, cidade, estado, cep, email_admin')
+        .eq('id', profile.condominio_id).maybeSingle()
+    ]);
+    if (resPontos.error) throw resPontos.error;
+    if (resFaltas.error) throw resFaltas.error;
 
-    const header = [
-      'Nome', 'Cargo', 'Período',
-      'Horas trabalhadas', 'Total (horas decimais)',
-      'Dias trabalhados',
-      'Faltas injustificadas',
-      'Dias de atestado', 'Dias de férias', 'Dias de licença',
-      'Total dias afastado',
-      // ── Hora noturna reduzida (CLT Art.73 §1º) ──
-      'Minutos noturnos (cronológicos)',
-      'Horas noturnas computadas (CLT 73§1º)',
-      'Horas noturnas (decimal)'
-    ];
+    const condo  = resCondo.data || {};
+    const pontos = resPontos.data || [];
+    const faltas = resFaltas.data || [];
 
-    const rowsCsv = allFuncs.map((f, i) => {
-      const m = metricas[i];
-      return [
-        f.nome,
-        CARGO_LBL[f.cargo] || f.cargo,
-        `${dataInicio} a ${dataFim}`,
-        m.totalHorasFormatado,
-        m.totalHorasTrabalhadas,
-        m.diasTrabalhados,
-        m.faltasInjustificadas,
-        m.diasAtestado,
-        m.diasFerias,
-        m.diasLicenca,
-        m.totalDiasAfastado,
-        m.minutosNoturnosCronologicos,
-        m.horasNoturnasFormatado,
-        m.horasNoturnasComputadas
-      ];
+    // Indexa pontos e faltas por funcionario_id + dia (YYYY-MM-DD)
+    const pontosIdx = {};   // pontosIdx[funcId][dia] = [batidas]
+    pontos.forEach(p => {
+      const d = new Date(p.registrado_em);
+      const dia = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      (pontosIdx[p.funcionario_id] ||= {});
+      (pontosIdx[p.funcionario_id][dia] ||= []).push(p);
+    });
+    const faltasIdx = {};
+    faltas.forEach(f => {
+      (faltasIdx[f.funcionario_id] ||= {})[f.data] = f;
     });
 
-    window.staflowApp.exportCSV(
-      header,
-      rowsCsv,
-      `espelho_ponto_${ano}-${String(mes).padStart(2,'0')}.csv`
+    // Monta linhas: 1 por dia × funcionário (só dias com atividade OU falta)
+    const rows = [];
+    let totalHorasMs = 0;
+    let totalBatidas = 0;
+    let totalAuditFraude = 0;
+    let totalFaltas = 0;
+
+    const fmtData = (d) => {
+      const dt = new Date(d + 'T12:00:00');
+      const dow = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dt.getDay()];
+      return `${dt.getDate().toString().padStart(2,'0')}/${(dt.getMonth()+1).toString().padStart(2,'0')} ${dow}`;
+    };
+    const fmtHora = (iso) => {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    };
+
+    for (const f of allFuncs) {
+      for (let d = 1; d <= ultimoDia; d++) {
+        const dia = `${ano}-${String(mes).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const eventos = (pontosIdx[f.id]?.[dia] || []).slice().sort((a,b) =>
+          new Date(a.registrado_em) - new Date(b.registrado_em));
+        const falta = faltasIdx[f.id]?.[dia];
+
+        if (eventos.length === 0 && !falta) continue;  // pula dias sem nada
+
+        // Calcula horas trabalhadas do dia (pareia entrada→saida)
+        let msDia = 0, entradaAtual = null;
+        eventos.forEach(e => {
+          if (e.tipo === 'entrada' && !entradaAtual) entradaAtual = e;
+          else if (e.tipo === 'saida' && entradaAtual) {
+            msDia += new Date(e.registrado_em) - new Date(entradaAtual.registrado_em);
+            entradaAtual = null;
+          }
+        });
+        totalHorasMs += msDia;
+        const h = Math.floor(msDia / 3600000);
+        const m = Math.round((msDia % 3600000) / 60000);
+        const horasDia = msDia > 0 ? `${h}h${String(m).padStart(2,'0')}` : '—';
+
+        const entrada = eventos.find(e => e.tipo === 'entrada');
+        const saida   = eventos.slice().reverse().find(e => e.tipo === 'saida');
+
+        // Status consolidado (prioriza falta → audit → ausente)
+        let status = '—', justif = '';
+        if (falta) {
+          const map = { falta:'Falta', atestado:'Atestado', ferias:'Férias', licenca:'Licença' };
+          status = map[falta.tipo] || falta.tipo;
+          justif = falta.observacao || (falta.justificada ? 'Justificada' : 'Não justificada');
+          if (falta.tipo === 'falta' && !falta.justificada) totalFaltas++;
+        } else if (entrada) {
+          // Pega o "pior" audit_status do dia
+          const piores = ['FRAUDE_SUSPECT','MOCK_SUSPECT','LOW_ACCURACY','EDITADO_ADMIN','OFFLINE_PENDENTE'];
+          const pior = piores.find(s => eventos.some(e => e.audit_status === s));
+          status = AUDIT_LABEL[pior] || AUDIT_LABEL['OK'];
+          if (pior === 'FRAUDE_SUSPECT' || pior === 'MOCK_SUSPECT') totalAuditFraude++;
+          // Justificativa = motivo_edicao se houver retificação
+          const retif = eventos.find(e => e.motivo_edicao);
+          if (retif) justif = 'Retificado: ' + retif.motivo_edicao;
+        } else {
+          status = 'Folga / sem batida';
+        }
+
+        totalBatidas += eventos.length;
+        rows.push({
+          data:      fmtData(dia),
+          nome:      f.nome,
+          cargo:     CARGO_LBL[f.cargo] || f.cargo,
+          entrada:   fmtHora(entrada?.registrado_em),
+          saida:     fmtHora(saida?.registrado_em),
+          horas:     horasDia,
+          status:    status,
+          justif:    justif || '—'
+        });
+      }
+    }
+
+    // ── Resumo executivo ──
+    const totH = Math.floor(totalHorasMs / 3600000);
+    const totM = Math.round((totalHorasMs % 3600000) / 60000);
+
+    const fmtCnpj = (c) => c ? c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, '$1.$2.$3/$4-$5') : '';
+    const enderecoCompleto = (c) => {
+      const p = [];
+      if (c.logradouro) p.push(c.logradouro + (c.numero ? ', ' + c.numero : ''));
+      if (c.bairro) p.push(c.bairro);
+      if (c.cidade && c.estado) p.push(c.cidade + '/' + c.estado);
+      return p.join(' — ') || c.endereco || '';
+    };
+
+    window.staflowApp.exportXLS(
+      `relatorio_ponto_${ano}-${String(mes).padStart(2,'0')}.xls`,
+      {
+        titulo:     'Relatório Executivo de Ponto',
+        periodo:    `${mesNomes[mes-1]} / ${ano}`,
+        condominio: {
+          nome:     condo.nome,
+          cnpj:     fmtCnpj(condo.cnpj),
+          endereco: enderecoCompleto(condo)
+        },
+        resumo: [
+          { label: 'Funcionários',     value: allFuncs.length },
+          { label: 'Total de horas',   value: `${totH}h ${String(totM).padStart(2,'0')}m` },
+          { label: 'Batidas no mês',   value: totalBatidas },
+          { label: 'Faltas injust.',   value: totalFaltas },
+          { label: 'Alertas GPS',      value: totalAuditFraude }
+        ],
+        colunas: [
+          { label: 'Data',          key: 'data',    width: 95,  type: 'mono'   },
+          { label: 'Funcionário',   key: 'nome',    width: 180                  },
+          { label: 'Cargo',         key: 'cargo',   width: 110                  },
+          { label: 'Entrada',       key: 'entrada', width: 75,  type: 'mono'   },
+          { label: 'Saída',         key: 'saida',   width: 75,  type: 'mono'   },
+          { label: 'Horas',         key: 'horas',   width: 80,  type: 'mono'   },
+          { label: 'Status GPS',    key: 'status',  width: 130, type: 'status' },
+          { label: 'Justificativa', key: 'justif',  width: 240                  }
+        ],
+        statusKey:    'status',
+        statusColors: AUDIT_COLOR,
+        rows: rows
+      }
     );
-    T(`Espelho de ${String(mes).padStart(2,'0')}/${ano} exportado.`, 'success');
+    T(`✓ Relatório de ${mesNomes[mes-1]}/${ano} exportado (${rows.length} linhas).`, 'success');
   } catch (err) {
-    T('Erro ao gerar espelho: ' + (err.message || 'tente novamente'), 'error');
+    T('Erro ao gerar relatório: ' + (err.message || 'tente novamente'), 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = label;

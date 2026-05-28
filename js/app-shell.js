@@ -282,6 +282,192 @@ window.staflowApp = window.staflowApp || {};
   }
 
   // ---------- API global ----------
+  /* ────────────────────────────────────────────────────────────────
+     EXPORT XLS — Relatório Executivo Visual (HTML table → .xls)
+     ────────────────────────────────────────────────────────────────
+     Gera uma planilha .xls usando HTML table com CSS inline.
+     Excel/LibreOffice/Sheets abrem nativamente. Zero dependência
+     externa (sem CDN, sem biblioteca).
+
+     opts = {
+       titulo:       'Espelho de Ponto',                       // título do relatório
+       condominio:   { nome, cnpj, endereco },                 // cabeçalho corporativo
+       periodo:      'Maio/2026',                              // string de período
+       resumo:       [{label, value}, ...],                    // metadados rápidos
+       colunas:      [{ label, key, width?, type? }],          // type: 'text'|'mono'|'status'
+       rows:         [{key1:..., key2:...}, ...],              // dados
+       statusKey:    'auditStatus',                            // qual key disparar cor
+       statusColors: { 'OK': 'green', 'FRAUDE_SUSPECT': 'red' } // map valor → 'green'|'red'|'yellow'
+     }
+  ──────────────────────────────────────────────────────────── */
+  const XLS_COLORS = {
+    navy:        '#1A2238',
+    white:       '#FFFFFF',
+    zebra:       '#F5F7FB',
+    softGreen:   '#E6F7F1',
+    softGreenTx: '#0E8C66',
+    softRed:     '#FCEAEA',
+    softRedTx:   '#A82121',
+    softYellow:  '#FFF4DA',
+    softYellowTx:'#8A6100',
+    border:      '#D7DCE4',
+    textMuted:   '#5F6B7A',
+    headerBg:    '#1A2238',
+    titleAccent: '#06D6A0'
+  };
+
+  function xlsEscape(v) {
+    if (v == null) return '';
+    return String(v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function cellStyleFor(type, statusColor) {
+    const base = 'border:1px solid ' + XLS_COLORS.border + ';padding:6px 10px;vertical-align:middle;';
+    let extra = '';
+    if (type === 'mono') extra += 'font-family:Consolas,monospace;text-align:center;';
+    if (statusColor === 'green')  extra += 'background:' + XLS_COLORS.softGreen  + ';color:' + XLS_COLORS.softGreenTx  + ';font-weight:600;';
+    if (statusColor === 'red')    extra += 'background:' + XLS_COLORS.softRed    + ';color:' + XLS_COLORS.softRedTx    + ';font-weight:600;';
+    if (statusColor === 'yellow') extra += 'background:' + XLS_COLORS.softYellow + ';color:' + XLS_COLORS.softYellowTx + ';font-weight:600;';
+    return base + extra;
+  }
+
+  function exportXLS(filename, opts) {
+    opts = opts || {};
+    const cols       = opts.colunas || [];
+    const rows       = opts.rows    || [];
+    const condo      = opts.condominio || {};
+    const resumo     = opts.resumo  || [];
+    const statusKey  = opts.statusKey;
+    const statusMap  = opts.statusColors || {};
+    const totalCols  = cols.length || 1;
+
+    // ── Bloco de cabeçalho corporativo ──
+    const headerHtml = `
+      <table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;margin-bottom:14px;">
+        <tr>
+          <td colspan="${totalCols}" style="padding:14px 12px;background:${XLS_COLORS.headerBg};color:${XLS_COLORS.white};border:1px solid ${XLS_COLORS.headerBg};">
+            <div style="font-size:18px;font-weight:bold;letter-spacing:0.5px;">
+              ${xlsEscape(opts.titulo || 'Relatório')}
+              <span style="color:${XLS_COLORS.titleAccent};margin-left:8px;font-size:12px;font-weight:normal;">· STAFLOW</span>
+            </div>
+            <div style="font-size:11px;color:#B8C2D1;margin-top:4px;">
+              ${xlsEscape(opts.periodo || '')}
+              ${opts.periodo && condo.nome ? ' · ' : ''}
+              ${xlsEscape(condo.nome || '')}
+            </div>
+          </td>
+        </tr>
+        ${condo.cnpj || condo.endereco ? `
+        <tr>
+          <td colspan="${totalCols}" style="padding:8px 12px;background:${XLS_COLORS.zebra};color:${XLS_COLORS.textMuted};border:1px solid ${XLS_COLORS.border};font-size:10px;">
+            ${condo.cnpj     ? '<strong>CNPJ:</strong> ' + xlsEscape(condo.cnpj)       : ''}
+            ${condo.cnpj && condo.endereco ? ' &nbsp;·&nbsp; ' : ''}
+            ${condo.endereco ? '<strong>Endereço:</strong> ' + xlsEscape(condo.endereco) : ''}
+          </td>
+        </tr>` : ''}
+      </table>
+    `;
+
+    // ── Bloco de resumo (cards horizontais) ──
+    let resumoHtml = '';
+    if (resumo.length > 0) {
+      resumoHtml = `
+        <table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;margin-bottom:14px;">
+          <tr>
+            ${resumo.map(m => `
+              <td style="padding:10px 14px;border:1px solid ${XLS_COLORS.border};background:${XLS_COLORS.white};vertical-align:top;">
+                <div style="font-size:9px;color:${XLS_COLORS.textMuted};letter-spacing:1.5px;text-transform:uppercase;">${xlsEscape(m.label)}</div>
+                <div style="font-size:15px;font-weight:bold;color:${XLS_COLORS.headerBg};margin-top:4px;">${xlsEscape(m.value)}</div>
+              </td>
+            `).join('')}
+          </tr>
+        </table>
+      `;
+    }
+
+    // ── Tabela de dados (cabeçalho navy + zebra + cor condicional) ──
+    const colgroup = cols.map(c =>
+      `<col style="width:${c.width || 100}px;">`).join('');
+
+    const theadHtml = `
+      <thead>
+        <tr>
+          ${cols.map(c => `
+            <th style="background:${XLS_COLORS.headerBg};color:${XLS_COLORS.white};font-weight:bold;padding:8px 10px;border:1px solid ${XLS_COLORS.headerBg};text-align:left;font-size:11px;letter-spacing:0.3px;">
+              ${xlsEscape(c.label)}
+            </th>`).join('')}
+        </tr>
+      </thead>
+    `;
+
+    const tbodyHtml = '<tbody>' + rows.map((r, i) => {
+      const zebraBg = i % 2 === 1 ? `background:${XLS_COLORS.zebra};` : '';
+      return '<tr>' + cols.map(c => {
+        const raw = r[c.key];
+        const isStatus = statusKey && c.key === statusKey;
+        const statusColor = isStatus ? statusMap[raw] || null : null;
+        const style = cellStyleFor(c.type, statusColor) + (statusColor ? '' : zebraBg);
+        return `<td style="${style}">${xlsEscape(raw == null ? '' : raw)}</td>`;
+      }).join('') + '</tr>';
+    }).join('') + '</tbody>';
+
+    const tableHtml = `
+      <table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:11px;">
+        <colgroup>${colgroup}</colgroup>
+        ${theadHtml}
+        ${tbodyHtml}
+      </table>
+    `;
+
+    // Rodapé
+    const gerado = new Date();
+    const ger = gerado.toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' });
+    const footerHtml = `
+      <table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;margin-top:14px;">
+        <tr>
+          <td style="padding:6px 10px;color:${XLS_COLORS.textMuted};font-size:9px;border-top:1px solid ${XLS_COLORS.border};">
+            Gerado por StaFlow em ${ger} · staflow.vercel.app
+          </td>
+        </tr>
+      </table>
+    `;
+
+    // ExcelWorkbook XML — força o Excel a usar 1 sheet sem prompt + auto-fit
+    const wbXml = `
+      <xml>
+        <x:ExcelWorkbook>
+          <x:ExcelWorksheets>
+            <x:ExcelWorksheet>
+              <x:Name>Relatório</x:Name>
+              <x:WorksheetOptions>
+                <x:DisplayGridlines/>
+              </x:WorksheetOptions>
+            </x:ExcelWorksheet>
+          </x:ExcelWorksheets>
+        </x:ExcelWorkbook>
+      </xml>
+    `;
+
+    const fullHtml =
+      '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+      'xmlns:x="urn:schemas-microsoft-com:office:excel" ' +
+      'xmlns="http://www.w3.org/TR/REC-html40">' +
+      '<head><meta charset="UTF-8">' + wbXml + '</head>' +
+      '<body>' + headerHtml + resumoHtml + tableHtml + footerHtml + '</body></html>';
+
+    // BOM UTF-8 garante acentos OK no Excel pt-BR
+    const blob = new Blob(['﻿' + fullHtml],
+      { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href     = url;
+    a.download = filename.replace(/\.(csv|xlsx|xls)$/i, '') + '.xls';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   window.staflowApp.toast          = toast;
   window.staflowApp.iniciais       = iniciais;
   window.staflowApp.saudacao       = saudacao;
@@ -290,6 +476,7 @@ window.staflowApp = window.staflowApp || {};
   window.staflowApp.renderSidebar  = renderSidebar;
   window.staflowApp.hideSplash     = hideSplash;
   window.staflowApp.exportCSV      = exportCSV;
+  window.staflowApp.exportXLS      = exportXLS;
   window.staflowApp.showToast      = showToast;
   window.staflowApp.skeletonRows   = skeletonRows;
   window.staflowApp.skeletonStats  = skeletonStats;
