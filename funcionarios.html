@@ -503,6 +503,38 @@
   </div>
 </div>
 
+<!-- ========== Modal: limite do plano atingido (Upgrade) ========== -->
+<div class="modal-backdrop" id="modal-upgrade">
+  <div class="modal" style="max-width:460px;">
+    <h2 style="display:flex;align-items:center;gap:10px;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--teal-dim);border:1px solid var(--teal-border);color:var(--teal);font-size:18px;">↑</span>
+      Limite do plano atingido
+    </h2>
+    <p class="modal-sub" id="upgrade-msg">
+      Seu plano atual permite até <strong id="upgrade-limite">5</strong> funcionários ativos.
+      Para cadastrar mais membros na equipe, faça upgrade do plano.
+    </p>
+
+    <div style="background:var(--navy-deep);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin:14px 0;">
+      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--white-muted);text-transform:uppercase;margin-bottom:8px;">Plano atual</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="font-weight:600;font-size:14px;color:var(--white);" id="upgrade-plano-atual">Starter</div>
+          <div style="font-size:12px;color:var(--white-dim);margin-top:2px;" id="upgrade-uso">— / — funcionários</div>
+        </div>
+        <span class="badge" id="upgrade-status">100% USADO</span>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="upgrade-cancel"><span class="btn-label">Agora não</span></button>
+      <button type="button" class="btn" id="upgrade-cta" style="background:var(--teal);color:var(--navy-deep);">
+        <span class="btn-label">Ver planos →</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-client.js"></script>
@@ -514,6 +546,55 @@
 <script>
 const sb = window.staflowSupabase;
 const T  = window.staflowApp.toast;
+
+/* ════════════════════════════════════════════════════════════════
+   ENFORCEMENT DE LIMITES POR PLANO (definido pelo CFO/Co-Work)
+   ────────────────────────────────────────────────────────────────
+   - Starter:    até 5 funcionários ativos
+   - Pro:        até 20
+   - Scale:      ilimitado
+   - Enterprise: ilimitado
+   O plano vem do espelho condominios.plano (migração 020 sincroniza
+   automaticamente via stripe-webhook após pagamento bem-sucedido).
+═══════════════════════════════════════════════════════════════ */
+const PLAN_LIMITS = {
+  starter:    5,
+  pro:        20,
+  scale:      Infinity,
+  enterprise: Infinity
+};
+
+let planoAtual = 'starter';   // default conservador até loadPlano() resolver
+
+function getPlanLimit() {
+  return PLAN_LIMITS[planoAtual] ?? PLAN_LIMITS.starter;
+}
+
+function planLabel(p) {
+  return ({ starter:'Starter', pro:'Pro', scale:'Scale', enterprise:'Enterprise' })[p] || p;
+}
+
+function openUpgradeModal() {
+  const limite = getPlanLimit();
+  const usados = allRows.filter(r => r.ativo).length;
+  document.getElementById('upgrade-limite').textContent      = limite === Infinity ? '∞' : limite;
+  document.getElementById('upgrade-plano-atual').textContent = planLabel(planoAtual);
+  document.getElementById('upgrade-uso').textContent         =
+    `${usados} / ${limite === Infinity ? '∞' : limite} funcionários ativos`;
+  document.getElementById('modal-upgrade').classList.add('show');
+}
+
+document.getElementById('upgrade-cancel').addEventListener('click', () =>
+  document.getElementById('modal-upgrade').classList.remove('show'));
+
+document.getElementById('modal-upgrade').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modal-upgrade'))
+    document.getElementById('modal-upgrade').classList.remove('show');
+});
+
+document.getElementById('upgrade-cta').addEventListener('click', () => {
+  location.href = '/planos.html';
+});
 
 let allRows = [];
 let profile = null;
@@ -803,6 +884,14 @@ async function loadAll() {
 const modal = document.getElementById('modal-func');
 
 function openNew() {
+  // ★ TRAVA 1 — Bloqueio preventivo: se já atingiu o limite, abre o
+  //   modal de upgrade ANTES mesmo de mostrar o formulário (UX impede
+  //   o usuário de digitar dados em vão).
+  if (allRows.filter(r => r.ativo).length >= getPlanLimit()) {
+    openUpgradeModal();
+    return;
+  }
+
   document.getElementById('m-title').textContent = 'Novo funcionário';
   document.getElementById('form-func').reset();
   document.getElementById('f-id').value = '';
@@ -944,6 +1033,21 @@ document.getElementById('form-func').addEventListener('submit', async (e) => {
     if (id) {
       resp = await sb.from('funcionarios').update(payload).eq('id', id).select().single();
     } else {
+      // ★ TRAVA 2 — Re-verificação de limite no momento do submit.
+      //   Defesa contra: (a) abas múltiplas cadastrando em paralelo,
+      //   (b) modal já aberto antes do downgrade ser aplicado,
+      //   (c) qualquer caminho que tenha pulado openNew().
+      //   Re-busca o count atual do banco pra ter o número fresh.
+      const { count: ativosAgora } = await sb.from('funcionarios')
+        .select('id', { count: 'exact', head: true })
+        .eq('condominio_id', profile.condominio_id)
+        .eq('ativo', true);
+      if ((ativosAgora ?? 0) >= getPlanLimit()) {
+        btn.classList.remove('loading'); btn.disabled = false;
+        closeModal();
+        openUpgradeModal();
+        return;
+      }
       payload.condominio_id = profile.condominio_id;
       payload.created_by    = profile.id;
       resp = await sb.from('funcionarios').insert(payload).select().single();
@@ -1046,8 +1150,22 @@ document.getElementById('btn-first-func').addEventListener('click', openNew);
   document.getElementById('topbar-sub').textContent =
     profile.condominio_nome ? `Equipe do ${profile.condominio_nome}.` : 'Sua equipe.';
 
+  // Carrega o plano atual (espelho de condominios.plano, populado pelo
+  // stripe-webhook). Usado pelas TRAVAS 1 e 2 do enforcement.
+  await loadPlano();
   await loadAll();
 })();
+
+async function loadPlano() {
+  if (!profile?.condominio_id) return;
+  try {
+    const { data } = await sb.from('condominios')
+      .select('plano')
+      .eq('id', profile.condominio_id)
+      .maybeSingle();
+    if (data?.plano) planoAtual = data.plano;
+  } catch (_) { /* mantém default 'starter' */ }
+}
 </script>
 </body>
 </html>
