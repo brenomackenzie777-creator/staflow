@@ -256,10 +256,21 @@ window.staflowApp = window.staflowApp || {};
   // header: ['Coluna A', 'Coluna B', ...]
   // rows:   [[v1, v2, ...], [v1, v2, ...], ...]   (valores brutos; serão escapados)
   // filename: 'relatorio_2026-05.csv'
+  // Prefixos perigosos que Excel/Sheets interpretam como fórmula.
+  // CVE clássica (CWE-1236): nome de funcionário '=cmd|/c calc' pode
+  // executar código no Excel da contabilidade. Prefixamos com aspas
+  // simples (tratamento oficial recomendado pelo OWASP).
+  function neutralizeFormula(s) {
+    if (typeof s !== 'string' || s.length === 0) return s;
+    const first = s.charAt(0);
+    if (first === '=' || first === '+' || first === '-' || first === '@' || first === '\t' || first === '\r') {
+      return "'" + s;
+    }
+    return s;
+  }
   function csvEscape(v) {
     if (v == null) return '';
-    const s = String(v);
-    // Se contém vírgula, aspa, quebra de linha → cerca com aspas e escapa "
+    let s = neutralizeFormula(String(v));
     if (/[",\n\r;]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
     return s;
   }
@@ -318,7 +329,10 @@ window.staflowApp = window.staflowApp || {};
 
   function xlsEscape(v) {
     if (v == null) return '';
-    return String(v)
+    // Aplica neutralizeFormula ANTES do escape HTML — defesa contra
+    // CSV/XLS formula injection mesmo em planilhas abertas no Excel.
+    const safe = neutralizeFormula(String(v));
+    return safe
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }

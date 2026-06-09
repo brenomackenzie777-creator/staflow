@@ -18,7 +18,7 @@
   --red:         #EF4444;
   --white:       #F0F4FF;
   --white-dim:   rgba(240,244,255,0.55);
-  --white-muted: rgba(240,244,255,0.35);
+  --white-muted: rgba(240,244,255,0.48);   /* era 0.35 — abaixo de WCAG AA */
   --border:      rgba(240,244,255,0.10);
   --border-strong: rgba(240,244,255,0.22);
 
@@ -26,9 +26,14 @@
   --font-body:    'DM Sans', sans-serif;
   --font-mono:    'DM Mono', monospace;
 
-  --radius:   4px;
-  --radius-md: 8px;
-  --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+  --radius:   8px;          /* botões, inputs, badges (era 4px — alinhado c/ landing) */
+  --radius-md: 12px;        /* cards, tabelas, modais (era 8px — alinhado c/ landing) */
+  --radius-btn: 8px;        /* alias semântico */
+  --radius-card: 12px;      /* alias semântico */
+  --transition: 0.2s ease;  /* unificado em 200ms ease para hovers/active */
+
+  /* Contraste secundário — antes white-muted ficava abaixo de WCAG AA
+     em fundos navy-deep. Subido pra 0.48 mantendo a hierarquia visual. */
 }
 
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }

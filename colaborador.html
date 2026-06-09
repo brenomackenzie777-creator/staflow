@@ -1842,8 +1842,7 @@ function mostrarBlock(email) {
   // 12. PWA — registra service worker (silencioso se falhar)
   if ('serviceWorker' in navigator) {
     try {
-      const reg = await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
-      console.info('[PWA] Service worker registrado:', reg.scope);
+      await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
     } catch (e) {
       console.warn('[PWA] Falha ao registrar service worker:', e.message);
     }

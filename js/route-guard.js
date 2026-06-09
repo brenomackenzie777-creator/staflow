@@ -147,8 +147,42 @@
     return { redirectTo: '/auth/login.html', allow: false, reason: 'unknown_role' };
   }
 
+  // ─── Detector anti-reconhecimento ──────────────────────────────────
+  // Se um funcionário tenta acessar 3+ rotas admin em 60s (sintoma
+  // de tentativa de enumeração), forçamos signOut + destruição do
+  // token de sessão. Falso positivo é raro: usuário legítimo não
+  // navega por bookmarks errados em sequência rápida.
+  const RECON_KEY    = 'staflow_recon_attempts';
+  const RECON_WINDOW = 60 * 1000;   // 60s
+  const RECON_THRESHOLD = 3;
+  function registrarTentativaSuspeita(reason) {
+    if (!reason || !reason.startsWith('funcionario_ejected_from_')) return;
+    try {
+      const now = Date.now();
+      const raw = sessionStorage.getItem(RECON_KEY);
+      let arr = raw ? JSON.parse(raw) : [];
+      arr = arr.filter(t => now - t < RECON_WINDOW);
+      arr.push(now);
+      sessionStorage.setItem(RECON_KEY, JSON.stringify(arr));
+      if (arr.length >= RECON_THRESHOLD) {
+        // Destrói token e força login
+        sessionStorage.removeItem(RECON_KEY);
+        try { localStorage.removeItem('staflow_pending_colab_claim'); } catch(_) {}
+        if (window.staflowSupabase?.auth?.signOut) {
+          window.staflowSupabase.auth.signOut().finally(() => {
+            location.replace('/auth/login.html?reason=suspicious_activity');
+          });
+        } else {
+          location.replace('/auth/login.html?reason=suspicious_activity');
+        }
+        return true;
+      }
+    } catch(_) { /* sessionStorage bloqueado → segue normal */ }
+    return false;
+  }
+
   // ─── EFEITO COLATERAL ÚNICO: location.replace ──────────────────────
-  function ejetar(redirectTo, currentPath) {
+  function ejetar(redirectTo, currentPath, reason) {
     const targetNorm  = normalizarPath(redirectTo);
     const currentNorm = normalizarPath(currentPath);
     if (targetNorm === currentNorm) {
@@ -156,6 +190,8 @@
       console.warn('[guard] ejetar() para mesma rota suprimido:', redirectTo);
       return false;
     }
+    // Hardening: detecta padrão de reconhecimento e força signOut
+    if (registrarTentativaSuspeita(reason)) return true;
     location.replace(redirectTo);
     return true;
   }
@@ -166,7 +202,7 @@
     const dec = decideRota(user, profile, location.pathname, opts);
     if (dec.allow) return { allow: true, decision: dec };
     if (dec.redirectTo) {
-      const ejected = ejetar(dec.redirectTo, location.pathname);
+      const ejected = ejetar(dec.redirectTo, location.pathname, dec.reason);
       // Se NÃO ejetou (loop), permite render — caso degenerado, melhor mostrar
       // a página do que travar.
       return { allow: !ejected, decision: dec };

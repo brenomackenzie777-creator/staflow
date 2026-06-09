@@ -921,7 +921,7 @@ function ativarRealtime(condominioId) {
       { event: '*', schema: 'public', table: 'registros_ponto',
         filter: 'condominio_id=eq.' + condominioId },
       (payload) => {
-        console.info('[realtime] registros_ponto:', payload.eventType);
+        // Não logamos payload — pode conter funcionario_id, GPS, etc.
         scheduleRefresh();
       })
     .on('postgres_changes',
@@ -932,11 +932,7 @@ function ativarRealtime(condominioId) {
       { event: '*', schema: 'public', table: 'tarefas',
         filter: 'condominio_id=eq.' + condominioId },
       () => scheduleRefresh())
-    .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.info('[realtime] canal ativo para condomínio', condominioId);
-      }
-    });
+    .subscribe();   // status disponível em .state — sem log de condominio_id
 }
 
 /* ════════════════════════════════════════════════════════════════
