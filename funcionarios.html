@@ -1000,6 +1000,12 @@ document.getElementById('form-func').addEventListener('submit', async (e) => {
     T('E-mail inválido. Esse será o login do funcionário no app de bolso.', 'error');
     return;
   }
+  // Bloqueia e-mails descartáveis (mailinator, tempmail, etc.)
+  if (window.staflowValidators?.isEmailDescartavel(email)) {
+    ffEmail.classList.add('has-error');
+    T('E-mail temporário/descartável não é aceito. Use o e-mail real do funcionário.', 'error');
+    return;
+  }
 
   // ★ TRAVA ANTIFRAUDE — CPF agora ESSENCIAL e validado matematicamente
   if (!cpfRaw || !window.staflowValidators.validarCPF(cpfRaw)) {
@@ -1053,7 +1059,17 @@ document.getElementById('form-func').addEventListener('submit', async (e) => {
       resp = await sb.from('funcionarios').insert(payload).select().single();
     }
 
-    if (resp.error) throw new Error(resp.error.message);
+    if (resp.error) {
+      // Trigger BEFORE INSERT/UPDATE no banco (migração 022) — captura
+      // tentativas que bypassam as travas client-side via DevTools/SDK.
+      if (resp.error.message && resp.error.message.includes('PLAN_LIMIT_REACHED')) {
+        btn.classList.remove('loading'); btn.disabled = false;
+        closeModal();
+        openUpgradeModal();
+        return;
+      }
+      throw new Error(resp.error.message);
+    }
 
     const savedId = resp.data.id;
 

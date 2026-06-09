@@ -559,6 +559,11 @@ document.getElementById('form-1').addEventListener('submit', async (e) => {
   let bad = false;
   if (nome.length < 3)        { document.getElementById('f-nome').classList.add('has-error'); bad = true; }
   if (!validEmail(email))     { document.getElementById('f-email').classList.add('has-error'); bad = true; }
+  else if (window.staflowValidators?.isEmailDescartavel(email)) {
+    document.getElementById('f-email').classList.add('has-error');
+    toast('E-mail temporário/descartável não é aceito. Use um e-mail real.', 'error');
+    bad = true;
+  }
   if (senha.length < 8)       { document.getElementById('f-senha').classList.add('has-error'); bad = true; }
   if (senha !== conf)         { document.getElementById('f-conf').classList.add('has-error'); bad = true; }
   if (bad) return;

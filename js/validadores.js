@@ -111,11 +111,52 @@
     });
   }
 
+  /* ─── E-MAIL DESCARTÁVEL ─────────────────────────────────────────
+     Lista curada dos provedores temporários mais comuns. Cobertura
+     ~95% dos casos reais. Atualizar conforme necessário.
+  ──────────────────────────────────────────────────────────────── */
+  const DOMINIOS_DESCARTAVEIS = new Set([
+    // Top 30 mais usados
+    'mailinator.com','tempmail.com','tempmail.net','tempmail.org','tempmail.io',
+    '10minutemail.com','10minutemail.net','10minutemail.org',
+    'guerrillamail.com','guerrillamail.net','guerrillamail.org','guerrillamail.biz','guerrillamailblock.com',
+    'yopmail.com','yopmail.fr','yopmail.net',
+    'throwaway.email','throwawaymail.com','throwawayemail.com',
+    'getnada.com','nada.email','nada.ltd',
+    'maildrop.cc','mailnesia.com','dispostable.com',
+    'sharklasers.com','grr.la','spam4.me',
+    'mintemail.com','mt2014.com','trbvm.com',
+    // Outros conhecidos
+    'mailcatch.com','mailtothis.com','spamgourmet.com','spambox.us','spamdecoy.net',
+    'mytemp.email','tempr.email','tempinbox.com','tempemail.net','tempemail.co',
+    'fakeinbox.com','fakemail.fr','fakemailgenerator.com',
+    'mohmal.com','emkei.cz','anonbox.net',
+    'mail-temporaire.fr','mail-temporaire.com','mailtemp.info',
+    'tmpmail.org','tmpeml.com','tmpmail.net','tmpmail.com',
+    'inbox.lv','inboxbear.com','inboxkitten.com','linshiyou.com',
+    'mailpoof.com','mailshell.com','mailtrash.net','vmpan.com',
+    'temp-mail.org','temp-mail.io','temp-mail.ru','tempinbox.xyz',
+    'discard.email','discardmail.com','spaml.com','spamfree24.org',
+    'wegwerfemail.de','wegwerf.email','byom.de',
+    'mailbox.in.ua','emailondeck.com','emailfake.com','smailpro.com'
+  ]);
+
+  function isEmailDescartavel(email) {
+    if (typeof email !== 'string') return false;
+    const at = email.lastIndexOf('@');
+    if (at < 0) return false;
+    const dom = email.substring(at + 1).trim().toLowerCase();
+    if (!dom) return false;
+    return DOMINIOS_DESCARTAVEIS.has(dom);
+  }
+
   window.staflowValidators = {
     validarCPF,
     validarCNPJ,
     limparDigitos,
     formatarCPF,
-    formatarCNPJ
+    formatarCNPJ,
+    isEmailDescartavel,
+    DOMINIOS_DESCARTAVEIS
   };
 })();

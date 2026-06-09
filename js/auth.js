@@ -230,6 +230,25 @@
     }
     const user = session.user;
 
+    // ★ TRAVA — E-MAIL NÃO CONFIRMADO
+    // Se chegou aqui sem email_confirmed_at, é bypass via callback PKCE
+    // mal configurado ou alguém forçando session via SDK admin. Força
+    // signOut + sinaliza o login pra mostrar mensagem amigável.
+    // (Quando 'Confirm email' está ON no Supabase Auth, signInWithPassword
+    // já bloqueia. Esta verificação é defense in depth no nível do client.)
+    if (!user.email_confirmed_at) {
+      try { await sb.auth.signOut(); } catch (_) {}
+      const path = location.pathname || '';
+      const isPublic = ['/auth/login', '/auth/cadastro', '/auth/callback',
+                        '/auth/recuperar-senha', '/auth/nova-senha',
+                        '/staflow-landing', '/', '/404']
+        .some(p => path === p || path === p + '.html');
+      if (!isPublic) {
+        location.replace('/auth/login.html?reason=email_not_confirmed');
+      }
+      return { user: null, profile: null, subscription: null, claimed: false };
+    }
+
     // 1. Tenta vincular funcionário (idempotente — não faz nada se já estiver
     //    vinculado, e não cria nada se o email não bater)
     let claimed = false;
