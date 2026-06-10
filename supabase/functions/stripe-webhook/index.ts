@@ -1,25 +1,14 @@
 // ============================================================
-// StaFlow — Edge Function: stripe-webhook (PRONTA PARA LIVE MODE)
+// StaFlow — Edge Function: stripe-webhook (Multi-CNPJ)
 // ------------------------------------------------------------
-// Endpoint POST /functions/v1/stripe-webhook
-// Headers obrigatórios: Stripe-Signature
+// Eventos:
+//   - checkout.session.completed  → ativa condomínio pós-pagamento
+//   - customer.subscription.*     → upsert por condominio_id
+//   - invoice.paid                → reativa past_due
+//   - invoice.payment_failed      → status='past_due'
 //
-// Eventos tratados:
-//   - checkout.session.completed     → snapshot inicial pós-pagamento
-//   - customer.subscription.created  → upsert subscription
-//   - customer.subscription.updated  → upsert subscription
-//   - customer.subscription.deleted  → status = 'canceled'
-//   - invoice.paid                   → confirma renovação
-//   - invoice.payment_failed         → status = 'past_due'
-//
-// Após cada evento que afeta status, ESPELHA em condominios:
-//   - condominios.status_assinatura
-//   - condominios.stripe_subscription_id
-//   - condominios.plano
-// Isso permite ao route-guard fazer 1 query rápida sem JOIN.
-//
-// Service role bypassa RLS; segurança HMAC via Stripe-Signature
-// é verificada ANTES de qualquer escrita.
+// CHAVE DE LINK: metadata.condominio_id em TODA escrita. profile_id
+// é só pra trilha de auditoria — fonte da verdade é condominio_id.
 // ============================================================
 
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
@@ -36,38 +25,25 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-const PRICE_TO_PLAN: Record<string, "pro" | "scale"> = {
-  [Deno.env.get("STRIPE_PRICE_PRO")   ?? "_unset_pro"]:   "pro",
-  [Deno.env.get("STRIPE_PRICE_SCALE") ?? "_unset_scale"]: "scale",
+// Map price_id → plano (advanced incluído)
+const PRICE_TO_PLAN: Record<string, "pro" | "advanced" | "scale"> = {
+  [Deno.env.get("STRIPE_PRICE_PRO")      ?? "_unset_pro"]:      "pro",
+  [Deno.env.get("STRIPE_PRICE_ADVANCED") ?? "_unset_advanced"]: "advanced",
+  [Deno.env.get("STRIPE_PRICE_SCALE")    ?? "_unset_scale"]:    "scale",
 };
 
-// ============================================================
 Deno.serve(async (req) => {
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
-  }
-
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
   const signature = req.headers.get("stripe-signature");
-  if (!signature) {
-    return new Response("Missing stripe-signature header", { status: 400 });
-  }
+  if (!signature) return new Response("Missing stripe-signature", { status: 400 });
 
   const rawBody = await req.text();
-
   let event: Stripe.Event;
   try {
-    event = await stripe.webhooks.constructEventAsync(
-      rawBody, signature, WEBHOOK_SECRET,
-    );
+    event = await stripe.webhooks.constructEventAsync(rawBody, signature, WEBHOOK_SECRET);
   } catch (err) {
-    console.error("[webhook] Assinatura HMAC inválida:", (err as Error).message);
-    return new Response(
-      `Webhook signature verification failed: ${(err as Error).message}`,
-      { status: 400 },
-    );
+    return new Response(`Webhook signature failed: ${(err as Error).message}`, { status: 400 });
   }
-
-  console.log(`[webhook] Evento: ${event.type} (${event.id}) · live=${event.livemode}`);
 
   try {
     switch (event.type) {
@@ -87,91 +63,76 @@ Deno.serve(async (req) => {
       case "invoice.payment_failed":
         await handlePaymentFailed(event.data.object as Stripe.Invoice);
         break;
-      default:
-        console.log(`[webhook] Evento ignorado: ${event.type}`);
     }
-
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error(`[webhook] Erro processando ${event.type}:`, err);
-    // 500 → Stripe retenta com backoff exponencial (3 dias)
-    return new Response(
-      JSON.stringify({ error: (err as Error).message }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
+    console.error(`[webhook] ${event.type} falhou:`, err);
+    return new Response(JSON.stringify({ error: (err as Error).message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 });
 
-// ============================================================
-// HELPERS — espelho atômico em condominios
-// ============================================================
+// ─── Espelho atômico em condominios (chave: condominio_id) ───
 async function espelharNoCondominio(
   condominioId: string | null,
   data: {
     status_assinatura?: string;
     stripe_subscription_id?: string | null;
     plano?: string;
+    plano_ativo?: string;
   },
 ) {
   if (!condominioId) return;
-  const { error } = await supabase
-    .from("condominios")
-    .update(data)
-    .eq("id", condominioId);
+  const { error } = await supabase.from("condominios").update(data).eq("id", condominioId);
   if (error) console.error("[espelho condominio]", error);
 }
 
-// ============================================================
-// HANDLERS
-// ============================================================
-
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  // Snapshot inicial — confirma pagamento e linka condominio
   const profileId    = session.metadata?.profile_id    ?? null;
-  const condominioId = session.metadata?.condominio_id || null;
+  const condominioId = session.metadata?.condominio_id ?? null;
   const subId        = typeof session.subscription === "string"
     ? session.subscription
     : session.subscription?.id;
 
-  if (!profileId) {
-    console.warn(`[webhook] checkout.completed ${session.id} sem profile_id — ignorado`);
+  if (!condominioId) {
+    console.warn(`[webhook] checkout.completed ${session.id} sem condominio_id`);
     return;
   }
 
-  // Pega detalhes da subscription para saber o plano via price
-  let plano: "pro" | "scale" = "pro";
+  let plano: "pro" | "advanced" | "scale" = "pro";
   if (subId) {
     try {
       const sub = await stripe.subscriptions.retrieve(subId);
       const priceId = sub.items.data[0]?.price.id ?? null;
       if (priceId && PRICE_TO_PLAN[priceId]) plano = PRICE_TO_PLAN[priceId];
-    } catch (e) { /* fallback p/ 'pro' */ }
+    } catch (_) { /* fallback pro */ }
   }
 
   await espelharNoCondominio(condominioId, {
     status_assinatura:      "active",
     stripe_subscription_id: subId ?? null,
     plano,
+    plano_ativo:            plano,
   });
-
-  console.log(`[webhook] checkout.completed: profile=${profileId} sub=${subId} plano=${plano}`);
 }
 
 async function handleSubscriptionUpsert(sub: Stripe.Subscription) {
   const profileId    = sub.metadata?.profile_id    ?? null;
-  const condominioId = sub.metadata?.condominio_id || null;
+  const condominioId = sub.metadata?.condominio_id ?? null;
   const priceId      = sub.items.data[0]?.price.id ?? null;
   const plano        = priceId ? PRICE_TO_PLAN[priceId] : undefined;
 
-  if (!profileId) {
-    console.warn(`[webhook] Subscription ${sub.id} sem profile_id — ignorada`);
+  if (!condominioId) {
+    console.warn(`[webhook] Subscription ${sub.id} sem condominio_id — ignorada`);
     return;
   }
 
-  // Tabela subscriptions (fonte da verdade detalhada)
+  // Upsert por (profile_id, condominio_id) — N subs por user agora possível
   const payload = {
     profile_id:             profileId,
     condominio_id:          condominioId,
@@ -190,91 +151,62 @@ async function handleSubscriptionUpsert(sub: Stripe.Subscription) {
 
   const { error } = await supabase
     .from("subscriptions")
-    .upsert(payload, { onConflict: "profile_id" });
+    .upsert(payload, { onConflict: "profile_id,condominio_id" });
   if (error) throw error;
 
-  // Espelha em condominios
   await espelharNoCondominio(condominioId, {
     status_assinatura:      sub.status,
     stripe_subscription_id: sub.id,
     plano:                  plano ?? "pro",
+    plano_ativo:            plano ?? "pro",
   });
-
-  console.log(`[webhook] Subscription upserted: profile=${profileId} status=${sub.status}`);
 }
 
 async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
-  const condominioId = sub.metadata?.condominio_id || null;
+  const condominioId = sub.metadata?.condominio_id ?? null;
 
-  const { error } = await supabase
-    .from("subscriptions")
+  await supabase.from("subscriptions")
     .update({
-      status:               "canceled",
+      status: "canceled",
       cancel_at_period_end: false,
-      canceled_at:          new Date().toISOString(),
-      updated_at:           new Date().toISOString(),
+      canceled_at: new Date().toISOString(),
+      updated_at:  new Date().toISOString(),
     })
     .eq("stripe_subscription_id", sub.id);
-  if (error) throw error;
 
-  await espelharNoCondominio(condominioId, {
-    status_assinatura: "canceled",
-  });
-
-  console.log(`[webhook] Subscription canceled: ${sub.id}`);
+  await espelharNoCondominio(condominioId, { status_assinatura: "canceled" });
 }
 
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
-  // Renovação bem-sucedida — reativa se estava past_due
-  const subId = typeof invoice.subscription === "string"
-    ? invoice.subscription
-    : invoice.subscription?.id;
+  const subId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
   if (!subId) return;
-
-  // Busca a subscription pra pegar condominio_id e re-sincronizar
   try {
     const sub = await stripe.subscriptions.retrieve(subId);
-    const condominioId = sub.metadata?.condominio_id || null;
-
+    const condominioId = sub.metadata?.condominio_id ?? null;
     await supabase.from("subscriptions")
       .update({ status: sub.status, updated_at: new Date().toISOString() })
       .eq("stripe_subscription_id", subId);
-
     await espelharNoCondominio(condominioId, {
       status_assinatura:      sub.status,
       stripe_subscription_id: subId,
     });
-    console.log(`[webhook] invoice.paid: sub=${subId} status=${sub.status}`);
   } catch (e) {
     console.error("[webhook] invoice.paid lookup falhou:", e);
   }
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  const subId = typeof invoice.subscription === "string"
-    ? invoice.subscription
-    : invoice.subscription?.id;
-  if (!subId) {
-    console.warn(`[webhook] invoice.payment_failed sem subscription — ignorado`);
-    return;
-  }
+  const subId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+  if (!subId) return;
 
-  const { error } = await supabase
-    .from("subscriptions")
+  await supabase.from("subscriptions")
     .update({ status: "past_due", updated_at: new Date().toISOString() })
     .eq("stripe_subscription_id", subId);
-  if (error) throw error;
 
-  // Espelha em condominios para o route-guard bloquear acesso admin
   let condominioId: string | null = null;
   try {
     const sub = await stripe.subscriptions.retrieve(subId);
-    condominioId = sub.metadata?.condominio_id || null;
-  } catch (_) { /* segue sem espelho */ }
-
-  await espelharNoCondominio(condominioId, {
-    status_assinatura: "past_due",
-  });
-
-  console.log(`[webhook] Subscription past_due: ${subId} (route-guard vai redirecionar p/ /planos)`);
+    condominioId = sub.metadata?.condominio_id ?? null;
+  } catch (_) {}
+  await espelharNoCondominio(condominioId, { status_assinatura: "past_due" });
 }

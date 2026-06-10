@@ -1,37 +1,36 @@
 // ============================================================
-// StaFlow — Edge Function: create-checkout-session
+// StaFlow — Edge Function: create-checkout-session (Multi-CNPJ)
 // ------------------------------------------------------------
-// POST { priceId, condominioId, successUrl, cancelUrl }
-// Headers: Authorization: Bearer <supabase_access_token>
+// POST { priceId, condominioId?, condominioNome?, successUrl, cancelUrl }
 //
-// 1. Identifica o usuário pelo JWT do Supabase
-// 2. Procura customer no Stripe pelo e-mail (reuso) ou cria um
-// 3. Cria Checkout Session em modo `subscription`
-// 4. Injeta metadata { condominio_id, profile_id } para o webhook
-// 5. Retorna { url } para o frontend redirecionar
+// Casos:
+// 1. UPGRADE de condomínio existente → body.condominioId presente
+// 2. NOVO condomínio (1º, 2º+) → body.condominioNome presente
+//    Cria condominios row (status_assinatura='pending')
+//    + membros_condominio (role=sindico) e segue pro checkout.
+//    Política comercial: 2º+ condomínio SEMPRE exige plano pago.
+//
+// metadata.condominio_id é a CHAVE pro webhook.
 // ============================================================
 
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
-// ---- CORS ----------------------------------------------------
 const corsHeaders = {
   "Access-Control-Allow-Origin":  "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-condominio-id",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// ---- Clients (singletons por cold start) --------------------
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-12-18.acacia",
-  httpClient: Stripe.createFetchHttpClient(), // recomendado no Deno
+  httpClient: Stripe.createFetchHttpClient(),
 });
 
 const SUPABASE_URL          = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY     = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// ---- Helpers -------------------------------------------------
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -39,37 +38,29 @@ function json(body: unknown, status = 200) {
   });
 }
 
-// ============================================================
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-  if (req.method !== "POST") {
-    return json({ error: "Method not allowed" }, 405);
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST")    return json({ error: "Method not allowed" }, 405);
 
   try {
-    // ---- 1. Autenticar usuário pelo JWT --------------------
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return json({ error: "Sem token de autenticação." }, 401);
     }
 
-    // Cliente "como o usuário" — respeita RLS
     const supabaseUser = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
-
     const { data: { user }, error: userErr } = await supabaseUser.auth.getUser();
-    if (userErr || !user?.email) {
-      return json({ error: "Sessão inválida." }, 401);
-    }
+    if (userErr || !user?.email) return json({ error: "Sessão inválida." }, 401);
 
-    // ---- 2. Validar body -----------------------------------
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
+
     const body = await req.json().catch(() => ({}));
-    const { priceId, condominioId, successUrl, cancelUrl } = body as {
+    const { priceId, condominioId: bodyCondoId, condominioNome, successUrl, cancelUrl } = body as {
       priceId?: string;
       condominioId?: string;
+      condominioNome?: string;
       successUrl?: string;
       cancelUrl?: string;
     };
@@ -78,63 +69,90 @@ Deno.serve(async (req) => {
       return json({ error: "Faltando priceId, successUrl ou cancelUrl." }, 400);
     }
 
-    // ---- 3. Buscar/criar customer no Stripe ---------------
-    // Cliente admin (service role) para ler a subscription atual sem RLS
-    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
-    const { data: existingSub } = await supabaseAdmin
-      .from("subscriptions")
-      .select("stripe_customer_id")
-      .eq("profile_id", user.id)
-      .maybeSingle();
+    // ── Resolve condominio_id ──
+    let condominioId: string;
+    let stripeCustomerId: string | null = null;
 
-    let customerId = existingSub?.stripe_customer_id ?? null;
+    if (bodyCondoId) {
+      // UPGRADE: valida membership
+      const { data: membro } = await supabaseAdmin
+        .from("membros_condominio")
+        .select("condominio_id")
+        .eq("user_id", user.id)
+        .eq("condominio_id", bodyCondoId)
+        .maybeSingle();
+      if (!membro) return json({ error: "Você não é membro desse condomínio." }, 403);
+      condominioId = bodyCondoId;
 
-    if (!customerId) {
-      // Tenta achar por e-mail no Stripe (idempotente em re-tentativas)
-      const list = await stripe.customers.list({ email: user.email, limit: 1 });
-      if (list.data.length > 0) {
-        customerId = list.data[0].id;
+      const { data: condo } = await supabaseAdmin
+        .from("condominios")
+        .select("stripe_subscription_id")
+        .eq("id", condominioId)
+        .single();
+      if (condo?.stripe_subscription_id) {
+        try {
+          const oldSub = await stripe.subscriptions.retrieve(condo.stripe_subscription_id);
+          stripeCustomerId = typeof oldSub.customer === "string" ? oldSub.customer : oldSub.customer.id;
+        } catch (_) {}
+      }
+    } else {
+      // NOVO condomínio — exige nome
+      if (!condominioNome || condominioNome.trim().length < 2) {
+        return json({ error: "Informe o nome do condomínio." }, 400);
+      }
+
+      const { data: novoCondo, error: condoErr } = await supabaseAdmin
+        .from("condominios")
+        .insert({
+          nome:              condominioNome.trim(),
+          sindico_id:        user.id,
+          plano:             "starter",
+          plano_ativo:       "starter",
+          status_assinatura: "pending",
+          ativo:             true,
+        })
+        .select("id")
+        .single();
+      if (condoErr) throw new Error("Erro criando condomínio: " + condoErr.message);
+      condominioId = novoCondo.id;
+
+      await supabaseAdmin.from("membros_condominio").insert({
+        user_id:       user.id,
+        condominio_id: condominioId,
+        role:          "sindico",
+      });
+    }
+
+    // ── Customer Stripe (1 customer por condomínio) ──
+    if (!stripeCustomerId) {
+      const list = await stripe.customers.list({ email: user.email, limit: 10 });
+      const match = list.data.find(c => c.metadata?.condominio_id === condominioId);
+      if (match) {
+        stripeCustomerId = match.id;
       } else {
         const created = await stripe.customers.create({
           email: user.email,
-          metadata: {
-            profile_id:    user.id,
-            condominio_id: condominioId ?? "",
-          },
+          metadata: { profile_id: user.id, condominio_id: condominioId },
         });
-        customerId = created.id;
+        stripeCustomerId = created.id;
       }
     }
 
-    // ---- 4. Criar Checkout Session ------------------------
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      customer: customerId,
+      customer: stripeCustomerId,
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: successUrl,
       cancel_url:  cancelUrl,
       allow_promotion_codes: true,
-      // metadata vai tanto na Session quanto na Subscription criada,
-      // para o webhook conseguir relacionar com o condomínio.
-      metadata: {
-        profile_id:    user.id,
-        condominio_id: condominioId ?? "",
-      },
-      subscription_data: {
-        metadata: {
-          profile_id:    user.id,
-          condominio_id: condominioId ?? "",
-        },
-      },
+      metadata:           { profile_id: user.id, condominio_id: condominioId },
+      subscription_data:  { metadata: { profile_id: user.id, condominio_id: condominioId } },
     });
 
-    return json({ url: session.url, sessionId: session.id });
+    return json({ url: session.url, sessionId: session.id, condominioId });
 
   } catch (err) {
     console.error("[create-checkout-session]", err);
-    return json(
-      { error: (err as Error).message || "Erro interno." },
-      500
-    );
+    return json({ error: (err as Error).message || "Erro interno." }, 500);
   }
 });
