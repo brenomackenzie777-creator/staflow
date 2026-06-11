@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Privacidade — StaFlow</title>
+<meta name="description" content="Política de Privacidade e Proteção de Dados do StaFlow, em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018).">
+<meta name="theme-color" content="#0F1624">
+<link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --navy-deep:  #0F1624;
+  --navy:       #1A2238;
+  --navy-mid:   #212F4A;
+  --navy-soft:  #2A3D5E;
+  --teal:       #06D6A0;
+  --teal-hover: #07ebb2;
+  --teal-dim:   rgba(6,214,160,0.12);
+  --teal-border:rgba(6,214,160,0.35);
+  --amber:      #FFD166;
+  --red:        #EF4444;
+  --white:      #F0F4FF;
+  --white-dim:  rgba(240,244,255,0.65);
+  --white-muted:rgba(240,244,255,0.4);
+  --border:     rgba(240,244,255,0.10);
+  --border-strong: rgba(240,244,255,0.22);
+  --radius-btn:  8px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'DM Sans', system-ui, sans-serif;
+  --font-mono:    'DM Mono', ui-monospace, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--navy-deep);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+img, svg { display: block; max-width: 100%; }
+
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Navbar */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 14px 26px;
+  border-radius: var(--radius-btn);
+  font-family: var(--font-body); font-weight: 600; font-size: 15px;
+  border: 1px solid transparent; cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--teal); color: var(--navy-deep); box-shadow: 0 4px 24px rgba(6,214,160,0.25); }
+.btn-primary:hover { background: var(--teal-hover); transform: translateY(-1px); }
+.btn-ghost { background: transparent; color: var(--white); border-color: var(--border-strong); }
+.btn-ghost:hover { border-color: var(--white); }
+
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(15,22,36,0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; max-width: 1180px; margin: 0 auto; padding-left: 24px; padding-right: 24px;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand img { width: 32px; height: 32px; }
+.brand .wm { font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: -0.3px; }
+.brand .sta { color: var(--white); }
+.brand .flow { color: var(--teal); }
+.nav-links { display: flex; gap: 28px; align-items: center; font-size: 14px; }
+.nav-links a { color: var(--white-dim); transition: color 0.2s; }
+.nav-links a:hover { color: var(--white); }
+.nav-cta { display: flex; gap: 10px; align-items: center; }
+.nav-cta .btn-ghost { padding: 9px 18px; font-size: 14px; }
+.nav-cta .btn-primary { padding: 9px 18px; font-size: 14px; }
+@media (max-width: 760px) { .nav-links { display: none; } }
+
+/* Page header */
+.page-header {
+  padding: 60px 0 40px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 48px;
+}
+.page-header .section-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: 2.5px;
+  color: var(--teal); text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.page-header h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.1; letter-spacing: -0.8px;
+  margin-bottom: 14px;
+}
+.page-header h1 .accent { color: var(--teal); }
+.page-header .meta {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--white-muted); letter-spacing: 0.5px;
+}
+
+/* Doc content */
+.doc-content {
+  padding-bottom: 80px;
+}
+.doc-content h2 {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 20px;
+  margin-top: 48px; margin-bottom: 12px;
+  color: var(--white);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.doc-content h2:first-child { margin-top: 0; }
+.doc-content h3 {
+  font-family: var(--font-body);
+  font-weight: 600; font-size: 16px;
+  margin-top: 24px; margin-bottom: 8px;
+  color: var(--white);
+}
+.doc-content p {
+  color: var(--white-dim); font-size: 15px;
+  line-height: 1.7; margin-bottom: 14px;
+}
+.doc-content ul, .doc-content ol {
+  padding-left: 22px; margin-bottom: 14px;
+}
+.doc-content li {
+  color: var(--white-dim); font-size: 15px;
+  line-height: 1.7; margin-bottom: 6px;
+}
+.doc-content strong { color: var(--white); font-weight: 600; }
+.doc-content a { color: var(--teal); }
+.doc-content a:hover { text-decoration: underline; }
+.doc-content .highlight-box {
+  background: var(--teal-dim);
+  border: 1px solid var(--teal-border);
+  border-radius: var(--radius-card);
+  padding: 18px 22px;
+  margin: 20px 0;
+}
+.doc-content .highlight-box p { margin-bottom: 0; color: var(--white); }
+
+/* Footer */
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 40px 0 30px; margin-top: 0;
+  font-size: 13px; color: var(--white-muted);
+}
+.footer-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 16px;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px;
+}
+.footer .brand { font-size: 14px; }
+.footer-links { display: flex; gap: 22px; flex-wrap: wrap; }
+.footer-links a { color: var(--white-muted); transition: color 0.2s; }
+.footer-links a:hover { color: var(--teal); }
+.copyright { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/staflow-landing" class="brand">
+      <img src="/assets/logo-mark.svg" alt="StaFlow">
+      <div class="wm"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+    </a>
+    <div class="nav-links">
+      <a href="/staflow-landing#beneficios">Benefícios</a>
+      <a href="/staflow-landing#como-funciona">Como funciona</a>
+      <a href="/staflow-landing#preco">Planos</a>
+      <a href="/staflow-landing#faq">FAQ</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/auth/login.html" class="btn btn-ghost">Entrar</a>
+      <a href="/auth/cadastro.html" class="btn btn-primary">Começar grátis</a>
+    </div>
+  </div>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="container">
+  <div class="page-header">
+    <span class="section-tag">LGPD · LEI Nº 13.709/2018</span>
+    <h1>Política de <span class="accent">Privacidade</span></h1>
+    <div class="meta">Última atualização: Junho de 2026 · Versão 1.0</div>
+  </div>
+
+  <!-- DOC CONTENT — Versão 1.0 · Vigente a partir de 10/06/2026 (Ana) -->
+  <div class="doc-content">
+
+<section class="legal-doc" style="max-width:800px;margin:0 auto;padding:60px 24px 80px;color:var(--text-muted,#cbd5e0);font-family:'DM Sans',sans-serif;line-height:1.75;">
+
+  <div style="margin-bottom:48px;">
+    <h1 style="font-family:'Syne',sans-serif;font-size:2rem;color:#fff;margin-bottom:8px;">Política de Privacidade</h1>
+    <p style="color:var(--teal,#4dd9ac);font-size:.875rem;">Versão 1.0 &nbsp;·&nbsp; Vigente a partir de 10 de junho de 2026</p>
+  </div>
+
+  <!-- 1 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;">1. Identificação do Controlador de Dados</h2>
+    <p>O StaFlow é um serviço de software como serviço (SaaS) para controle de ponto digital em condomínios residenciais e comerciais. O responsável pelo tratamento dos dados pessoais coletados por meio da plataforma é:</p>
+    <div style="background:rgba(77,217,172,.07);border-left:3px solid var(--teal,#4dd9ac);padding:16px 20px;margin-top:12px;border-radius:0 6px 6px 0;">
+      <p style="margin:0;"><strong style="color:#fff;">Controlador:</strong> Breno Paixão<br>
+      <strong style="color:#fff;">CNPJ:</strong> 67.255.600/0001-71<br>
+      <strong style="color:#fff;">Contato:</strong> contato@staflow.com.br</p>
+    </div>
+    <p style="margin-top:12px;">Para os fins da Lei Geral de Proteção de Dados Pessoais (Lei n.º 13.709/2018 — LGPD), o Controlador é o agente que toma as decisões referentes ao tratamento dos dados pessoais descritos nesta política.</p>
+  </div>
+
+  <!-- 2 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;">2. Dados Pessoais Coletados</h2>
+    <p>O StaFlow coleta e trata as seguintes categorias de dados pessoais:</p>
+
+    <h3 style="font-size:.9375rem;color:var(--teal,#4dd9ac);margin:20px 0 8px;">2.1 Dados do Síndico ou Administrador (Usuário Gestor)</h3>
+    <ul style="margin:0;padding-left:20px;">
+      <li>Nome completo</li>
+      <li>Endereço de e-mail</li>
+      <li>Número de telefone</li>
+      <li>CNPJ do condomínio vinculado</li>
+      <li>Dados de acesso à plataforma (credenciais criptografadas)</li>
+    </ul>
+
+    <h3 style="font-size:.9375rem;color:var(--teal,#4dd9ac);margin:20px 0 8px;">2.2 Dados dos Funcionários do Condomínio (Titulares)</h3>
+    <ul style="margin:0;padding-left:20px;">
+      <li>Nome completo</li>
+      <li>CPF, validado pelo algoritmo oficial da Receita Federal</li>
+      <li>Registros de ponto: data, hora de entrada e hora de saída</li>
+      <li>Localização geográfica (latitude e longitude), coletada pontualmente no momento do registro de ponto, exclusivamente para verificação de autenticidade antifraude; não há rastreamento contínuo ou em segundo plano</li>
+      <li>Metadados do dispositivo utilizados para detecção de localização simulada (<em>mock location</em>), incluindo sinais de <em>accuracy</em> artificial, flag de localização mockada exposta pelo sistema operacional, <em>drift</em> de <em>timestamp</em> e perfil de <em>spoofing</em></li>
+      <li>Atestados médicos e documentos de afastamento, classificados como <strong style="color:#fff;">dados de saúde — categoria especial de dado sensível</strong> nos termos do Art. 11 da LGPD — armazenados em ambiente com acesso estritamente restrito</li>
+      <li>Informações de jornada: horas trabalhadas, horas extras, escala e provisões trabalhistas calculadas automaticamente</li>
+    </ul>
+  </div>
+
+  <!-- 3 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;">3. Finalidade e Base Legal do Tratamento</h2>
+    <p>O tratamento dos dados pessoais descritos nesta política fundamenta-se nas seguintes hipóteses legais previstas na LGPD:</p>
+
+    <h3 style="font-size:.9375rem;color:var(--teal,#4dd9ac);margin:20px 0 8px;">3.1 Execução de contrato (Art. 7º, inciso V)</h3>
+    <p>O tratamento é necessário para a execução do contrato de prestação de serviços firmado entre o Controlador e o síndico ou administradora. Abrange a operação do sistema de ponto digital, a geração de relatórios de jornada, o cálculo de provisões trabalhistas (13º salário, férias, FGTS, passivo estimado) e a entrega de todas as funcionalidades contratadas.</p>
+
+    <h3 style="font-size:.9375rem;color:var(--teal,#4dd9ac);margin:20px 0 8px;">3.2 Cumprimento de obrigação legal ou regulatória (Art. 7º, inciso II)</h3>
+    <p>O tratamento é necessário para apoiar o cumprimento das obrigações de registro de jornada impostas pela CLT (Art. 74, §2º), pela Portaria MTE 671 e demais normas trabalhistas aplicáveis aos empregados de condomínios.</p>
+
+    <h3 style="font-size:.9375rem;color:var(--teal,#4dd9ac);margin:20px 0 8px;">3.3 Legítimo interesse do Controlador (Art. 7º, inciso IX)</h3>
+    <p>O tratamento é necessário para a detecção e prevenção de fraudes no registro de ponto por meio de GPS antifraude com quatro sinais de verificação, para a proteção da integridade dos registros via hash SHA-256 e para a prevenção de passivo trabalhista decorrente de irregularidades na jornada.</p>
+
+    <h3 style="font-size:.9375rem;color:var(--teal,#4dd9ac);margin:20px 0 8px;">3.4 Consentimento do titular (Art. 7º, inciso I, e Art. 11, inciso I)</h3>
+    <p>Para o tratamento de dados de saúde — especificamente os atestados médicos e documentos de afastamento —, o tratamento é realizado com base no consentimento expresso do titular, obtido por aceite explícito no momento do <em>upload</em> do documento.</p>
+  </div>
+
+  <!-- 4 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;">4. Coleta de Dados de Localização (GPS)</h2>
+    <p>A coleta de dados de localização geográfica ocorre <strong style="color:#fff;">exclusivamente no momento em que o funcionário registra o ponto</strong> pelo aplicativo StaFlow. Trata-se de uma coleta pontual e finalística, não de rastreamento contínuo ou permanente.</p>
+    <p>A localização coletada é utilizada para verificar a autenticidade do registro por meio de quatro sinais antifraude: (i) precisão artificial suspeita; (ii) flag de localização simulada exposta pelo sistema operacional; (iii) desvio entre o <em>timestamp</em> do dispositivo e o horário real; e (iv) perfil clássico de aplicativo de localização falsa.</p>
+    <p>Os dados de localização não são compartilhados com terceiros para fins de marketing, monitoramento comportamental ou publicidade.</p>
+  </div>
+
+  <!-- 5 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;">5. Armazenamento e Segurança</h2>
+    <p>Os dados pessoais são armazenados em servidores gerenciados pela Supabase (banco de dados PostgreSQL em infraestrutura em nuvem), com as seguintes salvaguardas:</p>
+    <ul style="margin:0;padding-left:20px;">
+      <li>Isolamento por condomínio (multi-tenancy) implementado por <strong style="color:#fff;">Row Level Security (RLS)</strong>, garantindo que cada gestor acesse exclusivamente os dados do seu próprio condomínio</li>
+      <li>Atestados médicos armazenados em <strong style="color:#fff;">bucket privado</strong>, inacessível publicamente, com acesso apenas por URL assinada com expiração de 1 hora (Signed URL)</li>
+      <li>Registros de ponto protegidos por <strong style="color:#fff;">hash SHA-256</strong>; qualquer alteração posterior modifica o hash e permite detectar violações de integridade</li>
+      <li>Transmissão de todos os dados exclusivamente via <strong style="color:#fff;">HTTPS com TLS</strong></li>
+      <li>Funcionamento offline por meio de IndexedDB local no dispositivo, com sincronização segura ao restabelecer conexão</li>
+    </ul>
+    <p style="margin-top:12px;">Incidentes de segurança relevantes serão comunicados à ANPD e aos titulares afetados nos prazos e formas previstos na LGPD.</p>
+  </div>
+
+  <!-- 6 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;">6. Compartilhamento de Dados</h2>
+    <p>Os dados pessoais tratados pelo StaFlow <strong style="color:#fff;">não são vendidos, cedidos ou compartilhados</strong> com terceiros para fins comerciais. O compartilhamento ocorre apenas nas seguintes situações:</p>
+    <ul style="margin:0;padding-left:20px;">
+      <li>Com fornecedores de infraestrutura (<strong style="color:#fff;">Supabase</strong> e <strong style="color:#fff;">Vercel</strong>), estritamente para viabilizar a operação do serviço, mediante obrigações contratuais de proteção de dados</li>
+      <li>Por determinação legal, regulatória ou ordem judicial de autoridade competente</li>
+      <li>Em caso de fusão ou transferência de ativos do negócio, com notificação prévia aos titulares</li>
+    </ul>
+  </div>
+
+  <!-- 7 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;">7. Direitos dos Titulares</h2>
+    <p>Nos termos dos Arts. 17 a 22 da LGPD, os titulares têm os seguintes direitos, exercíveis a qualquer tempo:</p>
+    <ul style="margin:0;padding-left:20px;">
+      <li><strong style="color:#fff;">Confirmação</strong> da existência do tratamento</li>
+      <li><strong style="color:#fff;">Acesso</strong> aos dados pessoais</li>
+      <li><strong style="color:#fff;">Correção</strong> de dados incompletos, inexatos ou desatualizados</li>
+      <li><strong style="color:#fff;">Anonimização, bloqueio ou eliminação</strong> de dados desnecessários ou tratados em desconformidade</li>
+      <li><strong style="color:#fff;">Portabilidade</strong> dos dados a outro fornecedor</li>
+      <li><strong style="color:#fff;">Eliminação</strong> dos dados tratados com base em consentimento</li>
+      <li><strong style="color:#fff;">Revogação do consentimento</strong>, a qualquer momento, de forma gratuita e facilitada</li>
+    </ul>
+    <p style="margin-top:12px;">Para exercer qualquer desses direitos, envie soli
