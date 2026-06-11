@@ -551,17 +551,17 @@ const T  = window.staflowApp.toast;
    ENFORCEMENT DE LIMITES POR PLANO (definido pelo CFO/Co-Work)
    ────────────────────────────────────────────────────────────────
    - Starter:    até 5 funcionários ativos
-   - Pro:        até 20
-   - Scale:      ilimitado
-   - Enterprise: ilimitado
+   - Pro:        até 15
+   - Advanced:   até 35
+   - Scale:      até 100
    O plano vem do espelho condominios.plano (migração 020 sincroniza
    automaticamente via stripe-webhook após pagamento bem-sucedido).
 ═══════════════════════════════════════════════════════════════ */
 const PLAN_LIMITS = {
-  starter:    3,           // alinhado com pricing oficial CFO (era 5 — discrepância)
-  pro:        20,
-  scale:      Infinity,
-  enterprise: Infinity
+  starter:  3,
+  pro:      15,
+  advanced: 35,
+  scale:    100,
 };
 
 let planoAtual = 'starter';   // default conservador até loadPlano() resolver
@@ -571,7 +571,7 @@ function getPlanLimit() {
 }
 
 function planLabel(p) {
-  return ({ starter:'Starter', pro:'Pro', scale:'Scale', enterprise:'Enterprise' })[p] || p;
+  return ({ starter:'Starter', pro:'Pro', advanced:'Advanced', scale:'Scale' })[p] || p;
 }
 
 function openUpgradeModal() {
