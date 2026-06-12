@@ -24,6 +24,8 @@
     if (msg.includes('password should be at least'))   return 'A senha deve ter pelo menos 8 caracteres.';
     if (msg.includes('rate limit'))                    return 'Muitas tentativas. Aguarde um minuto e tente novamente.';
     if (msg.includes('over_email_send_rate_limit'))    return 'Aguarde alguns segundos antes de pedir outro e-mail.';
+    if (msg.includes('security purposes') ||
+        msg.includes('only request this after'))       return 'Aguarde alguns instantes antes de solicitar outro e-mail.';
     if (msg.includes('token has expired') ||
         msg.includes('invalid token'))                 return 'Link expirado. Solicite um novo.';
     if (msg.includes('network'))                       return 'Sem conexão. Verifique sua internet.';
@@ -261,13 +263,76 @@
     const profRes = await getProfile();
     const profile = profRes.ok ? profRes.data : null;
 
-    // 3. Subscription só faz sentido para admin/sindico
-    let subscription = null;
+    // 3. ★ MULTI-CNPJ — Lista condomínios do user (alimenta o switcher)
+    //    e resolve o "ativo" persistido em localStorage.
+    let condominios = [];
+    let condominioAtualId = null;
     if (profile && (profile.role === 'sindico' || profile.role === 'admin')) {
-      subscription = await checkSubscription();
+      try {
+        const r = await sb.rpc('meus_condominios');
+        condominios = r?.data || [];
+        // Lê seleção persistida; valida se ainda é membro
+        const persisted = (() => { try { return localStorage.getItem('staflow_condo_atual'); } catch(_) { return null; }})();
+        if (persisted && condominios.some(c => c.condominio_id === persisted)) {
+          condominioAtualId = persisted;
+        } else if (condominios.length > 0) {
+          condominioAtualId = condominios[0].condominio_id;
+          try { localStorage.setItem('staflow_condo_atual', condominioAtualId); } catch(_) {}
+        }
+      } catch (_) { /* RPC pode falhar — segue com lista vazia */ }
     }
 
-    return { user, profile, subscription, claimed };
+    // 3b. Propaga o condomínio ativo no header HTTP do cliente Supabase
+    //    pra que my_condominio_id() leia do contexto correto.
+    if (condominioAtualId && sb.rest?.headers) {
+      sb.rest.headers['x-condominio-id'] = condominioAtualId;
+    }
+
+    // 4. Subscription do condomínio ATIVO (não mais do user)
+    let subscription = null;
+    if (profile && (profile.role === 'sindico' || profile.role === 'admin') && condominioAtualId) {
+      subscription = await checkSubscriptionPorCondo(condominioAtualId);
+    }
+
+    return { user, profile, subscription, claimed, condominios, condominioAtualId };
+  }
+
+  // ---------- MULTI-CNPJ HELPERS ----------
+  // Subscription do condomínio específico (não mais do user).
+  async function checkSubscriptionPorCondo(condoId) {
+    try {
+      const { data, error } = await sb
+        .from('subscriptions')
+        .select('*')
+        .eq('condominio_id', condoId)
+        .maybeSingle();
+      if (error || !data) return null;
+      const statusValido  = data.status === 'active' || data.status === 'trialing';
+      const periodoValido = data.current_period_end == null ||
+                            new Date(data.current_period_end) > new Date();
+      if (statusValido && periodoValido) return data;
+      return {
+        ...data,
+        _blocked: true,
+        _reason: !statusValido
+          ? (data.status === 'past_due' ? 'past_due'
+            : data.status === 'canceled' ? 'canceled' : 'inactive')
+          : 'expired'
+      };
+    } catch { return null; }
+  }
+
+  // Troca o condomínio ativo. Persiste, propaga no header e dispara reload.
+  function switchCondominio(condoId) {
+    if (!condoId) return;
+    try { localStorage.setItem('staflow_condo_atual', condoId); } catch(_) {}
+    if (sb.rest?.headers) sb.rest.headers['x-condominio-id'] = condoId;
+    // Reload para reidratar todo o estado da página com o novo contexto
+    location.reload();
+  }
+
+  function getCondominioAtualId() {
+    try { return localStorage.getItem('staflow_condo_atual'); } catch(_) { return null; }
   }
 
   // ---------- API GLOBAL ----------
@@ -276,6 +341,8 @@
     resetPassword, updatePassword, resendConfirmation,
     getCurrentUser, getCurrentSession, onAuthStateChange,
     getProfile, updateProfile,
-    checkAuth, checkSubscription, loadFullSession, traduzirErro
+    checkAuth, checkSubscription, checkSubscriptionPorCondo,
+    loadFullSession, traduzirErro,
+    switchCondominio, getCondominioAtualId
   };
 })();

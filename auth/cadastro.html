@@ -6,7 +6,8 @@
 <title>Criar conta — StaFlow</title>
 <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./auth.css">
 <style>
 /* ─── Toggle Síndico/Colaborador (segmented control) ──────── */
@@ -218,6 +219,12 @@
           <input class="input" id="conf" type="password" autocomplete="new-password" placeholder="Repita a senha" required>
           <span class="field-error">As senhas não coincidem.</span>
         </div>
+
+        <label class="checkbox-label" id="f-termos">
+          <input type="checkbox" id="termos">
+          <span>Li e aceito os <a href="../politica-privacidade.html" target="_blank" class="auth-link">Termos de Uso</a> e a
+          <a href="../politica-privacidade.html" target="_blank" class="auth-link">Política de Privacidade</a></span>
+        </label>
 
         <button class="btn" id="btn-next" type="submit">
           <span class="spinner"></span>
@@ -566,6 +573,12 @@ document.getElementById('form-1').addEventListener('submit', async (e) => {
   }
   if (senha.length < 8)       { document.getElementById('f-senha').classList.add('has-error'); bad = true; }
   if (senha !== conf)         { document.getElementById('f-conf').classList.add('has-error'); bad = true; }
+  document.getElementById('f-termos').classList.remove('has-error');
+  if (!document.getElementById('termos').checked) {
+    document.getElementById('f-termos').classList.add('has-error');
+    toast('Você precisa aceitar os Termos de Uso e a Política de Privacidade.', 'error');
+    bad = true;
+  }
   if (bad) return;
 
   state.nome = nome; state.email = email; state.senha = senha;

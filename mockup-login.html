@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Login · StaFlow</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:          #090E1A;
+  --bg-base:     #0D1526;
+  --surface-1:   #111E35;
+  --surface-2:   #162440;
+  --teal:        #06D6A0;
+  --teal-hover:  #08EBB3;
+  --teal-dim:    rgba(6,214,160,0.10);
+  --teal-border: rgba(6,214,160,0.28);
+  --blue:        #4A9EFF;
+  --text:        #E2EAF4;
+  --text-muted:  #5A7A9A;
+  --text-faint:  #2A3D55;
+  --border:      rgba(226,234,244,0.07);
+  --border-strong: rgba(226,234,244,0.14);
+  --font-display: 'Syne', sans-serif;
+  --font-body:   'DM Sans', sans-serif;
+  --font-mono:   'DM Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle radial glow top-right */
+body::before {
+  content: '';
+  position: fixed;
+  top: -200px; right: -200px;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(74,158,255,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -150px; left: -150px;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(6,214,160,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Card */
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 40px 40px 36px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Brand */
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 32px;
+}
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+.wordmark .sta { color: var(--text); }
+.wordmark .flow { color: var(--teal); }
+.tagline {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-top: 6px;
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin-bottom: 28px;
+}
+
+/* Form title */
+.form-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.form-sub {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 28px;
+  line-height: 1.5;
+}
+
+/* Field */
+.field { margin-bottom: 18px; }
+.field label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 7px;
+}
+.input-wrap { position: relative; }
+.field input {
+  width: 100%;
+  background: var(--bg-base);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 11px 14px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field input::placeholder { color: var(--text-faint); }
+.field input:focus {
+  border-color: var(--teal-border);
+  box-shadow: 0 0 0 3px var(--teal-dim);
+}
+.toggle-pass {
+  position: absolute;
+  right: 12px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+}
+.toggle-pass:hover { color: var(--teal); }
+
+/* Button */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 13px;
+  border-radius: 6px;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  margin-top: 8px;
+}
+.btn-primary {
+  background: var(--teal);
+  color: #090E1A;
+  box-shadow: 0 4px 20px rgba(6,214,160,0.20);
+}
+.btn-primary:hover {
+  background: var(--teal-hover);
+  transform: translateY(-1px);
+}
+
+/* Links */
+.aux {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+.aux a {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.aux a:hover { color: var(--teal); }
+
+/* Footer */
+footer {
+  margin-top: 28px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="brand">
+    <div class="wordmark"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+    <div class="tagline">Uma jornada mais prática</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <h1 class="form-title">Entrar</h1>
+  <p class="form-sub">Acesse o painel do seu condomínio.</p>
+
+  <form>
+    <div class="field">
+      <label for="email">E-mail</label>
+      <input id="email" type="email" placeholder="voce@condominio.com.br">
+    </div>
+
+    <div class="field">
+      <label for="senha">Senha</label>
+      <div class="input-wrap">
+        <input id="senha" type="password" placeholder="••••••••">
+        <button class="toggle-pass" type="button">VER</button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Entrar</button>
+
+    <div class="aux">
+      <a href="#">Esqueci minha senha</a>
+      <a href="#">Criar conta</a>
+    </div>
+  </form>
+</div>
+
+<footer>© 2026 StaFlow · Todos os direitos reservados</footer>
+
+</body>
+</html>

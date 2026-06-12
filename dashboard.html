@@ -8,55 +8,122 @@
 <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="auth/auth.css">
 <link rel="stylesheet" href="app.css">
 <style>
 /* ─────────────────────────────────────────────
-   Stats operacionais (4 cards no topo)
+   KPI cards (topo do dashboard)
 ───────────────────────────────────────────── */
-.stats {
+.kpi-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
   margin-bottom: 28px;
 }
-.stat {
+.kpi-card {
   background: var(--navy);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 18px 18px 20px;
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
   transition: var(--transition);
-  cursor: pointer;
   text-decoration: none;
   color: inherit;
-  display: block;
 }
-.stat:hover { border-color: var(--border-strong); transform: translateY(-2px); }
-.stat-label {
-  font-family: var(--font-mono);
-  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+.kpi-card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+.kpi-icon {
+  width: 38px; height: 38px;
+  border-radius: var(--radius-md);
+  background: rgba(var(--icon-color-rgb, 59,130,246), 0.12);
+  border: 1px solid rgba(var(--icon-color-rgb, 59,130,246), 0.3);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  color: var(--icon-color, var(--blue));
+}
+.kpi-icon svg { width: 18px; height: 18px; }
+.kpi-body { flex: 1; min-width: 0; }
+.kpi-label {
+  font-size: 12px;
   color: var(--white-muted);
+  margin-bottom: 4px;
 }
-.stat-value {
+.kpi-value {
   font-family: var(--font-display);
-  font-weight: 800; font-size: 32px;
+  font-size: 26px; font-weight: 800;
+  letter-spacing: -0.5px;
   color: var(--white); line-height: 1.1;
-  margin-top: 8px;
 }
-.stat-foot {
-  margin-top: 8px; font-size: 12px; color: var(--white-dim);
-  display: flex; align-items: center; gap: 6px;
+.kpi-trend {
+  font-size: 11px; margin-top: 6px; font-weight: 500;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  color: var(--white-dim);
 }
-.stat-foot .pill {
+.trend-up   { color: var(--green, #10B981); }
+.trend-down { color: var(--red); }
+.trend-flat { color: var(--white-faint, var(--white-muted)); }
+.kpi-trend .pill {
   font-family: var(--font-mono);
   font-size: 10px; letter-spacing: 1px;
   padding: 2px 6px; border-radius: 2px;
   background: var(--teal-dim); color: var(--teal);
 }
-.stat-foot .pill.amber { background: rgba(255,209,102,0.12); color: var(--amber); }
-.stat-foot .pill.red   { background: rgba(255,107,107,0.12); color: var(--red); }
-.stat-foot .pill.teal  { background: var(--teal-dim); color: var(--teal); }
+.kpi-trend .pill.amber { background: rgba(255,209,102,0.12); color: var(--amber); }
+.kpi-trend .pill.red   { background: rgba(255,107,107,0.12); color: var(--red); }
+.kpi-trend .pill.teal  { background: var(--teal-dim); color: var(--teal); }
+.kpi-trend .pill.audit-red {
+  background: rgba(255,107,107,0.14); color: var(--red); border: 1px solid rgba(255,107,107,0.30);
+}
+.kpi-trend .pill.audit-amber {
+  background: rgba(255,209,102,0.10); color: var(--amber); border: 1px solid rgba(255,209,102,0.25);
+}
+
+/* ─────────────────────────────────────────────
+   Badges de status
+───────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-sm, 4px);
+  font-size: 11px; font-weight: 500;
+  white-space: nowrap;
+}
+.badge-green  { background:rgba(16,185,129,0.12); color:#10B981; border:1px solid rgba(16,185,129,0.3); }
+.badge-blue   { background:rgba(59,130,246,0.12);  color:#3B82F6; border:1px solid rgba(59,130,246,0.3); }
+.badge-red    { background:rgba(239,68,68,0.12);   color:#EF4444; border:1px solid rgba(239,68,68,0.3); }
+.badge-amber  { background:rgba(245,158,11,0.12);  color:#F59E0B; border:1px solid rgba(245,158,11,0.3); }
+.badge-gray   { background:rgba(107,114,128,0.15); color:#9CA3AF; border:1px solid rgba(107,114,128,0.3); }
+
+/* ─────────────────────────────────────────────
+   Charts — horas da semana + status da equipe
+───────────────────────────────────────────── */
+.charts-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.chart-panel h2 .sub {
+  font-size: 11px; font-weight: 400; color: var(--white-muted);
+  margin-left: 8px;
+}
+.chart-wrap { position: relative; height: 240px; margin-top: 14px; }
+.chart-wrap.donut { height: 190px; }
+.donut-legend {
+  display: flex; gap: 16px; justify-content: center;
+  margin-top: 14px; font-size: 12px; color: var(--white-dim); flex-wrap: wrap;
+}
+.donut-legend .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block; margin-right: 6px;
+}
+.donut-legend-item { display: flex; align-items: center; }
+.donut-legend-item strong { margin-left: 6px; color: var(--white); }
+@media (max-width: 980px) {
+  .charts-row { grid-template-columns: 1fr; }
+}
 
 /* ─────────────────────────────────────────────
    Section divider — título de seção + helper
@@ -328,27 +395,11 @@
 /* ─────────────────────────────────────────────
    Responsivo
 ───────────────────────────────────────────── */
-@media (max-width: 1300px) {
-  .stats { grid-template-columns: repeat(3, 1fr); }
-}
 @media (max-width: 1100px) {
   .provisao-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 980px) {
-  .stats { grid-template-columns: repeat(2, 1fr); }
   .row { grid-template-columns: 1fr; }
-}
-
-/* Pill no card de auditoria */
-.stat .stat-foot .pill.audit-red {
-  background: rgba(255,107,107,0.14);
-  color: var(--red);
-  border: 1px solid rgba(255,107,107,0.30);
-}
-.stat .stat-foot .pill.audit-amber {
-  background: rgba(255,209,102,0.10);
-  color: var(--amber);
-  border: 1px solid rgba(255,209,102,0.25);
 }
 @media (max-width: 560px) {
   .provisao-grid { grid-template-columns: 1fr; }
@@ -375,34 +426,86 @@
       </div>
     </div>
 
-    <!-- ═══════ STATS OPERACIONAIS ═══════ -->
-    <section class="stats">
-      <a href="/funcionarios.html" class="stat">
-        <div class="stat-label">Funcionários ativos</div>
-        <div class="stat-value" id="s-funcionarios">—</div>
-        <div class="stat-foot">Toque para ver equipe</div>
+    <!-- ═══════ KPI CARDS ═══════ -->
+    <section class="kpi-grid">
+      <a href="/funcionarios.html" class="kpi-card">
+        <div class="kpi-icon" style="--icon-color:#3B82F6;--icon-color-rgb:59,130,246">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="kpi-body">
+          <p class="kpi-label">Funcionários ativos</p>
+          <p class="kpi-value" id="s-funcionarios">—</p>
+          <p class="kpi-trend trend-flat" id="s-funcionarios-foot">Toque para ver equipe</p>
+        </div>
       </a>
-      <a href="/ponto.html" class="stat">
-        <div class="stat-label">Presentes hoje</div>
-        <div class="stat-value" id="s-presentes">—</div>
-        <div class="stat-foot" id="s-presentes-foot">Ver registro de ponto</div>
+      <a href="/ponto.html" class="kpi-card">
+        <div class="kpi-icon" style="--icon-color:#10B981;--icon-color-rgb:16,185,129">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div class="kpi-body">
+          <p class="kpi-label">Presentes hoje</p>
+          <p class="kpi-value" id="s-presentes">—</p>
+          <p class="kpi-trend trend-flat" id="s-presentes-foot">Ver registro de ponto</p>
+        </div>
       </a>
-      <a href="/tarefas.html" class="stat">
-        <div class="stat-label">Tarefas pendentes</div>
-        <div class="stat-value" id="s-tarefas">—</div>
-        <div class="stat-foot">Ver todas as tarefas</div>
+      <a href="/ponto.html" class="kpi-card">
+        <div class="kpi-icon" style="--icon-color:#F59E0B;--icon-color-rgb:245,158,11">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="kpi-body">
+          <p class="kpi-label">Horas trabalhadas (mês)</p>
+          <p class="kpi-value" id="s-horas-mes">—</p>
+          <p class="kpi-trend trend-flat" id="s-horas-mes-foot">Calculando…</p>
+        </div>
       </a>
-      <a href="/faltas.html" class="stat">
-        <div class="stat-label">Faltas na semana</div>
-        <div class="stat-value" id="s-faltas">—</div>
-        <div class="stat-foot" id="s-faltas-foot">Ver registro de faltas</div>
+      <a href="/faltas.html" class="kpi-card">
+        <div class="kpi-icon" style="--icon-color:#EF4444;--icon-color-rgb:239,68,68">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="10" y1="14" x2="14" y2="18"/><line x1="14" y1="14" x2="10" y2="18"/></svg>
+        </div>
+        <div class="kpi-body">
+          <p class="kpi-label">Faltas no mês</p>
+          <p class="kpi-value" id="s-faltas-mes">—</p>
+          <p class="kpi-trend trend-flat" id="s-faltas-mes-foot">Calculando…</p>
+        </div>
       </a>
-      <a href="/ponto.html" class="stat" id="card-audit">
-        <div class="stat-label">Auditoria GPS · hoje</div>
-        <div class="stat-value" id="s-audit">—</div>
-        <div class="stat-foot" id="s-audit-foot">Sem inconformidades</div>
+      <a href="/tarefas.html" class="kpi-card">
+        <div class="kpi-icon" style="--icon-color:#8B5CF6;--icon-color-rgb:139,92,246">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>
+        </div>
+        <div class="kpi-body">
+          <p class="kpi-label">Tarefas pendentes</p>
+          <p class="kpi-value" id="s-tarefas">—</p>
+          <p class="kpi-trend trend-flat">Ver todas as tarefas</p>
+        </div>
+      </a>
+      <a href="/ponto.html" class="kpi-card" id="card-audit">
+        <div class="kpi-icon" style="--icon-color:#9CA3AF;--icon-color-rgb:107,114,128">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="kpi-body">
+          <p class="kpi-label">Auditoria GPS · hoje</p>
+          <p class="kpi-value" id="s-audit">—</p>
+          <p class="kpi-trend trend-flat" id="s-audit-foot">Sem inconformidades</p>
+        </div>
       </a>
     </section>
+
+    <!-- ═══════ GRÁFICOS — HORAS DA SEMANA + STATUS DA EQUIPE ═══════ -->
+    <div class="section-divider">
+      <h2>Indicadores</h2>
+      <span class="helper">SEMANA ATUAL · STATUS DA EQUIPE</span>
+    </div>
+    <div class="charts-row">
+      <section class="card chart-panel">
+        <h2>Horas Trabalhadas — Semana Atual <span class="sub" id="chart-horas-sub">Carregando…</span></h2>
+        <div class="chart-wrap"><canvas id="chart-horas"></canvas></div>
+      </section>
+      <section class="card chart-panel">
+        <h2>Status da Equipe</h2>
+        <div class="chart-wrap donut"><canvas id="chart-status"></canvas></div>
+        <div class="donut-legend" id="donut-legend"></div>
+      </section>
+    </div>
 
     <!-- ═══════ COMPLIANCE FINANCEIRO — PROVISÕES ═══════ -->
     <div class="section-divider">
@@ -479,6 +582,7 @@
 </div>
 
 <!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
@@ -520,25 +624,12 @@ function brl(v) {
   });
 }
 
-function tempoAtras(d) {
-  const ms = Date.now() - new Date(d).getTime();
-  const s = Math.floor(ms / 1000);
-  if (s < 60)  return s + 's atrás';
-  const m = Math.floor(s/60);
-  if (m < 60)  return m + 'min atrás';
-  const h = Math.floor(m/60);
-  if (h < 24)  return h + 'h atrás';
-  const dd = Math.floor(h/24);
-  if (dd < 30) return dd + 'd atrás';
-  return new Date(d).toLocaleDateString('pt-BR');
-}
-
 /* ════════════════════════════════════════════════════════════════
    loadStats — métricas operacionais e equipe recente
    (lógica original mantida, apenas reorganizada para clareza)
    ════════════════════════════════════════════════════════════════ */
 async function loadStats() {
-  window.staflowApp.skeletonStats(['s-funcionarios','s-presentes','s-tarefas','s-faltas','s-audit']);
+  window.staflowApp.skeletonStats(['s-funcionarios','s-presentes','s-tarefas','s-audit','s-horas-mes','s-faltas-mes']);
   const recentArea = document.getElementById('recent-area');
   if (recentArea) {
     recentArea.innerHTML = Array.from({ length: 4 }).map(() => `
@@ -556,15 +647,12 @@ async function loadStats() {
   const hoje = new Date();
   const inicioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
   const fimDia    = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1).toISOString();
-  const dow       = hoje.getDay() === 0 ? 6 : hoje.getDay() - 1;
-  const inicioSemana = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - dow).toISOString();
   const hojeISO   = inicioDia.split('T')[0];
 
   const [
     { count: totalAtivos },
     { data: pontosHoje },
     { count: tarefasPendentes },
-    { data: faltasSemanaRows },
     { data: faltasHoje },
     { data: ultimos },
     { data: auditoriaHoje }
@@ -572,7 +660,6 @@ async function loadStats() {
     sb.from('funcionarios').select('id', { count:'exact', head:true }).eq('ativo', true),
     sb.from('registros_ponto').select('funcionario_id, tipo').gte('registrado_em', inicioDia).lt('registrado_em', fimDia),
     sb.from('tarefas').select('id', { count:'exact', head:true }).in('status', ['pendente','em_andamento']),
-    sb.from('faltas').select('id, tipo, justificada, data').gte('data', inicioSemana.split('T')[0]),
     sb.from('faltas').select('funcionario_id, tipo, justificada').eq('data', hojeISO),
     sb.from('funcionarios').select('id, nome, cargo, foto_path, created_at, ativo').eq('ativo', true).order('created_at', { ascending:false }).limit(4),
     sb.from('registros_ponto').select('audit_status').gte('registrado_em', inicioDia).lt('registrado_em', fimDia).not('audit_status','is',null)
@@ -598,29 +685,14 @@ async function loadStats() {
     else if (r.tipo === 'falta' && !r.justificada) faltasInjustHoje++;
   });
 
-  const semanaTotal    = (faltasSemanaRows || []).length;
-  const semanaAtestado = (faltasSemanaRows || []).filter(r => r.tipo === 'atestado').length;
-  const semanaInjust   = (faltasSemanaRows || []).filter(r => r.tipo === 'falta' && !r.justificada).length;
-
   document.getElementById('s-funcionarios').textContent = totalAtivos ?? 0;
   document.getElementById('s-presentes').textContent    = presentes;
   document.getElementById('s-tarefas').textContent      = tarefasPendentes ?? 0;
-  document.getElementById('s-faltas').textContent       = semanaTotal;
 
   const footPres = document.getElementById('s-presentes-foot');
   if (afastadosHojeIds.size > 0)      footPres.innerHTML = `<span class="pill amber">${afastadosHojeIds.size} em atestado/licença</span>`;
   else if (faltasInjustHoje > 0)      footPres.innerHTML = `<span class="pill red">${faltasInjustHoje} falta(s) injustificada(s) hoje</span>`;
   else                                footPres.textContent = 'Ver registro de ponto';
-
-  const footFaltas = document.getElementById('s-faltas-foot');
-  if (semanaTotal > 0) {
-    const parts = [];
-    if (semanaInjust > 0)   parts.push(`<span class="pill red">${semanaInjust} injust.</span>`);
-    if (semanaAtestado > 0) parts.push(`<span class="pill amber">${semanaAtestado} atestado(s)</span>`);
-    footFaltas.innerHTML = parts.join(' ') || 'Ver registro de faltas';
-  } else {
-    footFaltas.textContent = 'Ver registro de faltas';
-  }
 
   // ── Card de Auditoria GPS — varre audit_status do dia ──
   const audit = auditoriaHoje || [];
@@ -654,6 +726,12 @@ async function loadStats() {
   //   2. Foto via signed URL em batch (bucket privado fotos-funcionarios)
   //   3. Fallback elegante para iniciais quando não há foto
   await renderEquipeRecente(ultimos);
+
+  await loadIndicadores({
+    totalAtivos: totalAtivos ?? 0,
+    presentes,
+    afastados: afastadosHojeIds.size
+  });
 }
 
 async function renderEquipeRecente(rows) {
@@ -684,7 +762,7 @@ async function renderEquipeRecente(rows) {
     }
 
     area.innerHTML = rows.map(f => `
-      <div class="activity-item">
+      <div class="activity-item" data-func-id="${f.id}" data-func-nome="${f.nome}">
         <div class="av" style="overflow:hidden;">${
           urlMap[f.foto_path]
             ? `<img src="${urlMap[f.foto_path]}" alt="${window.staflowApp.iniciais(f.nome)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
@@ -692,16 +770,226 @@ async function renderEquipeRecente(rows) {
         }</div>
         <div class="meta">
           <div class="who">${f.nome}</div>
-          <div class="what">${CARGO_LBL[f.cargo] || f.cargo}${f.ativo ? '' : ' · inativo'}</div>
+          <div class="what">${CARGO_LBL[f.cargo] || f.cargo}</div>
         </div>
-        <div class="when">${tempoAtras(f.created_at)}</div>
+        <div class="when">
+          <span class="badge ${f.ativo ? 'badge-green' : 'badge-gray'}">${f.ativo ? 'Ativo' : 'Inativo'}</span>
+        </div>
       </div>
     `).join('');
+
+    area.querySelectorAll('.activity-item[data-func-id]').forEach(el => {
+      el.addEventListener('mouseenter', () => handleFuncHover(el.dataset.funcId, el.dataset.funcNome));
+      el.addEventListener('mouseleave', restoreChartGeral);
+    });
   } catch (err) {
     // SEMPRE limpa o skeleton, mesmo em falha — evita shimmer infinito
     console.error('[dashboard] equipe recente:', err);
     area.innerHTML = `<div class="empty" style="padding:20px;text-align:center;color:var(--white-dim);font-size:13px;">Erro ao carregar a equipe. <a href="/funcionarios.html" style="color:var(--teal);">Abrir Funcionários →</a></div>`;
   }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   loadIndicadores — horas trabalhadas/faltas do mês + gráficos
+   ════════════════════════════════════════════════════════════════ */
+let chartHoras  = null;
+let chartStatus = null;
+let semanaInicio = null;
+let semanaFim    = null;
+let chartHorasDataGeral = null;
+let chartHorasSubGeral  = '';
+
+async function loadIndicadores(snapshot) {
+  const hoje = new Date();
+  const dow  = hoje.getDay() === 0 ? 6 : hoje.getDay() - 1;
+  const inicioSemana = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - dow);
+  const inicioMes    = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const fimHoje      = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1);
+
+  semanaInicio = inicioSemana;
+  semanaFim    = fimHoje;
+
+  const [
+    { data: pontosMes },
+    { data: faltasMesRows }
+  ] = await Promise.all([
+    sb.from('registros_ponto').select('funcionario_id, tipo, registrado_em')
+      .gte('registrado_em', inicioMes.toISOString()).lt('registrado_em', fimHoje.toISOString()),
+    sb.from('faltas').select('id, justificada')
+      .gte('data', inicioMes.toISOString().split('T')[0]).lt('data', fimHoje.toISOString().split('T')[0])
+  ]);
+
+  // Agrupa registros por funcionário+dia para extrair entrada/saída
+  const porFuncDia = {};
+  (pontosMes || []).forEach(r => {
+    const dia = r.registrado_em.slice(0, 10);
+    (porFuncDia[r.funcionario_id + '|' + dia] ||= []).push(r);
+  });
+
+  let horasMesTotal = 0;
+  const horasPorDiaSemana = [0, 0, 0, 0, 0, 0, 0]; // Seg..Dom
+  const diasComRegistro = new Set();
+
+  Object.entries(porFuncDia).forEach(([key, eventos]) => {
+    eventos.sort((a, b) => a.registrado_em.localeCompare(b.registrado_em));
+    const entrada = eventos.find(e => e.tipo === 'entrada');
+    const saida   = [...eventos].reverse().find(e => e.tipo === 'saida');
+    if (!entrada || !saida) return;
+    const horas = (new Date(saida.registrado_em) - new Date(entrada.registrado_em)) / 3600000;
+    if (horas <= 0) return;
+
+    horasMesTotal += horas;
+    const dia = key.split('|')[1];
+    diasComRegistro.add(dia);
+
+    const dataDia = new Date(dia + 'T00:00:00');
+    if (dataDia >= inicioSemana) {
+      const idx = dataDia.getDay() === 0 ? 6 : dataDia.getDay() - 1;
+      horasPorDiaSemana[idx] += horas;
+    }
+  });
+
+  const mediaDiaria = diasComRegistro.size > 0 ? horasMesTotal / diasComRegistro.size : 0;
+
+  document.getElementById('s-horas-mes').textContent = horasMesTotal.toFixed(0) + 'h';
+  document.getElementById('s-horas-mes-foot').textContent = diasComRegistro.size > 0
+    ? `Média de ${mediaDiaria.toFixed(1)}h/dia`
+    : 'Sem registros no mês';
+
+  // ── Faltas no mês ──
+  const faltasMesTotal = (faltasMesRows || []).length;
+  const faltasInjust   = (faltasMesRows || []).filter(r => !r.justificada).length;
+
+  document.getElementById('s-faltas-mes').textContent = faltasMesTotal;
+  const footFaltasMes = document.getElementById('s-faltas-mes-foot');
+  footFaltasMes.innerHTML = faltasInjust > 0
+    ? `<span class="pill red">${faltasInjust} injustificada${faltasInjust > 1 ? 's' : ''}</span>`
+    : 'Ver registro de faltas';
+
+  // ── Gráfico de barras — horas por dia da semana ──
+  const totalSemana = horasPorDiaSemana.reduce((a, b) => a + b, 0);
+  const sub = document.getElementById('chart-horas-sub');
+  chartHorasSubGeral = `${totalSemana.toFixed(0)}h essa semana`;
+  if (sub) sub.textContent = chartHorasSubGeral;
+
+  chartHorasDataGeral = horasPorDiaSemana.map(h => Number(h.toFixed(1)));
+
+  const ctxHoras = document.getElementById('chart-horas');
+  if (ctxHoras) {
+    if (chartHoras) chartHoras.destroy();
+    chartHoras = new Chart(ctxHoras, {
+      type: 'bar',
+      data: {
+        labels: ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'],
+        datasets: [{
+          data: chartHorasDataGeral,
+          backgroundColor: '#3B82F6',
+          borderRadius: 4,
+          maxBarThickness: 28
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#9CA3AF' } },
+          y: { beginAtZero: true, grid: { color: '#374151' }, ticks: { color: '#9CA3AF' } }
+        }
+      }
+    });
+  }
+
+  // ── Donut — status da equipe hoje ──
+  const totalAtivos = snapshot?.totalAtivos ?? 0;
+  const presentes   = snapshot?.presentes ?? 0;
+  const afastados   = snapshot?.afastados ?? 0;
+  const ausentes    = Math.max(0, totalAtivos - presentes - afastados);
+
+  const ctxStatus = document.getElementById('chart-status');
+  if (ctxStatus) {
+    if (chartStatus) chartStatus.destroy();
+    chartStatus = new Chart(ctxStatus, {
+      type: 'doughnut',
+      data: {
+        labels: ['Presentes', 'Em férias/atestado', 'Ausentes'],
+        datasets: [{
+          data: [presentes, afastados, ausentes],
+          backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+
+  const legend = document.getElementById('donut-legend');
+  if (legend) {
+    legend.innerHTML = [
+      { cor: '#10B981', label: 'Presentes',           val: presentes },
+      { cor: '#F59E0B', label: 'Em férias/atestado',  val: afastados },
+      { cor: '#EF4444', label: 'Ausentes',            val: ausentes }
+    ].map(i => `
+      <div class="donut-legend-item">
+        <span class="dot" style="background:${i.cor}"></span>
+        <span>${i.label}</span>
+        <strong>${i.val}</strong>
+      </div>
+    `).join('');
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Hover na Equipe recente — destaca horas do funcionário no gráfico
+   ════════════════════════════════════════════════════════════════ */
+async function handleFuncHover(funcId, funcNome) {
+  if (!chartHoras || !semanaInicio || !semanaFim) return;
+
+  const { data: registros } = await sb
+    .from('registros_ponto')
+    .select('tipo, registrado_em')
+    .eq('funcionario_id', funcId)
+    .gte('registrado_em', semanaInicio.toISOString())
+    .lt('registrado_em', semanaFim.toISOString());
+
+  const horasPorDia = [0, 0, 0, 0, 0, 0, 0];
+  const porDia = {};
+  (registros || []).forEach(r => {
+    const dia = r.registrado_em.slice(0, 10);
+    (porDia[dia] ||= []).push(r);
+  });
+  Object.entries(porDia).forEach(([dia, eventos]) => {
+    eventos.sort((a, b) => a.registrado_em.localeCompare(b.registrado_em));
+    const entrada = eventos.find(e => e.tipo === 'entrada');
+    const saida   = [...eventos].reverse().find(e => e.tipo === 'saida');
+    if (!entrada || !saida) return;
+    const horas = (new Date(saida.registrado_em) - new Date(entrada.registrado_em)) / 3600000;
+    if (horas <= 0) return;
+    const dataDia = new Date(dia + 'T00:00:00');
+    const idx = dataDia.getDay() === 0 ? 6 : dataDia.getDay() - 1;
+    horasPorDia[idx] += horas;
+  });
+
+  const total = horasPorDia.reduce((a, b) => a + b, 0);
+  chartHoras.data.datasets[0].data = horasPorDia.map(h => Number(h.toFixed(1)));
+  chartHoras.data.datasets[0].backgroundColor = '#4dd9ac';
+  chartHoras.update('none');
+  const sub = document.getElementById('chart-horas-sub');
+  if (sub) sub.textContent = `${funcNome.split(' ')[0]} · ${total.toFixed(0)}h essa semana`;
+}
+
+function restoreChartGeral() {
+  if (!chartHoras || !chartHorasDataGeral) return;
+  chartHoras.data.datasets[0].data = chartHorasDataGeral;
+  chartHoras.data.datasets[0].backgroundColor = '#3B82F6';
+  chartHoras.update('none');
+  const sub = document.getElementById('chart-horas-sub');
+  if (sub) sub.textContent = chartHorasSubGeral;
 }
 
 /* ════════════════════════════════════════════════════════════════

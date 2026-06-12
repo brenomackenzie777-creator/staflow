@@ -8,7 +8,7 @@
 <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="auth/auth.css">
 <link rel="stylesheet" href="app.css">
 <style>
@@ -76,35 +76,6 @@
 .hora-cell.has { color: var(--teal); }
 .hora-cell.dash { color: var(--white-muted); }
 
-/* status badges */
-.badge-presente {
-  font-family: var(--font-mono);
-  font-size: 10px; letter-spacing: 1.5px;
-  padding: 3px 8px; border-radius: 3px;
-  background: var(--teal-dim);
-  color: var(--teal);
-  border: 1px solid var(--teal-border);
-  white-space: nowrap;
-}
-.badge-saiu {
-  font-family: var(--font-mono);
-  font-size: 10px; letter-spacing: 1.5px;
-  padding: 3px 8px; border-radius: 3px;
-  background: rgba(240,244,255,0.06);
-  color: var(--white-dim);
-  border: 1px solid var(--border);
-  white-space: nowrap;
-}
-.badge-ausente {
-  font-family: var(--font-mono);
-  font-size: 10px; letter-spacing: 1.5px;
-  padding: 3px 8px; border-radius: 3px;
-  background: rgba(255,209,102,0.10);
-  color: var(--amber);
-  border: 1px solid rgba(255,209,102,0.25);
-  white-space: nowrap;
-}
-
 /* action buttons inside table */
 .ponto-btn {
   font-family: var(--font-body);
@@ -170,7 +141,7 @@
     padding: 24px 28px;
     background: #fff !important;
     color: #000 !important;
-    font-family: 'DM Sans', system-ui, sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 11pt;
     line-height: 1.4;
   }
@@ -186,18 +157,18 @@
   margin-bottom: 20px;
 }
 #print-area .print-header h1 {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 18pt; font-weight: 800;
   margin: 0 0 4px;
   letter-spacing: -0.3px;
 }
 #print-area .print-header .sub {
   font-size: 9pt; color: #444;
-  font-family: 'DM Mono', monospace;
+  font-family: 'Inter', monospace;
 }
 #print-area .print-header .codice {
   text-align: right;
-  font-family: 'DM Mono', monospace;
+  font-family: 'Inter', monospace;
   font-size: 9pt; color: #444;
 }
 #print-area .meta-block {
@@ -208,7 +179,7 @@
   font-size: 10pt;
 }
 #print-area .meta-block .lbl {
-  font-family: 'DM Mono', monospace;
+  font-family: 'Inter', monospace;
   font-size: 8pt; color: #666;
   text-transform: uppercase; letter-spacing: 0.5px;
   margin-bottom: 2px;
@@ -234,13 +205,13 @@
   text-transform: uppercase;
 }
 #print-area table.espelho td.mono {
-  font-family: 'DM Mono', monospace;
+  font-family: 'Inter', monospace;
   font-size: 9pt;
 }
 #print-area table.espelho tr.audit-row td { background: #fff7e6 !important; }
 #print-area .audit-flag {
   display: inline-block;
-  font-family: 'DM Mono', monospace;
+  font-family: 'Inter', monospace;
   font-size: 7.5pt;
   padding: 1px 4px;
   border: 1px solid #999;
@@ -263,12 +234,12 @@
   text-align: center;
 }
 #print-area .totalizadores .tot .lbl {
-  font-family: 'DM Mono', monospace;
+  font-family: 'Inter', monospace;
   font-size: 8pt; color: #666;
   text-transform: uppercase; letter-spacing: 0.5px;
 }
 #print-area .totalizadores .tot .val {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-weight: 800;
   font-size: 14pt;
 }
@@ -287,7 +258,7 @@
   font-size: 10pt;
 }
 #print-area .sig-block .lbl {
-  font-family: 'DM Mono', monospace;
+  font-family: 'Inter', monospace;
   font-size: 8pt; color: #666;
   text-transform: uppercase;
 }
@@ -297,7 +268,7 @@
   padding: 10px 12px;
   border: 1px solid #ccc;
   background: #f6f6f6 !important;
-  font-family: 'DM Mono', monospace;
+  font-family: 'Inter', monospace;
   font-size: 7.5pt;
   word-break: break-all;
   color: #444;
@@ -596,7 +567,7 @@
 <div class="modal-backdrop" id="modal-espelho">
   <div class="modal" style="max-width:460px;">
     <h2>Emitir espelho de ponto</h2>
-    <p class="modal-sub">Documento formal conforme <strong>MTE Portaria 671</strong>, com hash de integridade. Pronto para impressão ou PDF.</p>
+    <p class="modal-sub">Documento formal <strong>projetado para apoiar o cumprimento das obrigações previstas na Portaria MTE 671</strong>, com hash de integridade. Pronto para impressão ou PDF.</p>
 
     <div class="field">
       <label for="esp-func">Funcionário</label>
@@ -819,9 +790,9 @@ function renderTable() {
     const canSai = isToday && hasEnt && !hasSai;
 
     let statusBadge;
-    if (status === 'PRESENTE') statusBadge = '<span class="badge-presente">PRESENTE</span>';
-    else if (status === 'SAIU') statusBadge = '<span class="badge-saiu">SAIU</span>';
-    else statusBadge = '<span class="badge-ausente">AUSENTE</span>';
+    if (status === 'PRESENTE') statusBadge = '<span class="badge badge-green">Presente</span>';
+    else if (status === 'SAIU') statusBadge = '<span class="badge badge-gray">Saiu</span>';
+    else statusBadge = '<span class="badge badge-amber">Ausente</span>';
 
     return `
       <tr data-id="${f.id}">
@@ -830,7 +801,7 @@ function renderTable() {
             <div class="ponto-av">${escapeHtml(initials)}</div>
             <div>
               <div class="nc-nome">${escapeHtml(f.nome)}</div>
-              <div class="nc-cargo"><span class="badge">${escapeHtml(CARGO_LBL[f.cargo] || f.cargo)}</span></div>
+              <div class="nc-cargo"><span class="badge badge-blue">${escapeHtml(CARGO_LBL[f.cargo] || f.cargo)}</span></div>
             </div>
           </div>
         </td>

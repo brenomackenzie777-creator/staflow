@@ -86,10 +86,44 @@
   /* Cards de plano */
   .planos-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
-    max-width: 860px;
+    max-width: 1100px;
     width: 100%;
+  }
+
+  /* ── Banner "Novo condomínio" (?novo=1) ── */
+  .novo-condo-box {
+    width: 100%; max-width: 440px;
+    background: var(--surface);
+    border: 1px solid var(--teal-border);
+    background: var(--teal-dim);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 24px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .novo-condo-box .titulo {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--teal);
+  }
+  .novo-condo-box p { font-size: 13px; color: var(--white-dim); line-height: 1.5; margin: 0; }
+  .novo-condo-box input {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    color: var(--white);
+    font-family: inherit;
+    font-size: 14px;
+    transition: var(--transition);
+  }
+  .novo-condo-box input:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(6,214,160,0.18); }
+
+  /* Card desabilitado (Starter indisponível para 2º+ condomínio) */
+  .plano-card.disabled { opacity: 0.45; pointer-events: none; }
+  .plano-card .nota-bloqueio {
+    font-size: 11px; color: var(--amber); margin-top: 8px; line-height: 1.4;
   }
 
   .plano-card {
@@ -270,6 +304,9 @@
   .payment-methods .method.master { background: #EB001B; color: #fff; }
   .payment-methods .method.elo { background: #00A4E0; color: #fff; }
 
+  @media (max-width: 980px) {
+    .planos-grid { grid-template-columns: repeat(2, 1fr); max-width: 600px; }
+  }
   @media (max-width: 760px) {
     .planos-grid { grid-template-columns: 1fr; max-width: 420px; }
     .planos-header h1 { font-size: 26px; }
@@ -277,6 +314,64 @@
   @media (max-width: 480px) {
     body { padding: 24px 12px 40px; }
   }
+
+  /* ── Toggle Mensal / Anual ─────────────────────────────── */
+  .billing-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 0 auto 24px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--white-muted);
+  }
+  .billing-toggle label {
+    position: relative;
+    display: inline-block;
+    width: 44px; height: 24px;
+    flex-shrink: 0;
+  }
+  .billing-toggle input { opacity: 0; width: 0; height: 0; }
+  .billing-slider {
+    position: absolute; inset: 0;
+    background: var(--navy-brand);
+    border: 1.5px solid var(--border-strong);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: .25s;
+  }
+  .billing-slider::before {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    left: 3px; bottom: 3px;
+    background: var(--white-muted);
+    border-radius: 50%;
+    transition: .25s;
+  }
+  .billing-toggle input:checked + .billing-slider { background: var(--teal); border-color: var(--teal); }
+  .billing-toggle input:checked + .billing-slider::before { transform: translateX(20px); background: #fff; }
+  .billing-toggle .lbl { cursor: pointer; transition: color .2s; user-select: none; }
+  .billing-toggle .lbl.active { color: var(--white); font-weight: 600; }
+  .billing-badge {
+    background: rgba(0,210,180,.15);
+    color: var(--teal);
+    border: 1px solid rgba(0,210,180,.3);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    padding: 2px 8px;
+    white-space: nowrap;
+  }
+  .preco-equiv {
+    font-size: 11px;
+    color: var(--white-muted);
+    margin-top: 2px;
+    display: none;
+  }
+  body.anual .preco-equiv { display: block; }
 </style>
 </head>
 <body>
@@ -292,6 +387,13 @@
   <p>Comece com o plano ideal para o seu condomínio. Cancele a qualquer momento.</p>
 </div>
 
+<!-- Banner "Novo condomínio" (exibido apenas com ?novo=1) -->
+<div class="novo-condo-box" id="novo-condo-box" style="display:none;">
+  <span class="titulo">Novo condomínio</span>
+  <p>Cada condomínio adicional possui sua própria assinatura. Informe o nome e escolha um plano pago para continuar.</p>
+  <input type="text" id="novo-condo-nome" placeholder="Nome do condomínio" maxlength="120" autocomplete="off">
+</div>
+
 <!-- Cupom (collapse — discreto, sem hint de "TESTE") -->
 <details class="cupom-box" style="cursor:pointer;">
   <summary style="font-family:var(--font-mono);font-size:11px;letter-spacing:1.5px;color:var(--white-muted);text-transform:uppercase;list-style:none;">
@@ -303,6 +405,17 @@
   </div>
   <div class="cupom-feedback" id="cupom-feedback"></div>
 </details>
+
+<!-- Toggle Mensal / Anual -->
+<div class="billing-toggle">
+  <span class="lbl active" id="lbl-mensal" onclick="setBilling('mensal')">Mensal</span>
+  <label>
+    <input type="checkbox" id="toggle-anual" onchange="setBilling(this.checked ? 'anual' : 'mensal')">
+    <span class="billing-slider"></span>
+  </label>
+  <span class="lbl" id="lbl-anual" onclick="document.getElementById('toggle-anual').checked=true;setBilling('anual')">Anual</span>
+  <span class="billing-badge">Economize até 29%</span>
+</div>
 
 <!-- Cards -->
 <div class="planos-grid">
@@ -316,7 +429,7 @@
       <div class="valor"><span class="moeda">R$</span> 0<span class="periodo">/mês</span></div>
     </div>
     <ul class="plano-features">
-      <li>Até 5 funcionários</li>
+      <li>Até 3 funcionários</li>
       <li>Módulo Ponto</li>
       <li>Módulo Faltas</li>
       <li class="off">Módulo Tarefas</li>
@@ -334,7 +447,8 @@
     <div class="plano-desc">Para condomínios em crescimento com equipe maior.</div>
     <div class="plano-preco" id="preco-pro">
       <div class="valor-original" id="orig-pro">R$ 99<span class="periodo">/mês</span></div>
-      <div class="valor"><span class="moeda">R$</span> 99<span class="periodo">/mês</span></div>
+      <div class="valor"><span class="moeda">R$</span> <span id="val-pro">99</span><span class="periodo" id="per-pro">/mês</span></div>
+      <div class="preco-equiv" id="equiv-pro">≈ R$ 79/mês · cobrado anualmente</div>
     </div>
     <ul class="plano-features">
       <li>Até 20 funcionários</li>
@@ -348,16 +462,38 @@
     <button class="btn-ativar featured-btn" id="btn-pro">Assinar Pro</button>
   </div>
 
+  <!-- Advanced -->
+  <div class="plano-card" id="card-advanced">
+    <div class="plano-nome">Advanced</div>
+    <div class="plano-desc">Para condomínios médios com equipe ampliada.</div>
+    <div class="plano-preco" id="preco-advanced">
+      <div class="valor-original" id="orig-advanced">R$ 159<span class="periodo">/mês</span></div>
+      <div class="valor"><span class="moeda">R$</span> <span id="val-advanced">159</span><span class="periodo" id="per-advanced">/mês</span></div>
+      <div class="preco-equiv" id="equiv-advanced">≈ R$ 125/mês · cobrado anualmente</div>
+    </div>
+    <ul class="plano-features">
+      <li>Até 35 funcionários</li>
+      <li>Módulo Ponto</li>
+      <li>Módulo Faltas</li>
+      <li>Módulo Tarefas</li>
+      <li>Exportação CSV/PDF</li>
+      <li class="off">Suporte prioritário</li>
+    </ul>
+    <div class="spacer"></div>
+    <button class="btn-ativar" id="btn-advanced">Assinar Advanced</button>
+  </div>
+
   <!-- Scale -->
   <div class="plano-card" id="card-scale">
     <div class="plano-nome">Scale</div>
     <div class="plano-desc">Para administradoras com múltiplos condomínios.</div>
     <div class="plano-preco" id="preco-scale">
-      <div class="valor-original" id="orig-scale">R$ 249<span class="periodo">/mês</span></div>
-      <div class="valor"><span class="moeda">R$</span> 249<span class="periodo">/mês</span></div>
+      <div class="valor-original" id="orig-scale">R$ 279<span class="periodo">/mês</span></div>
+      <div class="valor"><span class="moeda">R$</span> <span id="val-scale">279</span><span class="periodo" id="per-scale">/mês</span></div>
+      <div class="preco-equiv" id="equiv-scale">≈ R$ 199/mês · cobrado anualmente</div>
     </div>
     <ul class="plano-features">
-      <li>Funcionários ilimitados</li>
+      <li>Até 100 funcionários</li>
       <li>Módulo Ponto</li>
       <li>Módulo Faltas</li>
       <li>Módulo Tarefas</li>
@@ -413,6 +549,8 @@ const auth = window.staflowAuth;
 
 let cupomAtivo = null;     // { code, discount_percent }
 let perfilAtual = null;
+let condominioAtualId = null;
+let modoNovoCondo = false; // ?novo=1 — cadastro de 2º+ condomínio
 let ativando = false;
 
 function toast(msg, type = 'success') {
@@ -424,11 +562,37 @@ function toast(msg, type = 'success') {
   window.__tt = setTimeout(() => t.className = 'toast', 4500);
 }
 
+// ---------- Billing period ----------
+let billingPeriod = 'mensal'; // 'mensal' | 'anual'
+
+const precosConfig = {
+  mensal: { pro: 99,  advanced: 159, scale: 279  },
+  anual:  { pro: 950, advanced: 1500, scale: 2390 },
+};
+const periodoLabel = { mensal: '/mês', anual: '/ano' };
+
+function setBilling(period) {
+  billingPeriod = period;
+  document.body.classList.toggle('anual', period === 'anual');
+  document.getElementById('lbl-mensal').classList.toggle('active', period === 'mensal');
+  document.getElementById('lbl-anual').classList.toggle('active', period === 'anual');
+  document.getElementById('toggle-anual').checked = period === 'anual';
+
+  ['pro','advanced','scale'].forEach(p => {
+    const val = precosConfig[period][p];
+    document.getElementById('val-' + p).textContent = val.toLocaleString('pt-BR');
+    document.getElementById('per-' + p).textContent = periodoLabel[period];
+  });
+
+  // Re-aplica desconto de cupom se houver
+  if (cupomAtivo) aplicarDesconto(cupomAtivo.discount_percent);
+}
+
 // ---------- Cupom ----------
-const precos = { starter: 0, pro: 99, scale: 249 };
+const precos = { starter: 0, pro: 99, advanced: 159, scale: 279 };
 
 function aplicarDesconto(discount) {
-  ['starter','pro','scale'].forEach(plan => {
+  ['starter','pro','advanced','scale'].forEach(plan => {
     const preco  = document.getElementById('preco-' + plan);
     const orig   = document.getElementById('orig-' + plan);
     const valDiv = preco.querySelector('.valor');
@@ -451,7 +615,7 @@ function aplicarDesconto(discount) {
     if (novo === 0) {
       btn.textContent = plan === 'starter' ? 'Começar grátis' : 'Ativar gratuitamente';
     } else {
-      const labels = { starter:'Começar grátis', pro:'Assinar Pro', scale:'Assinar Scale' };
+      const labels = { starter:'Começar grátis', pro:'Assinar Pro', advanced:'Assinar Advanced', scale:'Assinar Scale' };
       btn.textContent = labels[plan];
     }
   });
@@ -521,8 +685,24 @@ document.getElementById('cupom-input').addEventListener('keydown', (e) => {
 async function ativarPlano(plan) {
   if (ativando) return;
 
+  // ★ MULTI-CNPJ — política comercial: 2º+ condomínio nunca pode ser Starter
+  if (modoNovoCondo && plan === 'starter') {
+    toast('O plano Starter não está disponível para um novo condomínio. Escolha Pro, Advanced ou Scale.', 'error');
+    return;
+  }
+
+  let condominioNome = null;
+  if (modoNovoCondo) {
+    condominioNome = (document.getElementById('novo-condo-nome').value || '').trim();
+    if (condominioNome.length < 2) {
+      toast('Informe o nome do novo condomínio.', 'error');
+      document.getElementById('novo-condo-nome').focus();
+      return;
+    }
+  }
+
   ativando = true;
-  const btns = ['btn-starter','btn-pro','btn-scale'].map(id => document.getElementById(id));
+  const btns = ['btn-starter','btn-pro','btn-advanced','btn-scale'].map(id => document.getElementById(id));
   btns.forEach(b => { b.disabled = true; b.classList.add('loading'); });
 
   try {
@@ -536,20 +716,30 @@ async function ativarPlano(plan) {
     // ──────────────────────────────────────────────────────────
     // CAMINHO A: Gratuito (Starter, ou qualquer plano com cupom 100%)
     // Ativa direto no Supabase, sem passar pelo Stripe.
+    // Não disponível em modoNovoCondo (bloqueado acima).
     // ──────────────────────────────────────────────────────────
     if (ehGratuito) {
       const { error: subErr } = await sb.from('subscriptions').upsert({
         profile_id:           user.id,
-        condominio_id:        perfilAtual?.condominio_id || null,
+        condominio_id:        condominioAtualId,
         plan,
         status:               'active',
         coupon_used:          cupomAtivo?.code || null,
         discount_percent:     discount,
         current_period_start: new Date().toISOString(),
         current_period_end:   null   // sem vencimento
-      }, { onConflict: 'profile_id' });
+      }, { onConflict: 'profile_id,condominio_id' });
 
       if (subErr) throw subErr;
+
+      // ★ Espelha plano e status no condominios (mesmo caminho que o webhook faz no pago)
+      if (condominioAtualId) {
+        await sb.from('condominios').update({
+          plano:             plan,
+          plano_ativo:       plan,
+          status_assinatura: 'active',
+        }).eq('id', condominioAtualId);
+      }
 
       // Incrementa uso do cupom (se aplicado)
       if (cupomAtivo) {
@@ -575,14 +765,18 @@ async function ativarPlano(plan) {
       throw new Error('Integração de pagamento ainda não está configurada. Use um cupom de desconto por enquanto.');
     }
 
-    const { data, error } = await sb.functions.invoke('create-checkout-session', {
-      body: {
-        priceId,
-        condominioId: perfilAtual?.condominio_id || null,
-        successUrl:   `${location.origin}/dashboard.html?checkout=success`,
-        cancelUrl:    `${location.origin}/planos.html?checkout=cancel`
-      }
-    });
+    const body = {
+      priceId,
+      successUrl: `${location.origin}/dashboard.html?checkout=success`,
+      cancelUrl:  `${location.origin}/planos.html?checkout=cancel`
+    };
+    if (modoNovoCondo) {
+      body.condominioNome = condominioNome;
+    } else {
+      body.condominioId = condominioAtualId;
+    }
+
+    const { data, error } = await sb.functions.invoke('create-checkout-session', { body });
 
     if (error) throw error;
 
@@ -602,29 +796,47 @@ async function ativarPlano(plan) {
   }
 }
 
-document.getElementById('btn-starter').addEventListener('click', () => ativarPlano('starter'));
-document.getElementById('btn-pro').addEventListener('click',     () => ativarPlano('pro'));
-document.getElementById('btn-scale').addEventListener('click',   () => ativarPlano('scale'));
+document.getElementById('btn-starter').addEventListener('click',  () => ativarPlano('starter'));
+document.getElementById('btn-pro').addEventListener('click',      () => ativarPlano(billingPeriod === 'anual' ? 'pro_annual'      : 'pro'));
+document.getElementById('btn-advanced').addEventListener('click', () => ativarPlano(billingPeriod === 'anual' ? 'advanced_annual'  : 'advanced'));
+document.getElementById('btn-scale').addEventListener('click',    () => ativarPlano(billingPeriod === 'anual' ? 'scale_annual'     : 'scale'));
 
 // ---------- Boot ----------
 (async () => {
   // 1. Carrega sessão completa
-  const { user, profile, subscription } = await auth.loadFullSession();
+  const { user, profile, subscription, condominioAtualId: condoId } = await auth.loadFullSession();
   perfilAtual = profile;
+  condominioAtualId = condoId;
+
+  const qs = new URLSearchParams(location.search);
+  modoNovoCondo = qs.get('novo') === '1';
 
   // 2. ★ TRONCO SUPERIOR DE ROTEAMENTO — autoritativo
   //    Se for funcionário, ejeta pra /colaborador. Se for sindico com
-  //    subscription vigente, ejeta pra /dashboard. Se for sindico sem
-  //    subscription, autoriza renderizar /planos.
+  //    subscription vigente, ejeta pra /dashboard (a menos que esteja
+  //    cadastrando um novo condomínio). Se for sindico sem subscription,
+  //    autoriza renderizar /planos.
   const g = window.staflowGuard.executarRoteamentoSeguro(user, profile, {
-    hasActiveSubscription: !!subscription && !subscription._blocked,
-    isBlockedSubscription: !!subscription?._blocked,
+    hasActiveSubscription: modoNovoCondo ? true : (!!subscription && !subscription._blocked),
+    isBlockedSubscription: modoNovoCondo ? false : !!subscription?._blocked,
     blockReason: subscription?._reason
   });
   if (!g.allow) return;
 
+  // 2b. ★ MULTI-CNPJ — modo "novo condomínio": exibe o campo de nome e
+  //     bloqueia o plano Starter (política comercial: 2º+ condomínio
+  //     sempre exige plano pago).
+  if (modoNovoCondo) {
+    document.getElementById('novo-condo-box').style.display = 'flex';
+    const cardStarter = document.getElementById('card-starter');
+    cardStarter.classList.add('disabled');
+    const nota = document.createElement('div');
+    nota.className = 'nota-bloqueio';
+    nota.textContent = 'Indisponível para o 2º+ condomínio. Escolha um plano pago.';
+    cardStarter.appendChild(nota);
+  }
+
   // 3. Toasts contextuais de retorno (Stripe cancel / motivos de bloqueio)
-  const qs = new URLSearchParams(location.search);
   if (qs.get('checkout') === 'cancel') {
     toast('Pagamento cancelado. Escolha um plano para continuar.', 'error');
   }

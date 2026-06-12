@@ -25,12 +25,22 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-// Map price_id → plano (advanced incluído)
-const PRICE_TO_PLAN: Record<string, "pro" | "advanced" | "scale"> = {
-  [Deno.env.get("STRIPE_PRICE_PRO")      ?? "_unset_pro"]:      "pro",
-  [Deno.env.get("STRIPE_PRICE_ADVANCED") ?? "_unset_advanced"]: "advanced",
-  [Deno.env.get("STRIPE_PRICE_SCALE")    ?? "_unset_scale"]:    "scale",
-};
+// Map price_id → plano (mensal + anual)
+function buildPriceMap(): Record<string, "pro" | "advanced" | "scale"> {
+  const map: Record<string, "pro" | "advanced" | "scale"> = {};
+  const add = (envKey: string, plan: "pro" | "advanced" | "scale") => {
+    const id = Deno.env.get(envKey);
+    if (id) map[id] = plan;
+  };
+  add("STRIPE_PRICE_PRO",              "pro");
+  add("STRIPE_PRICE_PRO_ANNUAL",       "pro");
+  add("STRIPE_PRICE_ADVANCED",         "advanced");
+  add("STRIPE_PRICE_ADVANCED_ANNUAL",  "advanced");
+  add("STRIPE_PRICE_SCALE",            "scale");
+  add("STRIPE_PRICE_SCALE_ANNUAL",     "scale");
+  return map;
+}
+const PRICE_TO_PLAN = buildPriceMap();
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -105,12 +115,41 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   let plano: "pro" | "advanced" | "scale" = "pro";
+  let stripeCustomerId: string | null = null;
+  let periodStart: string | null = null;
+  let periodEnd: string | null = null;
+  let priceId: string | null = null;
+
   if (subId) {
     try {
       const sub = await stripe.subscriptions.retrieve(subId);
-      const priceId = sub.items.data[0]?.price.id ?? null;
+      priceId = sub.items.data[0]?.price.id ?? null;
       if (priceId && PRICE_TO_PLAN[priceId]) plano = PRICE_TO_PLAN[priceId];
+      stripeCustomerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+      periodStart = new Date(sub.current_period_start * 1000).toISOString();
+      periodEnd   = new Date(sub.current_period_end   * 1000).toISOString();
     } catch (_) { /* fallback pro */ }
+  }
+
+  // Upsert na tabela subscriptions (failsafe — customer.subscription.created pode chegar depois)
+  if (profileId) {
+    const subPayload = {
+      profile_id:             profileId,
+      condominio_id:          condominioId,
+      plan:                   plano,
+      status:                 "active",
+      stripe_customer_id:     stripeCustomerId,
+      stripe_subscription_id: subId ?? null,
+      stripe_price_id:        priceId,
+      current_period_start:   periodStart,
+      current_period_end:     periodEnd,
+      cancel_at_period_end:   false,
+      updated_at:             new Date().toISOString(),
+    };
+    const { error: subErr } = await supabase
+      .from("subscriptions")
+      .upsert(subPayload, { onConflict: "profile_id,condominio_id" });
+    if (subErr) console.error("[webhook] upsert subscriptions falhou:", subErr);
   }
 
   await espelharNoCondominio(condominioId, {
@@ -167,14 +206,20 @@ async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
 
   await supabase.from("subscriptions")
     .update({
-      status: "canceled",
+      status:               "canceled",
+      plan:                 "starter",
       cancel_at_period_end: false,
-      canceled_at: new Date().toISOString(),
-      updated_at:  new Date().toISOString(),
+      canceled_at:          new Date().toISOString(),
+      updated_at:           new Date().toISOString(),
     })
     .eq("stripe_subscription_id", sub.id);
 
-  await espelharNoCondominio(condominioId, { status_assinatura: "canceled" });
+  // Rebaixa condomínio para starter — limites e acesso resetados
+  await espelharNoCondominio(condominioId, {
+    status_assinatura: "canceled",
+    plano:             "starter",
+    plano_ativo:       "starter",
+  });
 }
 
 async function handleInvoicePaid(invoice: Stripe.Invoice) {

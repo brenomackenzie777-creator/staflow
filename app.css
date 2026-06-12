@@ -262,6 +262,23 @@ table.tbl .row-actions button.danger:hover { color: var(--red); border-color: va
 .badge.amber   { background: rgba(255,209,102,0.12); color: var(--amber); border-color: rgba(255,209,102,0.3); }
 .badge.red     { background: rgba(239,68,68,0.12); color: var(--red); border-color: rgba(239,68,68,0.3); }
 
+/* badges — pill style (design system v2.0) */
+.badge-green, .badge-blue, .badge-red, .badge-amber, .badge-gray {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-sm, 4px);
+  font-family: var(--font);
+  font-size: 11px; font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+}
+.badge-green  { background:rgba(16,185,129,0.12); color:#10B981; border:1px solid rgba(16,185,129,0.3); }
+.badge-blue   { background:rgba(59,130,246,0.12); color:#3B82F6; border:1px solid rgba(59,130,246,0.3); }
+.badge-red    { background:rgba(239,68,68,0.12);  color:#EF4444; border:1px solid rgba(239,68,68,0.3); }
+.badge-amber  { background:rgba(245,158,11,0.12); color:#F59E0B; border:1px solid rgba(245,158,11,0.3); }
+.badge-gray   { background:rgba(107,114,128,0.15); color:#9CA3AF; border:1px solid rgba(107,114,128,0.3); }
+
 /* ---------- Toolbar ---------- */
 .toolbar {
   display: flex; gap: 12px; align-items: center;

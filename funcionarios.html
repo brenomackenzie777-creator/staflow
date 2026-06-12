@@ -6,7 +6,7 @@
 <title>Funcionários — StaFlow</title>
 <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="auth/auth.css">
 <link rel="stylesheet" href="app.css">
 <style>
@@ -850,8 +850,8 @@ function renderRows() {
       <td>${TURNO_LBL[r.turno] || r.turno}</td>
       <td>${r.telefone ? escapeHtml(r.telefone) : '<span style="color:var(--white-muted);">—</span>'}</td>
       <td>${r.ativo
-        ? '<span class="badge">ATIVO</span>'
-        : '<span class="badge muted">INATIVO</span>'}</td>
+        ? '<span class="badge badge-green">Ativo</span>'
+        : '<span class="badge badge-gray">Inativo</span>'}</td>
       <td>
         <div class="row-actions">
           <button data-act="edit">Editar</button>

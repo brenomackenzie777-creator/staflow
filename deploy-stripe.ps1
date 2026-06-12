@@ -24,7 +24,7 @@
 # 🚦 TEST MODE vs LIVE MODE — como virar a chave
 # ─────────────────────────────────────────────────────────────
 # 1) Stripe Dashboard → toggle 'View test data' OFF (canto inf. esq.)
-# 2) Products → criar Pro (R$ 99) e Scale (R$ 249) novamente em LIVE
+# 2) Products → criar Pro (R$ 99), Advanced (R$ 159) e Scale (R$ 279) novamente em LIVE
 # 3) Developers → API keys → revele 'sk_live_...'
 # 4) Developers → Webhooks → Add endpoint LIVE:
 #    URL:  https://wsxpskrrzqtdoodpoofx.supabase.co/functions/v1/stripe-webhook
@@ -52,8 +52,9 @@ $PROJECT_REF           = "wsxpskrrzqtdoodpoofx"
 # 🚀 LIVE MODE  → sk_live_... / whsec_LIVE_... / price_LIVE_...
 $STRIPE_SECRET_KEY     = "sk_test_REPLACE_ME"        # Stripe → Developers → API keys
 $STRIPE_WEBHOOK_SECRET = "whsec_REPLACE_ME"          # Stripe → Developers → Webhooks → Signing secret
-$STRIPE_PRICE_PRO      = "price_REPLACE_ME_PRO"      # Stripe → Products → Pro   → Pricing → API ID
-$STRIPE_PRICE_SCALE    = "price_REPLACE_ME_SCALE"    # Stripe → Products → Scale → Pricing → API ID
+$STRIPE_PRICE_PRO      = "price_REPLACE_ME_PRO"      # Stripe → Products → Pro      → Pricing → API ID
+$STRIPE_PRICE_ADVANCED = "price_REPLACE_ME_ADVANCED" # Stripe → Products → Advanced → Pricing → API ID
+$STRIPE_PRICE_SCALE    = "price_REPLACE_ME_SCALE"    # Stripe → Products → Scale    → Pricing → API ID
 
 # ──────────────────────────────────────────────────────────────
 # 2) Sanidade
@@ -68,6 +69,7 @@ $vars = @{
   "STRIPE_SECRET_KEY"     = $STRIPE_SECRET_KEY
   "STRIPE_WEBHOOK_SECRET" = $STRIPE_WEBHOOK_SECRET
   "STRIPE_PRICE_PRO"      = $STRIPE_PRICE_PRO
+  "STRIPE_PRICE_ADVANCED" = $STRIPE_PRICE_ADVANCED
   "STRIPE_PRICE_SCALE"    = $STRIPE_PRICE_SCALE
 }
 foreach ($k in $vars.Keys) {
@@ -96,6 +98,7 @@ supabase secrets set `
   "STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY" `
   "STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET" `
   "STRIPE_PRICE_PRO=$STRIPE_PRICE_PRO" `
+  "STRIPE_PRICE_ADVANCED=$STRIPE_PRICE_ADVANCED" `
   "STRIPE_PRICE_SCALE=$STRIPE_PRICE_SCALE"
 if (-not $?) { exit 1 }
 

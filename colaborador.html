@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0d0f12">
+<meta name="theme-color" content="#111827">
 <title>Meu painel — StaFlow</title>
 <meta name="description" content="App do colaborador StaFlow — ponto, tarefas e atestados.">
 <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
@@ -21,34 +21,34 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:         #0d0f12;
-    --surface:    #161a20;
-    --surface2:   #1e2530;
-    --border:     #252d38;
-    --accent:     #00e5a0;
-    --accent-dim: rgba(0,229,160,0.12);
-    --warn:       #ff9633;
-    --warn-dim:   rgba(255,150,51,0.12);
-    --danger:     #ef4444;
+    --bg:         #111827;
+    --surface:    #1F2937;
+    --surface2:   #374151;
+    --border:     #374151;
+    --accent:     #3B82F6;
+    --accent-dim: rgba(59,130,246,0.12);
+    --warn:       #F59E0B;
+    --warn-dim:   rgba(245,158,11,0.12);
+    --danger:     #EF4444;
     --danger-dim: rgba(239,68,68,0.12);
-    --blue:       #4a9eff;
-    --blue-dim:   rgba(74,158,255,0.12);
-    --amber:      #ffd166;
-    --amber-dim:  rgba(255,209,102,0.14);
-    --text:       #e8edf4;
-    --text-muted: #6b7a8d;
-    --text-faint: #3d4a58;
+    --blue:       #3B82F6;
+    --blue-dim:   rgba(59,130,246,0.12);
+    --amber:      #F59E0B;
+    --amber-dim:  rgba(245,158,11,0.14);
+    --text:       #F9FAFB;
+    --text-muted: #9CA3AF;
+    --text-faint: #6B7280;
     --radius:     16px;
-    --radius-sm:  10px;
+    --radius-sm:  8px;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -96,7 +96,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 20px 8px;
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
     font-size: 11px;
     color: var(--text-muted);
   }
@@ -111,7 +111,7 @@
     gap: 12px;
   }
   .logo {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 800;
     font-size: 22px;
     letter-spacing: -0.5px;
@@ -122,10 +122,10 @@
   .avatar {
     width: 44px; height: 44px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #1e3a5f, #00e5a040);
+    background: linear-gradient(135deg, #1D4ED8, rgba(59,130,246,0.3));
     border: 2px solid var(--border);
     display: inline-flex; align-items: center; justify-content: center;
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 700;
     font-size: 14px;
     color: var(--accent);
@@ -139,7 +139,7 @@
     border: 1.5px solid rgba(239,68,68,0.4);
     border-radius: 12px;
     color: var(--danger);
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 600;
     padding: 10px 14px;
@@ -161,11 +161,11 @@
   .greeting-sub {
     font-size: 12px;
     color: var(--text-muted);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
     margin-bottom: 4px;
   }
   .greeting-name {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 700;
     font-size: 22px;
     line-height: 1.1;
@@ -186,7 +186,7 @@
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--text-muted);
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
@@ -233,13 +233,13 @@
   .status-label {
     font-size: 11px;
     color: var(--text-muted);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 2px;
   }
   .status-value {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 700;
     font-size: 15px;
     color: var(--text);
@@ -249,7 +249,7 @@
   .status-value.amber { color: var(--warn); }
   .status-value.red   { color: var(--danger); }
   .clock-badge {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
     font-size: 22px;
     font-weight: 500;
     color: var(--accent);
@@ -297,20 +297,20 @@
   .punch-btn.entrada {
     border-color: var(--accent);
     background: var(--accent);
-    color: #0d0f12;
-    box-shadow: 0 0 0 10px var(--accent-dim), 0 0 80px rgba(0,229,160,0.35), 0 16px 40px rgba(0,0,0,0.5);
+    color: var(--bg);
+    box-shadow: 0 0 0 10px var(--accent-dim), 0 0 80px rgba(59,130,246,0.35), 0 16px 40px rgba(0,0,0,0.5);
   }
   .punch-btn.almoco {
     border-color: var(--warn);
     background: var(--warn);
-    color: #0d0f12;
-    box-shadow: 0 0 0 10px var(--warn-dim), 0 0 80px rgba(255,150,51,0.35), 0 16px 40px rgba(0,0,0,0.5);
+    color: var(--bg);
+    box-shadow: 0 0 0 10px var(--warn-dim), 0 0 80px rgba(245,158,11,0.35), 0 16px 40px rgba(0,0,0,0.5);
   }
   .punch-btn.volta {
     border-color: var(--accent);
     background: var(--accent);
-    color: #0d0f12;
-    box-shadow: 0 0 0 10px var(--accent-dim), 0 0 80px rgba(0,229,160,0.35), 0 16px 40px rgba(0,0,0,0.5);
+    color: var(--bg);
+    box-shadow: 0 0 0 10px var(--accent-dim), 0 0 80px rgba(59,130,246,0.35), 0 16px 40px rgba(0,0,0,0.5);
   }
   .punch-btn.saida {
     border-color: var(--danger);
@@ -335,7 +335,7 @@
     transition: all 0.3s;
   }
   .punch-label {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 800;
     font-size: 22px;
     letter-spacing: 3px;
@@ -345,7 +345,7 @@
   .punch-hint {
     font-size: 12px;
     color: var(--text-faint);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
     text-align: center;
     min-height: 16px;
   }
@@ -360,7 +360,7 @@
     background: var(--warn-dim);
     border: 1px solid var(--warn);
     border-radius: 16px;
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
     font-size: 10px;
     letter-spacing: 1px;
     color: var(--warn);
@@ -386,12 +386,12 @@
     text-transform: uppercase;
     letter-spacing: 1px;
     color: var(--text-muted);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
     margin-bottom: 14px;
     display: flex; align-items: center; justify-content: space-between;
   }
   .card-title .badge-mini {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
     font-size: 9px; letter-spacing: 1px;
     padding: 2px 7px; border-radius: 3px;
     background: var(--accent-dim); color: var(--accent);
@@ -417,13 +417,13 @@
   .tl-dot.empty { background: transparent; border: 1.5px dashed var(--text-faint); }
   .tl-label { flex: 1; font-size: 13px; color: var(--text-muted); }
   .tl-time {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
     font-size: 13px;
     color: var(--text);
   }
   .tl-audit {
     margin-left: 8px;
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
     font-size: 9px;
     padding: 2px 6px;
     border-radius: 3px;
@@ -444,13 +444,13 @@
     padding: 12px 14px;
   }
   .bi-stat .lbl {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
     font-size: 9px; letter-spacing: 1.5px;
     color: var(--text-muted);
     text-transform: uppercase;
   }
   .bi-stat .val {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 700; font-size: 22px;
     color: var(--text);
     margin-top: 6px; line-height: 1;
@@ -459,12 +459,12 @@
   .bi-stat .sub {
     font-size: 11px; color: var(--text-faint);
     margin-top: 4px;
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
   }
 
   /* ── Justificativa ── */
   .section-title {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 18px;
     font-weight: 700;
     margin-bottom: 4px;
@@ -480,7 +480,7 @@
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: var(--text-muted);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
   }
 
   .tipo-grid {
@@ -517,7 +517,7 @@
     border-radius: var(--radius-sm);
     padding: 14px;
     color: var(--text);
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 14px;
     outline: none;
     transition: border-color 0.2s;
@@ -553,7 +553,7 @@
     border: none;
     background: var(--warn);
     color: #fff;
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 700;
     font-size: 15px;
     letter-spacing: 0.3px;
@@ -574,7 +574,7 @@
     padding: 6px 14px;
     font-size: 11px;
     color: var(--blue);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
     align-self: flex-start;
   }
 
@@ -603,13 +603,13 @@
   .progress-pct {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 700; font-size: 13px;
     color: var(--accent);
   }
   .progress-info { flex: 1; min-width: 0; }
   .progress-title {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 700; font-size: 15px;
     margin-bottom: 4px;
   }
@@ -637,7 +637,7 @@
     display: flex; align-items: center; justify-content: center;
     transition: all 0.2s;
     font-size: 13px;
-    color: #0d0f12;
+    color: var(--bg);
     font-weight: 700;
   }
   .task-item.done .task-checkbox {
@@ -659,13 +659,13 @@
   .task-meta {
     font-size: 11px;
     color: var(--text-faint);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
   }
   .task-priority {
     font-size: 10px;
     padding: 4px 8px;
     border-radius: 4px;
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
     flex-shrink: 0;
   }
   .priority-alta  { background: var(--danger-dim); color: var(--danger); }
@@ -733,7 +733,7 @@
     margin-bottom: 20px;
   }
   .block-screen h1 {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 800;
     font-size: 22px;
     margin-bottom: 10px;
@@ -747,7 +747,7 @@
     max-width: 380px;
   }
   .block-screen code {
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
     background: var(--surface);
     padding: 4px 10px;
     border-radius: 4px;
@@ -764,7 +764,7 @@
     border-radius: var(--radius-sm);
     padding: 14px 28px;
     min-height: 50px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -787,7 +787,7 @@
     align-items: center; gap: 4px;
     font-size: 10px;
     color: var(--text-faint);
-    font-family: 'DM Mono', monospace;
+    font-family: 'Inter', sans-serif;
     cursor: pointer;
     transition: color 0.2s;
     min-width: 44px;

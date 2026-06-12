@@ -6,7 +6,7 @@
 <title>Configurações — StaFlow</title>
 <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="auth/auth.css">
 <link rel="stylesheet" href="app.css">
 <style>
@@ -279,6 +279,53 @@
         </button>
       </form>
     </section>
+
+    <!-- ═══ MINHA ASSINATURA ═══ -->
+    <section class="card" id="card-assinatura" style="margin-top:16px;display:none;">
+      <div class="head">
+        <div>
+          <h2>Minha assinatura</h2>
+          <p>Gerencie o plano ativo deste condomínio.</p>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:16px;background:var(--navy-deep);border:1px solid var(--border);border-radius:var(--radius);">
+        <div>
+          <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--white-muted);margin-bottom:4px;">Plano atual</div>
+          <div style="font-family:var(--font-display);font-weight:800;font-size:20px;color:var(--white);" id="assin-plano-label">—</div>
+          <div style="font-size:12px;color:var(--white-muted);margin-top:2px;" id="assin-status-label"></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <a href="/planos.html" class="btn" style="padding:10px 18px;background:var(--teal);color:var(--navy-deep);font-weight:600;font-size:13px;text-decoration:none;border-radius:var(--radius);display:inline-flex;align-items:center;gap:6px;">
+            ↑ Fazer upgrade
+          </a>
+          <button id="btn-cancelar-plano" class="btn" style="padding:10px 18px;background:transparent;color:var(--red);border:1.5px solid var(--red);font-weight:600;font-size:13px;border-radius:var(--radius);">
+            Cancelar plano
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal confirmação de cancelamento -->
+    <div id="modal-cancel-confirm" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;">
+      <div style="background:var(--navy-mid);border:1px solid var(--border-strong);border-radius:var(--radius);padding:32px;max-width:420px;width:90%;text-align:center;">
+        <div style="font-size:32px;margin-bottom:12px;">⚠️</div>
+        <h3 style="font-family:var(--font-display);font-size:20px;margin-bottom:10px;">Cancelar assinatura?</h3>
+        <p style="color:var(--white-muted);font-size:14px;line-height:1.6;margin-bottom:24px;">
+          Você perderá acesso imediato ao plano pago.<br>
+          O condomínio voltará ao plano <strong>Starter (3 funcionários)</strong>.
+        </p>
+        <div style="display:flex;gap:12px;justify-content:center;">
+          <button id="btn-cancel-confirm-nao" class="btn" style="padding:11px 24px;background:transparent;border:1.5px solid var(--border-strong);color:var(--white);border-radius:var(--radius);">
+            Manter plano
+          </button>
+          <button id="btn-cancel-confirm-sim" class="btn" style="padding:11px 24px;background:var(--red);color:#fff;font-weight:700;border-radius:var(--radius);">
+            <span class="spinner" id="spinner-cancel"></span>
+            <span id="label-cancel-sim">Confirmar cancelamento</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- ═══ PERFIL + SEGURANÇA (mantido em row inferior) ═══ -->
     <div class="grid-two" style="margin-top:16px;">
@@ -610,7 +657,91 @@ document.getElementById('btn-signout-here').addEventListener('click', async () =
 
   // Carrega condomínio
   await loadCondominio();
+
+  // Exibe card de assinatura se plano pago
+  atualizarCardAssinatura();
 })();
+
+/* ── Card "Minha assinatura" ───────────────────────── */
+function atualizarCardAssinatura() {
+  if (!condo) return;
+  const plano  = condo.plano_ativo || condo.plano || 'starter';
+  const status = condo.status_assinatura || 'inactive';
+  const card   = document.getElementById('card-assinatura');
+
+  if (plano === 'starter' || status === 'canceled') {
+    card.style.display = 'none';
+    return;
+  }
+
+  card.style.display = 'block';
+
+  const nomes = { pro: 'Pro', advanced: 'Advanced', scale: 'Scale', enterprise: 'Enterprise' };
+  document.getElementById('assin-plano-label').textContent = nomes[plano] || plano;
+  document.getElementById('assin-status-label').textContent =
+    status === 'active'   ? '✓ Ativa' :
+    status === 'past_due' ? '⚠ Pagamento pendente' : status;
+}
+
+/* ── Cancelamento ──────────────────────────────────── */
+document.getElementById('btn-cancelar-plano').addEventListener('click', () => {
+  const modal = document.getElementById('modal-cancel-confirm');
+  modal.style.display = 'flex';
+});
+
+document.getElementById('btn-cancel-confirm-nao').addEventListener('click', () => {
+  document.getElementById('modal-cancel-confirm').style.display = 'none';
+});
+
+document.getElementById('btn-cancel-confirm-sim').addEventListener('click', async () => {
+  const btn     = document.getElementById('btn-cancel-confirm-sim');
+  const spinner = document.getElementById('spinner-cancel');
+  const label   = document.getElementById('label-cancel-sim');
+
+  btn.disabled    = true;
+  spinner.style.display = 'inline-block';
+  label.textContent     = 'Cancelando…';
+
+  try {
+    // Busca token da sessão ativa
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) throw new Error('Sessão expirada. Faça login novamente.');
+
+    const resp = await fetch('https://wsxpskrrzqtdoodpoofx.supabase.co/functions/v1/cancel-subscription', {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey':        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzeHBza3JyenF0ZG9vZHBvb2Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDExNzksImV4cCI6MjA5NDQxNzE3OX0.GOJgWFpm9vIPuTCrhCK4TWriLrcjxXP9VGSMekI4Tfs',
+      },
+      body: JSON.stringify({ condominioId: profile.condominio_id }),
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || `Erro ${resp.status}`);
+
+    document.getElementById('modal-cancel-confirm').style.display = 'none';
+    T('Assinatura cancelada. Seu plano voltou para Starter.', 'success');
+
+    // Atualiza UI local
+    if (condo) {
+      condo.plano_ativo        = 'starter';
+      condo.plano              = 'starter';
+      condo.status_assinatura  = 'canceled';
+    }
+    document.getElementById('c-plano').value = 'starter';
+    atualizarCardAssinatura();
+
+    // Redireciona para planos após 2s
+    setTimeout(() => location.replace('/planos.html'), 2000);
+
+  } catch (err) {
+    T(err.message || 'Erro ao cancelar. Tente novamente.', 'error');
+    btn.disabled          = false;
+    spinner.style.display = 'none';
+    label.textContent     = 'Confirmar cancelamento';
+  }
+});
 </script>
 </body>
 </html>

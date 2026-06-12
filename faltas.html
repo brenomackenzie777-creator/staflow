@@ -7,7 +7,7 @@
 <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="auth/auth.css">
 <link rel="stylesheet" href="app.css">
 <style>
@@ -359,18 +359,18 @@ const TIPO_LBL = { falta: 'Falta', atestado: 'Atestado', ferias: 'Férias', lice
 function tipoBadge(tipo) {
   const label = TIPO_LBL[tipo] || tipo;
   switch (tipo) {
-    case 'falta':    return `<span class="badge red">${label}</span>`;
-    case 'atestado': return `<span class="badge amber">${label}</span>`;
-    case 'ferias':   return `<span class="badge">${label}</span>`;
-    case 'licenca':  return `<span class="badge muted">${label}</span>`;
-    default:         return `<span class="badge muted">${label}</span>`;
+    case 'falta':    return `<span class="badge badge-red">${label}</span>`;
+    case 'atestado': return `<span class="badge badge-amber">${label}</span>`;
+    case 'ferias':   return `<span class="badge badge-blue">${label}</span>`;
+    case 'licenca':  return `<span class="badge badge-gray">${label}</span>`;
+    default:         return `<span class="badge badge-gray">${label}</span>`;
   }
 }
 
 function justBadge(v) {
   return v
-    ? '<span class="badge">SIM</span>'
-    : '<span class="badge red">NÃO</span>';
+    ? '<span class="badge badge-green">Sim</span>'
+    : '<span class="badge badge-red">Não</span>';
 }
 
 // ---- Formatação de data ----

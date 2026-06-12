@@ -28,6 +28,15 @@
     console.warn('[StaFlow] Atenção: aplicação rodando sem HTTPS. Auth tokens podem ser interceptados.');
   }
 
+  // Multi-CNPJ: header customizado lido por my_condominio_id() no Postgres.
+  // Lido aqui ANTES do cliente subir; switchCondominio() atualiza em runtime.
+  const condoAtual = (() => {
+    try { return localStorage.getItem('staflow_condo_atual'); } catch(_) { return null; }
+  })();
+
+  const globalHeaders = {};
+  if (condoAtual) globalHeaders['x-condominio-id'] = condoAtual;
+
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       autoRefreshToken:   true,
@@ -35,7 +44,8 @@
       detectSessionInUrl: true,
       storage:            window.localStorage,
       flowType:           'pkce'
-    }
+    },
+    global: { headers: globalHeaders }
   });
 
   window.staflowSupabase = client;

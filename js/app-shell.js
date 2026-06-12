@@ -112,8 +112,9 @@ window.staflowApp = window.staflowApp || {};
   async function bootstrapShell(opts = {}) {
     const route = opts.route || 'dashboard';
 
-    // 1. Carrega sessão completa: user + claim + profile + subscription
-    const { user, profile, subscription, claimed } = await window.staflowAuth.loadFullSession();
+    // 1. Carrega sessão completa: user + claim + profile + subscription + condominios
+    const { user, profile, subscription, claimed, condominios, condominioAtualId } =
+      await window.staflowAuth.loadFullSession();
 
     // 2. Se o claim vinculou, limpa a flag de pending (cadastro como colab)
     if (claimed) window.staflowGuard.limparPendingColabClaim();
@@ -140,6 +141,9 @@ window.staflowApp = window.staflowApp || {};
     if (elRole)   elRole.textContent   = roleLabel(profile.role);
     if (elAvatar) elAvatar.textContent = iniciais(profile.full_name);
 
+    // 5b. ★ MULTI-CNPJ — monta o switcher de condomínios no topo
+    renderCondoSwitcher(condominios || [], condominioAtualId);
+
     // 5. Highlight do link ativo
     document.querySelectorAll('.sb-link').forEach(a => {
       a.classList.toggle('active', a.dataset.route === route);
@@ -155,7 +159,7 @@ window.staflowApp = window.staflowApp || {};
 
     // Ajuda (placeholder)
     const btnHelp = document.getElementById('btn-help');
-    if (btnHelp) btnHelp.addEventListener('click', () => toast('Central de ajuda em breve. Por enquanto: brenomackenzie777@gmail.com', 'success'));
+    if (btnHelp) btnHelp.addEventListener('click', () => toast('Central de ajuda em breve. Por enquanto: contato@staflow.com.br', 'success'));
 
     // 7. Logout
     const btnLogout = document.getElementById('btn-logout');
@@ -205,6 +209,87 @@ window.staflowApp = window.staflowApp || {};
   function hideSplash() {
     const s = document.getElementById('splash');
     if (s) s.classList.add('hide');
+  }
+
+  // ---------- Switcher de Condomínios (Multi-CNPJ) ----------
+  // Injeta um dropdown no topo da .main + botão "Novo condomínio".
+  // Idempotente: se já existe, só atualiza o conteúdo.
+  function renderCondoSwitcher(condos, ativoId) {
+    if (!condos || condos.length === 0) return;
+    const main = document.querySelector('.main');
+    if (!main) return;
+
+    // CSS injetado uma vez
+    if (!document.getElementById('condo-switcher-styles')) {
+      const style = document.createElement('style');
+      style.id = 'condo-switcher-styles';
+      style.textContent = `
+        .condo-switcher { position: relative; display: inline-flex; align-items: center; gap: 8px;
+          background: var(--navy); border: 1px solid var(--border); border-radius: var(--radius-card, 12px);
+          padding: 6px 10px 6px 14px; font-family: var(--font-body); margin-bottom: 14px; }
+        .condo-switcher .label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1.5px;
+          color: var(--white-muted); text-transform: uppercase; }
+        .condo-switcher select { background: transparent; border: none; color: var(--white);
+          font-family: inherit; font-size: 13px; font-weight: 600; padding: 6px 24px 6px 6px;
+          appearance: none; -webkit-appearance: none; cursor: pointer; outline: none; max-width: 220px; }
+        .condo-switcher::after { content: '▾'; position: absolute; right: 36px; pointer-events: none;
+          color: var(--teal); font-size: 11px; }
+        .condo-switcher .badge-plano { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px;
+          padding: 2px 7px; border-radius: var(--radius-btn, 8px); background: var(--teal-dim);
+          color: var(--teal); border: 1px solid var(--teal-border); text-transform: uppercase; }
+        .condo-switcher .badge-plano.warn { background: rgba(255,209,102,0.10); color: var(--amber);
+          border-color: rgba(255,209,102,0.25); }
+        .condo-switcher .btn-novo { margin-left: 6px; background: transparent; border: 1px solid var(--border);
+          color: var(--white-dim); border-radius: var(--radius-btn, 8px); padding: 5px 10px; font-size: 12px;
+          font-family: inherit; cursor: pointer; transition: all 0.2s ease; }
+        .condo-switcher .btn-novo:hover { color: var(--teal); border-color: var(--teal); }
+      `;
+      document.head.appendChild(style);
+    }
+
+    let wrap = document.getElementById('condo-switcher');
+    const ativo = condos.find(c => c.condominio_id === ativoId) || condos[0];
+    const planoLabel = (ativo?.plano || 'starter').toUpperCase();
+    const isBlocked = ativo?.status_assinatura === 'past_due' ||
+                       ativo?.status_assinatura === 'canceled' ||
+                       ativo?.status_assinatura === 'inactive';
+
+    const optionsHtml = condos.map(c =>
+      `<option value="${c.condominio_id}" ${c.condominio_id === ativoId ? 'selected' : ''}>${escapeHtml(c.nome || '—')}</option>`
+    ).join('');
+
+    const html = `
+      <span class="label">Condomínio</span>
+      <select id="condo-switcher-select">${optionsHtml}</select>
+      <span class="badge-plano ${isBlocked ? 'warn' : ''}">${escapeHtml(planoLabel)}</span>
+      <button type="button" class="btn-novo" id="btn-novo-condo" title="Cadastrar novo condomínio">+ Novo</button>
+    `;
+
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.id = 'condo-switcher';
+      wrap.className = 'condo-switcher';
+      wrap.innerHTML = html;
+      // Insere no topo da .main, antes do topbar
+      const topbar = main.querySelector('.topbar');
+      if (topbar) main.insertBefore(wrap, topbar);
+      else main.insertBefore(wrap, main.firstChild);
+    } else {
+      wrap.innerHTML = html;
+    }
+
+    document.getElementById('condo-switcher-select').addEventListener('change', (e) => {
+      window.staflowAuth.switchCondominio(e.target.value);
+    });
+    document.getElementById('btn-novo-condo').addEventListener('click', () => {
+      // Política comercial: 2º+ condomínio sempre exige plano pago
+      location.href = '/planos.html?novo=1';
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g,
+      c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
 
   // ---------- HTML do Sidebar (injetado para evitar duplicação) ----------

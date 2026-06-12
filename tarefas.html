@@ -6,7 +6,7 @@
 <title>Tarefas — StaFlow</title>
 <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="auth/auth.css">
 <link rel="stylesheet" href="app.css">
 </head>
@@ -215,22 +215,22 @@ function statusBadge(status) {
   const label = STATUS_LBL[status] || status;
   const extraStyle = status === 'concluida' ? ' style="text-decoration:line-through;"' : '';
   switch (status) {
-    case 'pendente':     return `<span class="badge amber status-badge" data-status="${status}"${extraStyle}>${label}</span>`;
-    case 'em_andamento': return `<span class="badge status-badge" data-status="${status}"${extraStyle}>${label}</span>`;
-    case 'concluida':    return `<span class="badge muted status-badge" data-status="${status}"${extraStyle}>${label}</span>`;
-    case 'cancelada':    return `<span class="badge red status-badge" data-status="${status}"${extraStyle}>${label}</span>`;
-    default:             return `<span class="badge muted status-badge" data-status="${status}">${label}</span>`;
+    case 'pendente':     return `<span class="badge badge-amber status-badge" data-status="${status}"${extraStyle}>${label}</span>`;
+    case 'em_andamento': return `<span class="badge badge-blue status-badge" data-status="${status}"${extraStyle}>${label}</span>`;
+    case 'concluida':    return `<span class="badge badge-green status-badge" data-status="${status}"${extraStyle}>${label}</span>`;
+    case 'cancelada':    return `<span class="badge badge-red status-badge" data-status="${status}"${extraStyle}>${label}</span>`;
+    default:             return `<span class="badge badge-gray status-badge" data-status="${status}">${label}</span>`;
   }
 }
 
 function prioBadge(prioridade) {
   const label = PRIO_LBL[prioridade] || prioridade;
   switch (prioridade) {
-    case 'baixa':   return `<span class="badge muted">${label}</span>`;
-    case 'media':   return `<span class="badge amber">${label}</span>`;
-    case 'alta':    return `<span class="badge">${label}</span>`;
-    case 'urgente': return `<span class="badge red">${label}</span>`;
-    default:        return `<span class="badge muted">${label}</span>`;
+    case 'baixa':   return `<span class="badge badge-gray">${label}</span>`;
+    case 'media':   return `<span class="badge badge-amber">${label}</span>`;
+    case 'alta':    return `<span class="badge badge-blue">${label}</span>`;
+    case 'urgente': return `<span class="badge badge-red">${label}</span>`;
+    default:        return `<span class="badge badge-gray">${label}</span>`;
   }
 }
 
