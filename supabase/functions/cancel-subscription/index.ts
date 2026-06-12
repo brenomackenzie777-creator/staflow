@@ -3,10 +3,11 @@
 // ------------------------------------------------------------
 // POST { condominioId }
 //
-// Cancela imediatamente a assinatura Stripe do condomínio.
+// Agenda o cancelamento da assinatura Stripe ao fim do período.
+// (cancel_at_period_end=true — acesso mantido até current_period_end)
 // Apenas o síndico/membro daquele condomínio pode cancelar.
 // O webhook stripe-webhook (customer.subscription.deleted)
-// cuida de rebaixar plano → starter no banco.
+// cuida de rebaixar plano → starter no banco quando o período expirar.
 // ============================================================
 
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
@@ -79,11 +80,28 @@ Deno.serve(async (req) => {
       return json({ error: "Nenhuma assinatura ativa encontrada para este condomínio." }, 404);
     }
 
-    // ── Cancela no Stripe ──
-    await stripe.subscriptions.cancel(sub.stripe_subscription_id);
+    // ── Agenda cancelamento ao fim do período (não cancela imediatamente) ──
+    const updated = await stripe.subscriptions.update(sub.stripe_subscription_id, {
+      cancel_at_period_end: true,
+    });
 
-    // O webhook customer.subscription.deleted cuida do rebaixo no banco.
-    return json({ success: true, message: "Assinatura cancelada. Seu plano voltará para Starter." });
+    // Reflete cancel_at_period_end no banco imediatamente (plano permanece ativo
+    // até current_period_end; o rebaixo para starter ocorre via
+    // customer.subscription.deleted quando o período expirar).
+    const supabaseAdmin2 = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
+    await supabaseAdmin2.from("subscriptions").update({
+      cancel_at_period_end: true,
+      updated_at: new Date().toISOString(),
+    }).eq("stripe_subscription_id", sub.stripe_subscription_id);
+
+    const periodEnd = updated.current_period_end
+      ? new Date(updated.current_period_end * 1000).toLocaleDateString("pt-BR")
+      : null;
+    const msg = periodEnd
+      ? `Cancelamento agendado. Você mantém o acesso até ${periodEnd}.`
+      : "Cancelamento agendado. Você mantém o acesso até o fim do período atual.";
+
+    return json({ success: true, cancel_at_period_end: true, message: msg });
 
   } catch (err) {
     console.error("[cancel-subscription]", err);
