@@ -3,6 +3,7 @@
 // ------------------------------------------------------------
 // Eventos:
 //   - checkout.session.completed  → ativa condomínio pós-pagamento
+//   - checkout.session.expired    → limpa condomínio zumbi (checkout abandonado)
 //   - customer.subscription.*     → upsert por condominio_id
 //   - invoice.paid                → reativa past_due
 //   - invoice.payment_failed      → status='past_due'
@@ -59,6 +60,9 @@ Deno.serve(async (req) => {
     switch (event.type) {
       case "checkout.session.completed":
         await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+        break;
+      case "checkout.session.expired":
+        await handleCheckoutExpired(event.data.object as Stripe.Checkout.Session);
         break;
       case "customer.subscription.created":
       case "customer.subscription.updated":
@@ -158,6 +162,41 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     plano,
     plano_ativo:            plano,
   });
+}
+
+// ─── Cleanup: checkout expirado sem pagamento → remove condomínio zumbi ───
+// Dispara quando o usuário abre o Stripe Checkout mas não paga.
+// create-checkout-session cria o registro em condominios(status='pending')
+// antes do pagamento — aqui desfazemos se nenhuma subscription foi criada.
+async function handleCheckoutExpired(session: Stripe.Checkout.Session) {
+  const condominioId = session.metadata?.condominio_id ?? null;
+  if (!condominioId) return;
+
+  // Verifica se já existe subscription ativa para esse condomínio.
+  // Se sim, foi pago em outra tentativa — não mexe.
+  const { data: sub } = await supabase
+    .from("subscriptions")
+    .select("id")
+    .eq("condominio_id", condominioId)
+    .maybeSingle();
+
+  if (sub) {
+    console.log(`[checkout.expired] condominio ${condominioId} já tem subscription — ignorando`);
+    return;
+  }
+
+  // Sem subscription → condomínio foi criado provisoriamente e nunca ativado
+  const { error } = await supabase
+    .from("condominios")
+    .delete()
+    .eq("id", condominioId)
+    .eq("status_assinatura", "pending"); // segurança extra: só deleta se ainda pending
+
+  if (error) {
+    console.error(`[checkout.expired] erro ao deletar condomínio zumbi ${condominioId}:`, error);
+  } else {
+    console.log(`[checkout.expired] condomínio zumbi ${condominioId} removido`);
+  }
 }
 
 async function handleSubscriptionUpsert(sub: Stripe.Subscription) {
