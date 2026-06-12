@@ -6,7 +6,7 @@
 <title>Funcionários — StaFlow</title>
 <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="auth/auth.css">
 <link rel="stylesheet" href="app.css">
 <style>
@@ -263,98 +263,6 @@
   text-transform: uppercase;
   margin-left: 8px;
 }
-
-/* ── KPI cards ───────────────────────────────── */
-.kpi-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-bottom: 20px;
-}
-@media (max-width: 860px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px)  { .kpi-row { grid-template-columns: 1fr 1fr; } }
-
-.kpi-card {
-  background: var(--navy-brand);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 18px 20px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  transition: var(--transition);
-}
-.kpi-card:hover { border-color: var(--border-strong); transform: translateY(-1px); }
-
-.kpi-label {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--white-muted);
-  margin-bottom: 4px;
-}
-.kpi-value {
-  font-family: 'Inter', sans-serif;
-  font-size: 30px;
-  font-weight: 700;
-  color: var(--white);
-  line-height: 1;
-}
-.kpi-value.teal { color: var(--teal); }
-.kpi-value.amber { color: #f59e0b; }
-.kpi-foot {
-  font-size: 11px;
-  color: var(--white-dim);
-  margin-top: 4px;
-}
-.kpi-bar {
-  height: 3px;
-  border-radius: 2px;
-  background: var(--border);
-  margin-top: 10px;
-  overflow: hidden;
-}
-.kpi-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-  background: var(--teal);
-  transition: width 0.6s ease;
-}
-.kpi-bar-fill.warn { background: #f59e0b; }
-.kpi-bar-fill.full { background: var(--red); }
-
-/* ── Badges refinados (tabela) ───────────────── */
-.badge-ativo {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 1px;
-  font-weight: 600;
-  text-transform: uppercase;
-  background: rgba(77,217,172,0.10);
-  color: var(--teal);
-  border: 1px solid rgba(77,217,172,0.22);
-  white-space: nowrap;
-}
-.badge-inativo {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 1px;
-  font-weight: 600;
-  text-transform: uppercase;
-  background: rgba(156,163,175,0.08);
-  color: var(--white-muted);
-  border: 1px solid rgba(156,163,175,0.18);
-  white-space: nowrap;
-}
 </style>
 </head>
 <body>
@@ -374,31 +282,6 @@
       </div>
       <div class="topbar-actions">
         <button class="btn" id="btn-new-func">＋ Novo funcionário</button>
-      </div>
-    </div>
-
-    <!-- KPI cards — alimentados por renderKPIs() após loadAll() -->
-    <div class="kpi-row" id="kpi-row">
-      <div class="kpi-card">
-        <div class="kpi-label">Total cadastrados</div>
-        <div class="kpi-value" id="kpi-total">—</div>
-        <div class="kpi-foot" id="kpi-total-foot">Carregando…</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Ativos</div>
-        <div class="kpi-value teal" id="kpi-ativos">—</div>
-        <div class="kpi-foot" id="kpi-ativos-foot">—</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Inativos</div>
-        <div class="kpi-value" id="kpi-inativos">—</div>
-        <div class="kpi-foot" id="kpi-inativos-foot">—</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Slots disponíveis</div>
-        <div class="kpi-value" id="kpi-slots">—</div>
-        <div class="kpi-foot" id="kpi-slots-foot">—</div>
-        <div class="kpi-bar"><div class="kpi-bar-fill" id="kpi-bar-fill" style="width:0%"></div></div>
       </div>
     </div>
 
@@ -967,8 +850,8 @@ function renderRows() {
       <td>${TURNO_LBL[r.turno] || r.turno}</td>
       <td>${r.telefone ? escapeHtml(r.telefone) : '<span style="color:var(--white-muted);">—</span>'}</td>
       <td>${r.ativo
-        ? '<span class="badge-ativo">Ativo</span>'
-        : '<span class="badge-inativo">Inativo</span>'}</td>
+        ? '<span class="badge">ATIVO</span>'
+        : '<span class="badge muted">INATIVO</span>'}</td>
       <td>
         <div class="row-actions">
           <button data-act="edit">Editar</button>
@@ -980,33 +863,6 @@ function renderRows() {
 
   // Carrega signed URLs para avatares com foto (sem bloquear render)
   loadAvatarUrls();
-}
-
-// ── KPI cards ─────────────────────────────────────────────────
-function renderKPIs() {
-  const total    = allRows.length;
-  const ativos   = allRows.filter(r => r.ativo).length;
-  const inativos = total - ativos;
-  const limite   = getPlanLimit();
-  const slots    = limite === Infinity ? Infinity : Math.max(0, limite - ativos);
-  const pct      = limite > 0 && limite !== Infinity ? Math.min(100, Math.round((ativos / limite) * 100)) : 0;
-
-  document.getElementById('kpi-total').textContent       = total;
-  document.getElementById('kpi-total-foot').textContent  = total === 1 ? '1 colaborador registrado' : `${total} colaboradores registrados`;
-  document.getElementById('kpi-ativos').textContent      = ativos;
-  document.getElementById('kpi-ativos-foot').textContent = limite !== Infinity ? `${pct}% do limite (${ativos}/${limite})` : `${ativos} ativos`;
-  document.getElementById('kpi-inativos').textContent    = inativos;
-  document.getElementById('kpi-inativos-foot').textContent = inativos === 0 ? 'Todos ativos' : `${inativos} sem acesso ativo`;
-
-  const limiteLabel = limite === Infinity ? '∞' : limite;
-  document.getElementById('kpi-slots').textContent       = slots === Infinity ? '∞' : slots;
-  document.getElementById('kpi-slots-foot').textContent  = `Plano ${planLabel(planoAtual)} · máx ${limiteLabel}`;
-
-  const bar = document.getElementById('kpi-bar-fill');
-  bar.style.width = `${pct}%`;
-  bar.classList.remove('warn', 'full');
-  if (pct >= 100)     bar.classList.add('full');
-  else if (pct >= 80) bar.classList.add('warn');
 }
 
 // ── Carregar do banco ─────────────────────────────────────────
@@ -1022,7 +878,6 @@ async function loadAll() {
   if (error) { T(error.message, 'error'); return; }
   allRows = data || [];
   renderRows();
-  renderKPIs();
 }
 
 // ── Modal ─────────────────────────────────────────────────────
