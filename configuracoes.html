@@ -263,8 +263,8 @@
                 <select class="input" id="c-plano" disabled>
                   <option value="starter">Starter</option>
                   <option value="pro">Pro</option>
+                  <option value="advanced">Advanced</option>
                   <option value="scale">Scale</option>
-                  <option value="enterprise">Enterprise</option>
                 </select>
                 <div class="field-hint">Mude o plano na <a href="/planos.html" style="color:var(--teal);">página de planos</a>.</div>
               </div>
@@ -679,8 +679,9 @@ function atualizarCardAssinatura() {
   const nomes = { pro: 'Pro', advanced: 'Advanced', scale: 'Scale', enterprise: 'Enterprise' };
   document.getElementById('assin-plano-label').textContent = nomes[plano] || plano;
   document.getElementById('assin-status-label').textContent =
-    status === 'active'   ? '✓ Ativa' :
-    status === 'past_due' ? '⚠ Pagamento pendente' : status;
+    condo.cancel_at_period_end ? '⏳ Cancelamento agendado' :
+    status === 'active'        ? '✓ Ativa' :
+    status === 'past_due'      ? '⚠ Pagamento pendente' : status;
 }
 
 /* ── Cancelamento ──────────────────────────────────── */
@@ -721,19 +722,14 @@ document.getElementById('btn-cancel-confirm-sim').addEventListener('click', asyn
     if (!resp.ok) throw new Error(data.error || `Erro ${resp.status}`);
 
     document.getElementById('modal-cancel-confirm').style.display = 'none';
-    T('Assinatura cancelada. Seu plano voltou para Starter.', 'success');
+    // Usa mensagem da API que inclui a data do fim do período
+    T(data.message || 'Cancelamento agendado. Você mantém o acesso até o fim do período atual.', 'success');
 
-    // Atualiza UI local
+    // Atualiza UI local: plano permanece ativo, apenas marca cancelamento agendado
     if (condo) {
-      condo.plano_ativo        = 'starter';
-      condo.plano              = 'starter';
-      condo.status_assinatura  = 'canceled';
+      condo.cancel_at_period_end = true;
     }
-    document.getElementById('c-plano').value = 'starter';
     atualizarCardAssinatura();
-
-    // Redireciona para planos após 2s
-    setTimeout(() => location.replace('/planos.html'), 2000);
 
   } catch (err) {
     T(err.message || 'Erro ao cancelar. Tente novamente.', 'error');
