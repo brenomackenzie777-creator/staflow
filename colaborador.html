@@ -771,6 +771,24 @@
     display: inline-flex; align-items: center; gap: 8px;
   }
   .block-screen .btn-out:active { transform: scale(0.97); }
+  .block-screen .btn-retry {
+    margin-top: 12px;
+    background: transparent;
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 12px 28px;
+    min-height: 44px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: background 0.2s, color 0.2s;
+  }
+  .block-screen .btn-retry:hover { background: var(--accent-dim); }
+  .block-screen .btn-retry:active { transform: scale(0.97); }
+  .block-screen .btn-retry:disabled { opacity: 0.5; cursor: not-allowed; }
 
   /* ── Bottom Nav ── */
   .bottom-nav {
@@ -834,6 +852,9 @@
     no painel <strong>Funcionários</strong> do StaFlow. Assim que ele te
     cadastrar, saia e entre novamente para ativar seu acesso ao app de bolso.
   </p>
+  <button class="btn-retry" id="btn-retry-claim">
+    <span>🔄</span> Verificar novamente
+  </button>
   <button class="btn-out" id="btn-logout-block">
     <span>⏻</span> Sair / Logout
   </button>
@@ -1389,7 +1410,18 @@ async function sincronizarFilaOffline() {
   for (const item of itens) {
     try {
       const { error } = await sb.from('registros_ponto').insert(item.payload);
-      if (error) { fail++; continue; }
+      if (error) {
+        // Código 23505 = unique_violation: batida já existe no servidor
+        // (acontece quando a sync roda duas vezes para o mesmo item offline).
+        // Tratamos como sucesso e removemos da fila — não é falha real.
+        if (error.code === '23505') {
+          await OfflineQueue.remove(item.id);
+          ok++;
+          continue;
+        }
+        fail++;
+        continue;
+      }
       await OfflineQueue.remove(item.id);
       ok++;
     } catch (_) {
@@ -1755,6 +1787,32 @@ function mostrarBlock(email) {
   document.getElementById('block-screen').classList.add('show');
   document.getElementById('block-email').textContent = email || '—';
   document.getElementById('btn-logout-block').addEventListener('click', logout);
+
+  // Botão "Verificar novamente" — chama claim_funcionario_by_email sem recarregar a página,
+  // e se o vínculo for criado faz reload para reidratar a sessão completa.
+  const btnRetry = document.getElementById('btn-retry-claim');
+  if (btnRetry) {
+    btnRetry.addEventListener('click', async () => {
+      btnRetry.disabled = true;
+      btnRetry.innerHTML = '<span>⏳</span> Verificando…';
+      try {
+        const { data, error } = await sb.rpc('claim_funcionario_by_email').single();
+        if (!error && data?.funcionario_id) {
+          btnRetry.innerHTML = '<span>✓</span> Vínculo encontrado! Carregando…';
+          location.reload();
+        } else {
+          toast('Ainda aguardando. Peça ao síndico para te cadastrar em Funcionários.', 'info');
+          btnRetry.disabled = false;
+          btnRetry.innerHTML = '<span>🔄</span> Verificar novamente';
+        }
+      } catch (_) {
+        toast('Erro ao verificar. Tente novamente em instantes.', 'error');
+        btnRetry.disabled = false;
+        btnRetry.innerHTML = '<span>🔄</span> Verificar novamente';
+      }
+    });
+  }
+
   hideSplash();
 }
 
