@@ -591,3 +591,14 @@ tr.sk-row .sk-text-block {
   .sb-brand .wm { font-size: 16px; }
   .empty { padding: 40px 16px; }
 }
+
+/* ── Disclaimer MTE 671 (ponto.html, faltas.html) ── */
+.disclaimer-mte {
+  color: var(--white-muted);
+  font-size: 11px;
+  margin-top: 24px;
+  margin-bottom: 8px;
+  text-align: center;
+  padding: 0 16px;
+  line-height: 1.5;
+}
