@@ -6,7 +6,8 @@
 <title>Escolha seu plano — StaFlow</title>
 <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="auth/auth.css">
 <style>
   body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 40px 16px 60px; }
@@ -59,8 +60,8 @@
     text-transform: uppercase;
     transition: var(--transition);
   }
-  .cupom-input:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(6,214,160,0.18); }
-  .cupom-input.valid { border-color: var(--teal); background: rgba(6,214,160,0.06); }
+  .cupom-input:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px var(--blue-dim); }
+  .cupom-input.valid { border-color: var(--teal); background: var(--blue-dim); }
   .cupom-input.invalid { border-color: var(--red); }
   .btn-cupom {
     background: var(--surface-dim, rgba(255,255,255,0.06));
@@ -118,7 +119,7 @@
     font-size: 14px;
     transition: var(--transition);
   }
-  .novo-condo-box input:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(6,214,160,0.18); }
+  .novo-condo-box input:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px var(--blue-dim); }
 
   /* Card desabilitado (Starter indisponível para 2º+ condomínio) */
   .plano-card.disabled { opacity: 0.45; pointer-events: none; }
@@ -138,7 +139,7 @@
   }
   .plano-card.featured {
     border-color: var(--teal-border);
-    background: rgba(6,214,160,0.04);
+    background: var(--blue-dim);
   }
   .plano-card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
   .plano-card.featured:hover { border-color: var(--teal); }
@@ -146,7 +147,7 @@
   .plano-badge {
     position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
     background: var(--teal);
-    color: #0F1624;
+    color: #fff;
     font-family: var(--font-mono);
     font-size: 9px; letter-spacing: 2px;
     text-transform: uppercase;
@@ -229,12 +230,12 @@
     color: #fff;
     letter-spacing: 0.3px;
   }
-  .btn-ativar:hover { background: #3a3ec7; }
+  .btn-ativar:hover { background: var(--teal-hover); }
   .btn-ativar.featured-btn {
     background: var(--teal);
-    color: #0F1624;
+    color: #fff;
   }
-  .btn-ativar.featured-btn:hover { background: #04c090; }
+  .btn-ativar.featured-btn:hover { background: var(--teal-hover); }
   .btn-ativar.loading { opacity: 0.7; pointer-events: none; cursor: wait; }
 
   /* Rodapé */
@@ -355,9 +356,9 @@
   .billing-toggle .lbl { cursor: pointer; transition: color .2s; user-select: none; }
   .billing-toggle .lbl.active { color: var(--white); font-weight: 600; }
   .billing-badge {
-    background: rgba(0,210,180,.15);
+    background: var(--blue-dim);
     color: var(--teal);
-    border: 1px solid rgba(0,210,180,.3);
+    border: 1px solid var(--blue-border);
     border-radius: 999px;
     font-size: 11px;
     font-weight: 600;
@@ -451,7 +452,7 @@
       <div class="preco-equiv" id="equiv-pro">≈ R$ 79/mês · cobrado anualmente</div>
     </div>
     <ul class="plano-features">
-      <li>Até 20 funcionários</li>
+      <li>Até 15 funcionários</li>
       <li>Módulo Ponto</li>
       <li>Módulo Faltas</li>
       <li>Módulo Tarefas</li>
@@ -532,7 +533,7 @@
 </div>
 
 <div class="planos-footer">
-  © 2026 STAFLOW · SEM FIDELIDADE · CANCELE QUANDO QUISER · CNPJ AGUARDANDO EMISSÃO
+  © 2026 STAFLOW · SEM FIDELIDADE · CANCELE QUANDO QUISER · CNPJ 67.255.600/0001-71
 </div>
 
 <div class="toast" id="toast"><span class="ico"></span><span class="msg"></span></div>
