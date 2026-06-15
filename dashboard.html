@@ -1247,7 +1247,7 @@ function ativarRealtime(condominioId) {
   });
 
   // Ativa realtime DEPOIS da carga inicial (evita race)
-  ativarRealtime(profile.condominio_id);
+  ativarRealtime(window.staflowAuth.getCondominioAtualId() || profile.condominio_id);
 })();
 </script>
 </body>

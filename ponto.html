@@ -639,6 +639,11 @@ let allFuncs     = [];   // funcionários ativos
 let allRegistros = [];   // registros_ponto do dia selecionado
 let rows         = [];   // dados mesclados (um por funcionário)
 
+// Condomínio ATIVO (switcher multi-CNPJ); fallback no vínculo do perfil.
+function getCondoId() {
+  return window.staflowAuth.getCondominioAtualId() || profile.condominio_id;
+}
+
 // ── Helpers de data/hora ───────────────────────────────────────────────────────
 function todayISO() {
   const d = new Date();
@@ -882,7 +887,7 @@ async function registrarPonto(funcionarioId, tipo, btn) {
   btn.disabled = true;
 
   const payload = {
-    condominio_id:  profile.condominio_id,
+    condominio_id:  getCondoId(),
     funcionario_id: funcionarioId,
     tipo,
     registrado_em:  new Date().toISOString(),
@@ -1078,7 +1083,7 @@ async function gerarEImprimirEspelho(funcionarioId, mesStr) {
       .lt('registrado_em',  new Date(ano, mes, 1).toISOString())
       .order('registrado_em', { ascending: true }),
     sb.from('condominios').select('nome, endereco, cnpj, email_admin, logradouro, numero, bairro, cidade, estado, cep')
-      .eq('id', profile.condominio_id).maybeSingle()
+      .eq('id', getCondoId()).maybeSingle()
   ]);
   if (resFunc.error)  throw resFunc.error;
   if (resReg.error)   throw resReg.error;
@@ -1561,7 +1566,7 @@ document.getElementById('btn-espelho').addEventListener('click', async () => {
         .in('funcionario_id', allFuncs.map(f => f.id)),
       sb.from('condominios')
         .select('nome, cnpj, endereco, logradouro, numero, bairro, cidade, estado, cep, email_admin')
-        .eq('id', profile.condominio_id).maybeSingle()
+        .eq('id', getCondoId()).maybeSingle()
     ]);
     if (resPontos.error) throw resPontos.error;
     if (resFaltas.error) throw resFaltas.error;

@@ -599,6 +599,11 @@ document.getElementById('upgrade-cta').addEventListener('click', () => {
 let allRows = [];
 let profile = null;
 
+// Condomínio ATIVO (switcher multi-CNPJ); fallback no vínculo do perfil.
+function getCondoId() {
+  return window.staflowAuth.getCondominioAtualId() || profile.condominio_id;
+}
+
 // ── Estado do upload de foto ───────────────────────────────────
 let fotoFile        = null;   // File selecionado para upload
 let currentFotoPath = null;   // foto_path existente no DB
@@ -765,7 +770,7 @@ document.getElementById('f-nome').addEventListener('input', (e) => {
 // ── Storage: upload de foto ────────────────────────────────────
 async function uploadFoto(funcionarioId, file) {
   const ext  = file.name.split('.').pop().toLowerCase() || 'jpg';
-  const path = `${profile.condominio_id}/${funcionarioId}.${ext}`;
+  const path = `${getCondoId()}/${funcionarioId}.${ext}`;
   const { error } = await sb.storage
     .from('fotos-funcionarios')
     .upload(path, file, { upsert: true, cacheControl: '3600' });
@@ -1046,7 +1051,7 @@ document.getElementById('form-func').addEventListener('submit', async (e) => {
       //   Re-busca o count atual do banco pra ter o número fresh.
       const { count: ativosAgora } = await sb.from('funcionarios')
         .select('id', { count: 'exact', head: true })
-        .eq('condominio_id', profile.condominio_id)
+        .eq('condominio_id', getCondoId())
         .eq('ativo', true);
       if ((ativosAgora ?? 0) >= getPlanLimit()) {
         btn.classList.remove('loading'); btn.disabled = false;
@@ -1054,7 +1059,7 @@ document.getElementById('form-func').addEventListener('submit', async (e) => {
         openUpgradeModal();
         return;
       }
-      payload.condominio_id = profile.condominio_id;
+      payload.condominio_id = getCondoId();
       payload.created_by    = profile.id;
       resp = await sb.from('funcionarios').insert(payload).select().single();
     }
@@ -1158,7 +1163,7 @@ document.getElementById('btn-first-func').addEventListener('click', openNew);
   profile = await window.staflowApp.bootstrapShell({ route: 'funcionarios' });
   if (!profile) return;
 
-  if (!profile.condominio_id) {
+  if (!getCondoId()) {
     T('Configure seu condomínio em Configurações antes de adicionar funcionários.', 'error');
     document.getElementById('btn-new-func').disabled = true;
   }
@@ -1173,11 +1178,12 @@ document.getElementById('btn-first-func').addEventListener('click', openNew);
 })();
 
 async function loadPlano() {
-  if (!profile?.condominio_id) return;
+  const condoId = getCondoId();
+  if (!condoId) return;
   try {
     const { data } = await sb.from('condominios')
       .select('plano')
-      .eq('id', profile.condominio_id)
+      .eq('id', condoId)
       .maybeSingle();
     if (data?.plano) planoAtual = data.plano;
   } catch (_) { /* mantém default 'starter' */ }

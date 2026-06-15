@@ -178,6 +178,11 @@ let allTarefas     = [];   // cache completo de tarefas
 let allFuncionarios = [];  // cache de funcionários ativos
 let profile        = null;
 
+// Condomínio ATIVO (switcher multi-CNPJ); fallback no vínculo do perfil.
+function getCondoId() {
+  return window.staflowAuth.getCondominioAtualId() || profile.condominio_id;
+}
+
 // ---------- labels ----------
 const STATUS_LBL = {
   pendente:     'Pendente',
@@ -409,7 +414,7 @@ document.getElementById('form-tarefa').addEventListener('submit', async (e) => {
   if (id) {
     resp = await sb.from('tarefas').update(payload).eq('id', id).select().single();
   } else {
-    payload.condominio_id = profile.condominio_id;
+    payload.condominio_id = getCondoId();
     payload.created_by    = profile.id;
     payload.status        = 'pendente';
     resp = await sb.from('tarefas').insert(payload).select().single();
@@ -544,7 +549,7 @@ document.getElementById('btn-export').addEventListener('click', () => {
   profile = await window.staflowApp.bootstrapShell({ route: 'tarefas' });
   if (!profile) return;
 
-  if (!profile.condominio_id) {
+  if (!getCondoId()) {
     T('Configure seu condomínio em Configurações antes de criar tarefas.', 'error');
     document.getElementById('btn-nova').disabled = true;
   }
