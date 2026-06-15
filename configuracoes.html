@@ -476,11 +476,14 @@ document.getElementById('cct-file').addEventListener('change', (e) => {
 
 /* ── Carrega o condomínio do banco ─────────────── */
 async function loadCondominio() {
-  if (!profile.condominio_id) {
+  // Usa o condomínio ATIVO selecionado no switcher multi-CNPJ (se houver);
+  // profile.condominio_id é apenas o vínculo original do usuário.
+  const condominioId = window.staflowAuth.getCondominioAtualId() || profile.condominio_id;
+  if (!condominioId) {
     // Sem condomínio vinculado — usuário deve cadastrar via Funcionários primeiro
     return;
   }
-  const { data, error } = await sb.from('condominios').select('*').eq('id', profile.condominio_id).single();
+  const { data, error } = await sb.from('condominios').select('*').eq('id', condominioId).single();
   if (error) { T(error.message, 'error'); return; }
   condo = data;
 
@@ -715,7 +718,7 @@ document.getElementById('btn-cancel-confirm-sim').addEventListener('click', asyn
         'Authorization': `Bearer ${session.access_token}`,
         'apikey':        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzeHBza3JyenF0ZG9vZHBvb2Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDExNzksImV4cCI6MjA5NDQxNzE3OX0.GOJgWFpm9vIPuTCrhCK4TWriLrcjxXP9VGSMekI4Tfs',
       },
-      body: JSON.stringify({ condominioId: profile.condominio_id }),
+      body: JSON.stringify({ condominioId: condo?.id || profile.condominio_id }),
     });
 
     const data = await resp.json();
