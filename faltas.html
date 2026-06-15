@@ -473,15 +473,15 @@ function renderRows() {
       : '<span style="color:var(--white-muted);font-size:12px;">—</span>';
     return `
       <tr data-id="${r.id}">
-        <td>
+        <td data-label="Funcionário">
           <div style="font-weight:600;">${escapeHtml(nome)}</div>
           ${cargo ? `<div style="font-size:12px;color:var(--white-dim);">${escapeHtml(cargo)}</div>` : ''}
         </td>
-        <td style="font-family:var(--font-mono);font-size:13px;">${fmtData(r.data)}</td>
-        <td>${tipoBadge(r.tipo)}</td>
-        <td>${justBadge(r.justificada)}</td>
-        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;color:var(--white-dim);">${obs}</td>
-        <td>${atestadoCell}</td>
+        <td data-label="Data" style="font-family:var(--font-mono);font-size:13px;">${fmtData(r.data)}</td>
+        <td data-label="Tipo">${tipoBadge(r.tipo)}</td>
+        <td data-label="Justificada">${justBadge(r.justificada)}</td>
+        <td data-label="Obs." style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;color:var(--white-dim);">${obs}</td>
+        <td data-label="Atestado">${atestadoCell}</td>
         <td>
           <div class="row-actions">
             <button data-act="edit">Editar</button>
@@ -885,14 +885,34 @@ document.getElementById('btn-export').addEventListener('click', () => {
 });
 
 // ---- Menu toggle (mobile) ----
-document.getElementById('menu-toggle').addEventListener('click', () => {
-  document.getElementById('sidebar').classList.toggle('open');
-});
-
-// ---- Boot ----
-(async () => {
-  window.staflowApp.renderSidebar('sidebar');
-  profile = await window.staflowApp.bootstrapShell({ route: 'faltas' });
+{
+  const _mt  = document.getElementById('menu-toggle');
+  const _sb  = document.getElementById('sidebar');
+  const _bk  = document.getElementById('sidebar-backdrop');
+  if (_mt && _sb) {
+    _mt.addEventListener('click', () => {
+      _sb.classList.toggle('open');
+      if (_bk) _bk.classList.toggle('show');
+    });
+    if (_bk) _bk.addEventListener('click', () => {
+      _sb.classList.remove('open');
+      _bk.classList.remove('show');
+    });
+  }
+}
+</script>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+</body>
+</html>
+file = await window.staflowApp.bootstrapShell({ route: 'faltas' });
   if (!profile) return;
 
-  // Define m
+  // Define mês padrão = atual
+  document.getElementById('f-mes').value = mesAtual();
+
+  await Promise.all([loadFuncionarios(), loadAll()]);
+})();
+</script>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+</body>
+</html>

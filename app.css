@@ -569,6 +569,8 @@ tr.sk-row .sk-text-block {
   .modal .field-row { grid-template-columns: 1fr; }
   .toolbar { gap: 8px; }
   .toolbar select.filter { flex: 1; min-width: 130px; }
+  /* KPI grid: 2 colunas em tablet */
+  .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
   /* Tabelas: scroll horizontal suave em mobile */
   .table-wrap {
     overflow-x: auto;
@@ -584,12 +586,81 @@ tr.sk-row .sk-text-block {
   .toast.show { transform: translateY(0); }
 }
 
-@media (max-width: 480px) {
+/* ── Mobile portrait 640px — tabelas viram cards ── */
+@media (max-width: 640px) {
+  /* Conteúdo principal */
   .main { padding: 14px 12px 80px; }
+
+  /* Botões de ação: empilhados */
+  .topbar-actions { flex-direction: column; gap: 8px; }
+  .topbar-actions .btn { width: 100%; text-align: center; flex: none; }
+
+  /* Modal ocupa tela inteira */
+  .modal { width: 96vw !important; max-width: none !important; border-radius: 12px; padding: 20px 16px; }
+  .modal-backdrop { padding: 8px; }
+
+  /* Inputs: 16px impede zoom automático no iOS */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea { font-size: 16px !important; }
+
+  /* Tabelas → cards empilhados */
+  .table-wrap { border: none; border-radius: 0; background: transparent; overflow-x: visible; }
+  .table-wrap table.tbl { min-width: unset; display: block; }
+  .table-wrap table.tbl thead { display: none; }
+  .table-wrap table.tbl tbody { display: block; }
+  .table-wrap table.tbl tr {
+    display: block;
+    background: var(--navy);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    transition: var(--transition);
+  }
+  .table-wrap table.tbl tr:last-child { margin-bottom: 0; }
+  .table-wrap table.tbl tr:hover { border-color: var(--border-strong); }
+  .table-wrap table.tbl td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border: none;
+    font-size: 13px;
+    gap: 8px;
+  }
+  .table-wrap table.tbl td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--white-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    flex-shrink: 0;
+    min-width: 76px;
+  }
+  /* Linhas sem data-label (ações): sem prefixo */
+  .table-wrap table.tbl td:not([data-label]) { justify-content: flex-end; }
+  /* Skeleton rows em modo card */
+  tr.sk-row {
+    display: block;
+    background: var(--navy);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    padding: 12px 14px;
+  }
+  tr.sk-row td { display: flex; align-items: center; gap: 10px; border: none; padding: 6px 0; }
+}
+
+@media (max-width: 480px) {
+  .main { padding: 14px 10px 80px; }
   .card { padding: 16px 14px; }
   .topbar h1 { font-size: 20px; }
   .sb-brand .wm { font-size: 16px; }
   .empty { padding: 40px 16px; }
+  /* KPI grid: coluna única em mobile pequeno */
+  .kpi-grid { grid-template-columns: 1fr !important; }
 }
 
 /* ── Disclaimer MTE 671 (ponto.html, faltas.html) ── */

@@ -837,7 +837,7 @@ function renderRows() {
 
   tbody.innerHTML = rows.map(r => `
     <tr data-id="${r.id}">
-      <td>
+      <td data-label="Funcionário">
         <div style="display:flex;align-items:center;gap:10px;">
           <div class="tbl-avatar">
             ${r.foto_path
@@ -851,10 +851,10 @@ function renderRows() {
           </div>
         </div>
       </td>
-      <td>${CARGO_LBL[r.cargo] || r.cargo}</td>
-      <td>${TURNO_LBL[r.turno] || r.turno}</td>
-      <td>${r.telefone ? escapeHtml(r.telefone) : '<span style="color:var(--white-muted);">—</span>'}</td>
-      <td>${r.ativo
+      <td data-label="Cargo">${CARGO_LBL[r.cargo] || r.cargo}</td>
+      <td data-label="Turno">${TURNO_LBL[r.turno] || r.turno}</td>
+      <td data-label="Telefone">${r.telefone ? escapeHtml(r.telefone) : '<span style="color:var(--white-muted);">—</span>'}</td>
+      <td data-label="Status">${r.ativo
         ? '<span class="badge badge-green">Ativo</span>'
         : '<span class="badge badge-gray">Inativo</span>'}</td>
       <td>
@@ -1184,3 +1184,28 @@ async function loadPlano() {
     const { data } = await sb.from('condominios')
       .select('plano')
       .eq('id', condoId)
+      .maybeSingle();
+    if (data?.plano) planoAtual = data.plano;
+  } catch (_) { /* mantém default 'starter' */ }
+}
+
+// ── Mobile sidebar toggle ──────────────────────────────────────
+const _menuToggle = document.getElementById('menu-toggle');
+const _sidebar    = document.getElementById('sidebar');
+const _backdrop   = document.getElementById('sidebar-backdrop');
+if (_menuToggle && _sidebar) {
+  _menuToggle.addEventListener('click', () => {
+    _sidebar.classList.toggle('open');
+    if (_backdrop) _backdrop.classList.toggle('show');
+  });
+  if (_backdrop) {
+    _backdrop.addEventListener('click', () => {
+      _sidebar.classList.remove('open');
+      _backdrop.classList.remove('show');
+    });
+  }
+}
+</script>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+</body>
+</html>

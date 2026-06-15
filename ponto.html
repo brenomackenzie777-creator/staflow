@@ -803,7 +803,7 @@ function renderTable() {
 
     return `
       <tr data-id="${f.id}">
-        <td>
+        <td data-label="Funcionário">
           <div style="display:flex;align-items:center;gap:10px;">
             <div class="ponto-av">${escapeHtml(initials)}</div>
             <div>
@@ -812,16 +812,16 @@ function renderTable() {
             </div>
           </div>
         </td>
-        <td>
+        <td data-label="Entrada">
           <span class="hora-cell ${hasEnt ? 'has' : 'dash'}">${horaEnt}</span>${auditPill(row.entrada)}${editBtn(row.entrada)}
         </td>
-        <td>
+        <td data-label="Saída">
           <span class="hora-cell ${hasSai ? 'has' : 'dash'}">${horaSai}</span>${auditPill(row.saida)}${editBtn(row.saida)}
         </td>
-        <td>
+        <td data-label="Total">
           <span class="total-cell ${total !== '—' ? 'has' : ''}">${escapeHtml(total)}</span>
         </td>
-        <td>${statusBadge}</td>
+        <td data-label="Status">${statusBadge}</td>
         <td>
           <div class="ponto-acts" onclick="event.stopPropagation()">
             <button
@@ -1731,4 +1731,28 @@ document.getElementById('inp-date').addEventListener('change', loadData);
   profile = await window.staflowApp.bootstrapShell({ route: 'ponto' });
   if (!profile) return;
 
-  // se
+  // Define data padrão = hoje e carrega os dados
+  document.getElementById('inp-date').value = todayISO();
+  await loadData();
+
+  // Mobile sidebar toggle
+  const _menuToggle = document.getElementById('menu-toggle');
+  const _sidebar    = document.getElementById('sidebar');
+  const _backdrop   = document.getElementById('sidebar-backdrop');
+  if (_menuToggle && _sidebar) {
+    _menuToggle.addEventListener('click', () => {
+      _sidebar.classList.toggle('open');
+      if (_backdrop) _backdrop.classList.toggle('show');
+    });
+    if (_backdrop) {
+      _backdrop.addEventListener('click', () => {
+        _sidebar.classList.remove('open');
+        _backdrop.classList.remove('show');
+       });
+  }
+})();
+</script>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+</body>
+</html>
+tml>

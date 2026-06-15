@@ -2,7 +2,7 @@
 
 > **Uma jornada mais prática.** SaaS de gestão de funcionários para condomínios brasileiros — ponto digital, tarefas, faltas, relatórios e cobrança recorrente.
 
-🌐 **Produção:** https://staflow.vercel.app
+🌐 **Produção:** https://staflow.app.br
 📦 **Repo:** https://github.com/brenomackenzie777-creator/staflow
 
 ---

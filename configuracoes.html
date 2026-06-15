@@ -734,3 +734,40 @@ document.getElementById('btn-cancel-confirm-sim').addEventListener('click', asyn
     T(data.message || 'Cancelamento agendado. Você mantém o acesso até o fim do período atual.', 'success');
 
     // Atualiza UI local: plano 
+    // Atualiza UI local: marca cancelamento agendado sem recarregar página
+    if (condo) {
+      condo.cancel_at_period_end = true;
+      atualizarCardAssinatura();
+    }
+    document.getElementById('btn-cancelar-plano').style.display = 'none';
+
+  } catch (err) {
+    console.error('cancel-subscription error:', err);
+    T(err.message || 'Erro ao cancelar assinatura.', 'error');
+  } finally {
+    btn.disabled              = false;
+    spinner.style.display     = 'none';
+    label.textContent         = 'Sim, cancelar';
+  }
+});
+
+// ---- Menu toggle (mobile) ----
+{
+  const _mt  = document.getElementById('menu-toggle');
+  const _sb  = document.getElementById('sidebar');
+  const _bk  = document.getElementById('sidebar-backdrop');
+  if (_mt && _sb) {
+    _mt.addEventListener('click', () => {
+      _sb.classList.toggle('open');
+      if (_bk) _bk.classList.toggle('show');
+    });
+    if (_bk) _bk.addEventListener('click', () => {
+      _sb.classList.remove('open');
+      _bk.classList.remove('show');
+    });
+  }
+}
+</script>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+</body>
+</html>

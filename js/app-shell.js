@@ -527,7 +527,7 @@ window.staflowApp = window.staflowApp || {};
       <table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;margin-top:14px;">
         <tr>
           <td style="padding:6px 10px;color:${XLS_COLORS.textMuted};font-size:9px;border-top:1px solid ${XLS_COLORS.border};">
-            Gerado por StaFlow em ${ger} · staflow.vercel.app
+            Gerado por StaFlow em ${ger} · staflow.app.br
           </td>
         </tr>
       </table>

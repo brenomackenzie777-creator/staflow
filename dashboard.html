@@ -1246,5 +1246,28 @@ function ativarRealtime(condominioId) {
     }
   });
 
+
   // Ativa realtime DEPOIS da carga inicial (evita race)
-  ativarRealtime(window.staflowAuth.getCondominioAtualId() || profile.con
+  ativarRealtime(window.staflowAuth.getCondominioAtualId() || profile.condominio_id);
+
+  // Mobile sidebar toggle
+  const menuToggle = document.getElementById('menu-toggle');
+  const sidebarEl  = document.getElementById('sidebar');
+  const backdropEl = document.getElementById('sidebar-backdrop');
+  if (menuToggle && sidebarEl) {
+    menuToggle.addEventListener('click', () => {
+      sidebarEl.classList.toggle('open');
+      if (backdropEl) backdropEl.classList.toggle('show');
+    });
+    if (backdropEl) {
+      backdropEl.addEventListener('click', () => {
+        sidebarEl.classList.remove('open');
+        backdropEl.classList.remove('show');
+      });
+    }
+  }
+})();
+</script>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+</body>
+</html>

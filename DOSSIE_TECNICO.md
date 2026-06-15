@@ -2,7 +2,7 @@
 
 **Destinatário:** Claude Co-Work (CFO / Estrategista)
 **Versão:** Snapshot pós-commit `c072bd7` · 26 de maio de 2026
-**Produção:** https://staflow.vercel.app · Supabase project `wsxpskrrzqtdoodpoofx`
+**Produção:** https://staflow.app.br · Supabase project `wsxpskrrzqtdoodpoofx`
 **Repo:** github.com/brenomackenzie777-creator/staflow
 
 ---

@@ -550,4 +550,29 @@ document.getElementById('btn-export').addEventListener('click', () => {
   if (!profile) return;
 
   if (!getCondoId()) {
-    T('Configure seu condomínio em Configurações antes de criar tarefas
+    T('Configure seu condomínio em Configurações antes de criar tarefas.', 'error');
+    document.getElementById('btn-nova').disabled = true;
+    return;
+  }
+
+  await loadAll();
+
+  // ---- Menu toggle (mobile) ----
+  const _mt  = document.getElementById('menu-toggle');
+  const _sb  = document.getElementById('sidebar');
+  const _bk  = document.getElementById('sidebar-backdrop');
+  if (_mt && _sb) {
+    _mt.addEventListener('click', () => {
+      _sb.classList.toggle('open');
+      if (_bk) _bk.classList.toggle('show');
+    });
+    if (_bk) _bk.addEventListener('click', () => {
+      _sb.classList.remove('open');
+      _bk.classList.remove('show');
+    });
+  }
+})();
+</script>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+</body>
+</html>
