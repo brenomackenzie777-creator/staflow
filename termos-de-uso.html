@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Termos de Uso — StaFlow</title>
+<meta name="description" content="Termos de Uso da plataforma StaFlow — SaaS de controle de ponto digital para condomínios.">
+<meta name="theme-color" content="#0F1624">
+<link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --navy-deep:  #0F1624;
+  --navy:       #1A2238;
+  --navy-mid:   #212F4A;
+  --navy-soft:  #2A3D5E;
+  --teal:       #06D6A0;
+  --teal-hover: #07ebb2;
+  --teal-dim:   rgba(6,214,160,0.12);
+  --teal-border:rgba(6,214,160,0.35);
+  --amber:      #FFD166;
+  --red:        #EF4444;
+  --white:      #F0F4FF;
+  --white-dim:  rgba(240,244,255,0.65);
+  --white-muted:rgba(240,244,255,0.4);
+  --border:     rgba(240,244,255,0.10);
+  --border-strong: rgba(240,244,255,0.22);
+  --radius-btn:  8px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'DM Sans', system-ui, sans-serif;
+  --font-mono:    'DM Mono', ui-monospace, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--navy-deep);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+img, svg { display: block; max-width: 100%; }
+
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Navbar */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 14px 26px;
+  border-radius: var(--radius-btn);
+  font-family: var(--font-body); font-weight: 600; font-size: 15px;
+  border: 1px solid transparent; cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--teal); color: var(--navy-deep); box-shadow: 0 4px 24px rgba(6,214,160,0.25); }
+.btn-primary:hover { background: var(--teal-hover); transform: translateY(-1px); }
+.btn-ghost { background: transparent; color: var(--white); border-color: var(--border-strong); }
+.btn-ghost:hover { border-color: var(--white); }
+
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(15,22,36,0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; max-width: 1180px; margin: 0 auto; padding-left: 24px; padding-right: 24px;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand img { width: 32px; height: 32px; }
+.brand .wm { font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: -0.3px; }
+.brand .sta { color: var(--white); }
+.brand .flow { color: var(--teal); }
+.nav-links { display: flex; gap: 28px; align-items: center; font-size: 14px; }
+.nav-links a { color: var(--white-dim); transition: color 0.2s; }
+.nav-links a:hover { color: var(--white); }
+.nav-cta { display: flex; gap: 10px; align-items: center; }
+.nav-cta .btn-ghost { padding: 9px 18px; font-size: 14px; }
+.nav-cta .btn-primary { padding: 9px 18px; font-size: 14px; }
+@media (max-width: 760px) { .nav-links { display: none; } }
+
+/* Page header */
+.page-header {
+  padding: 60px 0 40px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 48px;
+}
+.page-header .section-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: 2.5px;
+  color: var(--teal); text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.page-header h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.1; letter-spacing: -0.8px;
+  margin-bottom: 14px;
+}
+.page-header h1 .accent { color: var(--teal); }
+.page-header .meta {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--white-muted); letter-spacing: 0.5px;
+}
+
+/* Doc content */
+.doc-content { padding-bottom: 80px; }
+.doc-content h2 {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 20px;
+  margin-top: 48px; margin-bottom: 12px;
+  color: var(--white);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.doc-content h2:first-child { margin-top: 0; }
+.doc-content p {
+  color: var(--white-dim); font-size: 15px;
+  line-height: 1.7; margin-bottom: 14px;
+}
+.doc-content ul, .doc-content ol {
+  padding-left: 22px; margin-bottom: 14px;
+}
+.doc-content li {
+  color: var(--white-dim); font-size: 15px;
+  line-height: 1.7; margin-bottom: 6px;
+}
+.doc-content strong { color: var(--white); font-weight: 600; }
+.doc-content a { color: var(--teal); }
+.doc-content a:hover { text-decoration: underline; }
+
+/* Footer */
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 40px 0 30px; margin-top: 0;
+  font-size: 13px; color: var(--white-muted);
+}
+.footer-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 16px;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px;
+}
+.footer .brand { font-size: 14px; }
+.footer-links { display: flex; gap: 22px; flex-wrap: wrap; }
+.footer-links a { color: var(--white-muted); transition: color 0.2s; }
+.footer-links a:hover { color: var(--teal); }
+.copyright { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/staflow-landing" class="brand">
+      <img src="/assets/logo-mark.svg" alt="StaFlow">
+      <div class="wm"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+    </a>
+    <div class="nav-links">
+      <a href="/staflow-landing#beneficios">Benefícios</a>
+      <a href="/staflow-landing#como-funciona">Como funciona</a>
+      <a href="/staflow-landing#preco">Planos</a>
+      <a href="/staflow-landing#faq">FAQ</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/auth/login.html" class="btn btn-ghost">Entrar</a>
+      <a href="/auth/cadastro.html" class="btn btn-primary">Começar grátis</a>
+    </div>
+  </div>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="container">
+  <div class="page-header">
+    <span class="section-tag">VERSÃO 1.0 · VIGENTE DESDE 10/06/2026</span>
+    <h1>Termos de <span class="accent">Uso</span></h1>
+    <div class="meta">Última atualização: Junho de 2026 · Versão 1.0</div>
+  </div>
+
+  <div class="doc-content">
+<section style="max-width:800px;margin:0 auto;color:var(--white-dim);font-family:'DM Sans',sans-serif;line-height:1.75;">
+
+  <!-- Aviso inicial -->
+  <div style="background:rgba(251,191,36,0.10);border:1px solid rgba(251,191,36,0.35);border-radius:12px;padding:18px 22px;margin-bottom:40px;">
+    <p style="margin:0;color:#FFD166;font-size:.875rem;font-weight:600;letter-spacing:0.3px;">
+      LEIA ESTES TERMOS ANTES DE USAR A PLATAFORMA. AO CRIAR UMA CONTA OU ACESSAR O STAFLOW, VOCÊ CONCORDA COM AS CONDIÇÕES ABAIXO. SE NÃO CONCORDAR, NÃO UTILIZE O SERVIÇO.
+    </p>
+  </div>
+
+  <!-- 1 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">1. Quem Somos</h2>
+    <p>O StaFlow é um serviço de software como serviço (SaaS) para controle de ponto digital em condomínios, operado por:</p>
+    <div style="background:rgba(77,217,172,.07);border-left:3px solid var(--teal,#06D6A0);padding:16px 20px;margin-top:12px;border-radius:0 6px 6px 0;">
+      <p style="margin:0;"><strong style="color:#fff;">Breno Paixão</strong><br>
+      <strong style="color:#fff;">CNPJ:</strong> 67.255.600/0001-71<br>
+      <strong style="color:#fff;">E-mail:</strong> <a href="mailto:contato@staflow.com.br" style="color:var(--teal,#06D6A0);">contato@staflow.com.br</a><br>
+      <strong style="color:#fff;">Site:</strong> <a href="https://staflow.app.br" style="color:var(--teal,#06D6A0);">https://staflow.app.br</a></p>
+    </div>
+    <p style="margin-top:12px;">Nestes Termos, "StaFlow", "nós" ou "Controlador" referem-se ao operador acima identificado. "Você", "Usuário" ou "Contratante" referem-se a qualquer pessoa que acesse, cadastre-se ou utilize a plataforma.</p>
+  </div>
+
+  <!-- 2 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">2. O Que é o StaFlow</h2>
+    <p>O StaFlow é uma plataforma web e mobile (PWA) que permite a síndicos, administradoras e gestores de condomínios registrar, monitorar e gerar relatórios de ponto de funcionários por meio de dispositivos móveis, com recursos de GPS antifraude, funcionamento offline, alertas automáticos de jornada e geração de documentos de espelho de ponto.</p>
+    <p>O StaFlow é uma ferramenta de apoio à gestão de jornada. Ele <strong style="color:#fff;">não substitui assessoria jurídica trabalhista</strong>, não garante conformidade automática com quaisquer normas legais e não elimina a responsabilidade do empregador pelo cumprimento da legislação aplicável. Veja a cláusula 9 para detalhes.</p>
+  </div>
+
+  <!-- 3 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">3. Aceitação dos Termos</h2>
+    <p>Ao criar uma conta, clicar em "Começar grátis", "Assinar" ou acessar qualquer funcionalidade da plataforma, você declara que:</p>
+    <ol style="padding-left:20px;margin-top:8px;">
+      <li>Leu e compreendeu estes Termos de Uso e a <a href="/politica-privacidade" style="color:var(--teal,#06D6A0);">Política de Privacidade</a> do StaFlow;</li>
+      <li>Tem capacidade legal para celebrar contratos (é pessoa física maior de 18 anos ou representa uma pessoa jurídica com poderes para tanto);</li>
+      <li>Concorda em cumprir as condições aqui estabelecidas.</li>
+    </ol>
+    <p style="margin-top:12px;">Se você estiver contratando em nome de uma pessoa jurídica (condomínio, administradora, empresa), declara ter autorização para vincular essa entidade a estes Termos.</p>
+  </div>
+
+  <!-- 4 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">4. Cadastro e Conta</h2>
+    <p><strong style="color:#fff;">4.1</strong> Para utilizar o StaFlow, é necessário criar uma conta informando nome, e-mail e senha. Você é responsável pela veracidade das informações fornecidas.</p>
+    <p><strong style="color:#fff;">4.2</strong> Você é responsável por manter a confidencialidade das suas credenciais de acesso e por todas as atividades realizadas na sua conta. Em caso de acesso não autorizado, notifique imediatamente <a href="mailto:contato@staflow.com.br" style="color:var(--teal,#06D6A0);">contato@staflow.com.br</a>.</p>
+    <p><strong style="color:#fff;">4.3</strong> É vedado criar mais de uma conta para o mesmo condomínio (mesmo CNPJ) com o objetivo de contornar os limites do plano Starter gratuito.</p>
+    <p><strong style="color:#fff;">4.4</strong> Reservamo-nos o direito de suspender ou encerrar contas que violem estes Termos, a nosso critério exclusivo, com ou sem aviso prévio conforme a gravidade da infração.</p>
+  </div>
+
+  <!-- 5 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">5. Planos e Preços</h2>
+    <p><strong style="color:#fff;">5.1</strong> O StaFlow oferece os seguintes planos:</p>
+    <ul style="margin:8px 0 16px;padding-left:20px;">
+      <li><strong style="color:#fff;">Starter:</strong> gratuito, limitado a até 3 funcionários ativos por condomínio. Não requer cartão de crédito.</li>
+      <li><strong style="color:#fff;">Pro:</strong> R$ 99,00/mês ou R$ 950,00/ano. Limitado a até 15 funcionários ativos por condomínio.</li>
+      <li><strong style="color:#fff;">Advanced:</strong> R$ 159,00/mês ou R$ 1.500,00/ano. Limitado a até 35 funcionários ativos por condomínio.</li>
+      <li><strong style="color:#fff;">Scale:</strong> R$ 279,00/mês ou R$ 2.600,00/ano. Limitado a até 100 funcionários ativos por condomínio.</li>
+    </ul>
+    <p><strong style="color:#fff;">5.2</strong> Os preços são expressos em Reais (BRL) e incluem todos os impostos aplicáveis ao modelo MEI. Após a constituição do CNPJ e eventual enquadramento tributário distinto, os preços poderão ser ajustados com aviso prévio de 30 dias.</p>
+    <p><strong style="color:#fff;">5.3</strong> O pagamento é processado por terceiro (Stripe). Ao fornecer dados de pagamento, você também concorda com os termos do processador de pagamento.</p>
+    <p><strong style="color:#fff;">5.4</strong> Planos anuais são cobrados integralmente no ato da contratação. Planos mensais são cobrados no início de cada ciclo.</p>
+    <p><strong style="color:#fff;">5.5</strong> Em caso de inadimplência, o acesso poderá ser suspenso após 5 dias corridos do vencimento, sem prejuízo da cobrança dos valores devidos.</p>
+  </div>
+
+  <!-- 6 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">6. Política de Cancelamento e Reembolso</h2>
+    <p><strong style="color:#fff;">6.1</strong> Você pode cancelar seu plano a qualquer momento pelo painel da plataforma ou por e-mail para <a href="mailto:contato@staflow.com.br" style="color:var(--teal,#06D6A0);">contato@staflow.com.br</a>.</p>
+    <p><strong style="color:#fff;">6.2</strong> No plano mensal, o cancelamento encerra a renovação automática. O acesso permanece ativo até o fim do período já pago, sem reembolso proporcional.</p>
+    <p><strong style="color:#fff;">6.3</strong> No plano anual, em caso de cancelamento antecipado, será devolvido o valor proporcional aos meses completos não utilizados, calculado com base no valor mensal equivalente do plano anual, descontados eventuais custos de transação não reembolsáveis pelo processador de pagamento.</p>
+    <p><strong style="color:#fff;">6.4</strong> Não há cobrança de multa por cancelamento antecipado em nenhum plano.</p>
+    <p><strong style="color:#fff;">6.5</strong> O direito de arrependimento previsto no Art. 49 do Código de Defesa do Consumidor (CDC) aplica-se às contratações realizadas à distância. Você pode solicitar o cancelamento e o reembolso integral em até 7 dias corridos a contar da data da contratação, desde que não tenha utilizado funcionalidades pagas de forma substancial.</p>
+  </div>
+
+  <!-- 7 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">7. Obrigações do Usuário</h2>
+    <p>Ao utilizar o StaFlow, você se compromete a:</p>
+    <ol style="padding-left:20px;margin-top:8px;">
+      <li>Utilizar a plataforma exclusivamente para fins lícitos e em conformidade com a legislação brasileira aplicável;</li>
+      <li>Não utilizar o serviço para armazenar, transmitir ou processar conteúdo ilegal, ofensivo, difamatório ou que viole direitos de terceiros;</li>
+      <li>Não tentar acessar áreas restritas da plataforma, realizar engenharia reversa, descompilar ou extrair o código-fonte do sistema;</li>
+      <li>Não utilizar scripts automáticos, bots ou qualquer mecanismo que sobrecarregue indevidamente a infraestrutura do StaFlow;</li>
+      <li>Manter os dados dos funcionários do condomínio atualizados e precisos, sendo o único responsável pela veracidade das informações inseridas;</li>
+      <li>Obter, quando aplicável, o consentimento dos funcionários cujos dados são inseridos na plataforma, em especial para coleta de dados de saúde (atestados médicos);</li>
+      <li>Cumprir as obrigações previstas na LGPD na condição de controlador ou operador dos dados dos funcionários do seu condomínio.</li>
+    </ol>
+  </div>
+
+  <!-- 8 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">8. Propriedade Intelectual</h2>
+    <p><strong style="color:#fff;">8.1</strong> O StaFlow, incluindo seu código-fonte, interface, logotipo, textos, design, algoritmos e documentação, é de titularidade exclusiva do operador e está protegido pela legislação de propriedade intelectual aplicável.</p>
+    <p><strong style="color:#fff;">8.2</strong> A contratação de qualquer plano confere ao Usuário uma licença de uso limitada, não exclusiva, intransferível e revogável, restrita ao uso da plataforma conforme previsto nestes Termos.</p>
+    <p><strong style="color:#fff;">8.3</strong> Os dados inseridos pelo Usuário na plataforma (dados dos funcionários, registros de ponto, documentos) permanecem de titularidade do Usuário ou dos titulares dos dados. O StaFlow não reivindica propriedade sobre esses dados.</p>
+  </div>
+
+  <!-- 9 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">9. Limitação de Responsabilidade</h2>
+    <p><strong style="color:#fff;">9.1</strong> O StaFlow é uma ferramenta de apoio à gestão de jornada e não um serviço de consultoria jurídica ou trabalhista. O uso da plataforma não substitui a necessidade de orientação profissional especializada.</p>
+    <p><strong style="color:#fff;">9.2</strong> O StaFlow é projetado para apoiar o cumprimento das obrigações previstas na legislação trabalhista, incluindo a Portaria MTE 671 e a CLT. Contudo, o Contratante reconhece que:</p>
+    <ol style="padding-left:20px;margin:8px 0 12px;">
+      <li>A conformidade legal depende de fatores operacionais, contratuais e humanos que estão fora do controle do StaFlow;</li>
+      <li>O StaFlow não garante que o uso da plataforma assegura conformidade com normas legais ou regulatórias, tampouco que impedirá a lavratura de autos de infração ou a responsabilização trabalhista do empregador;</li>
+      <li>A responsabilidade pelo cumprimento das obrigações trabalhistas permanece exclusivamente do empregador.</li>
+    </ol>
+    <p><strong style="color:#fff;">9.3</strong> Em nenhuma hipótese o StaFlow será responsável por:</p>
+    <ol style="padding-left:20px;margin:8px 0 12px;">
+      <li>Perdas indiretas, lucros cessantes, danos emergentes ou quaisquer danos consequentes;</li>
+      <li>Multas, autuações, condenações trabalhistas ou sanções aplicadas ao Contratante por órgãos públicos;</li>
+      <li>Falhas decorrentes de atos de terceiros (Supabase, Vercel, processadores de pagamento);</li>
+      <li>Dados incorretos inseridos pelo próprio Usuário ou pelos funcionários do condomínio.</li>
+    </ol>
+    <p><strong style="color:#fff;">9.4</strong> Nos casos em que a responsabilidade do StaFlow for reconhecida judicialmente, o valor máximo de indenização ficará limitado ao total pago pelo Contratante nos 3 meses anteriores ao evento que originou o dano.</p>
+  </div>
+
+  <!-- 10 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">10. Disponibilidade do Serviço</h2>
+    <p><strong style="color:#fff;">10.1</strong> O StaFlow emprega esforços razoáveis para manter a plataforma disponível, mas não garante disponibilidade ininterrupta ou livre de erros.</p>
+    <p><strong style="color:#fff;">10.2</strong> Não nos responsabilizamos por indisponibilidades decorrentes de falhas em serviços de terceiros (Supabase, Vercel, provedores de internet) ou por eventos de força maior.</p>
+    <p><strong style="color:#fff;">10.3</strong> O funcionamento offline do aplicativo (via IndexedDB) é uma funcionalidade de contingência. O StaFlow não garante sincronização automática em todos os cenários de conectividade.</p>
+  </div>
+
+  <!-- 11 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">11. Proteção de Dados</h2>
+    <p>O tratamento de dados pessoais realizado pelo StaFlow é regido pela <a href="/politica-privacidade" style="color:var(--teal,#06D6A0);">Política de Privacidade</a>, incorporada a estes Termos por referência.</p>
+    <p>O Contratante, ao inserir dados de terceiros (funcionários) na plataforma, assume as responsabilidades de controlador de dados nos termos da LGPD, sendo o StaFlow operador de dados em relação a esses dados.</p>
+  </div>
+
+  <!-- 12 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">12. Alterações nos Termos</h2>
+    <p>Reservamo-nos o direito de modificar estes Termos a qualquer momento. Alterações relevantes serão comunicadas por e-mail com antecedência mínima de 15 dias. O uso continuado da plataforma após o prazo de comunicação implica a aceitação das novas condições.</p>
+  </div>
+
+  <!-- 13 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">13. Rescisão</h2>
+    <p><strong style="color:#fff;">13.1</strong> Você pode encerrar sua conta a qualquer momento conforme descrito na cláusula 6.</p>
+    <p><strong style="color:#fff;">13.2</strong> Podemos suspender ou encerrar sua conta imediatamente, sem aviso prévio, em caso de:</p>
+    <ol style="padding-left:20px;margin:8px 0 12px;">
+      <li>Violação grave destes Termos;</li>
+      <li>Uso da plataforma para fins ilegais;</li>
+      <li>Fraude, falsificação de dados ou tentativa de acesso não autorizado ao sistema.</li>
+    </ol>
+    <p><strong style="color:#fff;">13.3</strong> Após o encerramento da conta, os dados serão retidos pelos prazos legais aplicáveis e então eliminados conforme descrito na <a href="/politica-privacidade" style="color:var(--teal,#06D6A0);">Política de Privacidade</a>.</p>
+  </div>
+
+  <!-- 14 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">14. Lei Aplicável e Foro</h2>
+    <p>Estes Termos são regidos pelas leis da República Federativa do Brasil. Para dirimir quaisquer controvérsias, fica eleito o foro da comarca de domicílio do Contratante, salvo se este for pessoa jurídica, hipótese em que fica eleito o foro da Comarca do Rio de Janeiro/RJ.</p>
+  </div>
+
+  <!-- 15 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">15. Contato</h2>
+    <div style="background:rgba(77,217,172,.07);border-left:3px solid var(--teal,#06D6A0);padding:16px 20px;border-radius:0 6px 6px 0;">
+      <p style="margin:0;"><strong style="color:#fff;">E-mail:</strong> <a href="mailto:contato@staflow.com.br" style="color:var(--teal,#06D6A0);">contato@staflow.com.br</a><br>
+      <strong style="color:#fff;">Prazo de resposta:</strong> até 5 dias úteis</p>
+    </div>
+  </div>
+
+  <hr style="border:none;border-top:1px solid rgba(255,255,255,.1);margin:48px 0 24px;">
+  <p style="font-size:.8125rem;color:rgba(203,213,224,.5);text-align:center;">
+    Versão 1.0 — Vigente a partir de 10 de junho de 2026. &nbsp;·&nbsp; StaFlow · CNPJ: 67.255.600/0001-71 · contato@staflow.com.br
+  </p>
+
+</section>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <a href="/staflow-landing" class="brand">
+      <img src="/assets/logo-mark.svg" alt="StaFlow" style="width:24px;height:24px;">
+      <div class="wm" style="font-size:14px;"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+    </a>
+    <div class="footer-links">
+      <a href="/politica-privacidade">Política de Privacidade</a>
+      <a href="/termos-de-uso">Termos de Uso</a>
+      <a href="/contrato">Contrato</a>
+      <a href="/dpa">DPA (LGPD)</a>
+      <a href="mailto:contato@staflow.com.br">Contato</a>
+    </div>
+    <div class="copyright">© 2026 STAFLOW · CNPJ: 67.255.600/0001-71</div>
+  </div>
+</footer>
+
+</body>
+</html>
