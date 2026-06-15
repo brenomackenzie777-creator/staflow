@@ -895,11 +895,4 @@ document.getElementById('menu-toggle').addEventListener('click', () => {
   profile = await window.staflowApp.bootstrapShell({ route: 'faltas' });
   if (!profile) return;
 
-  // Define mês padrão = atual
-  document.getElementById('f-mes').value = mesAtual();
-
-  await Promise.all([loadFuncionarios(), loadAll()]);
-})();
-</script>
-</body>
-</html>
+  // Define m

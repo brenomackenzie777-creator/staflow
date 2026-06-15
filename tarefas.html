@@ -550,12 +550,4 @@ document.getElementById('btn-export').addEventListener('click', () => {
   if (!profile) return;
 
   if (!getCondoId()) {
-    T('Configure seu condomínio em Configurações antes de criar tarefas.', 'error');
-    document.getElementById('btn-nova').disabled = true;
-  }
-
-  await Promise.all([loadFuncionarios(), loadAll()]);
-})();
-</script>
-</body>
-</html>
+    T('Configure seu condomínio em Configurações antes de criar tarefas

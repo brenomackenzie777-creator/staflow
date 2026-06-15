@@ -1184,10 +1184,3 @@ async function loadPlano() {
     const { data } = await sb.from('condominios')
       .select('plano')
       .eq('id', condoId)
-      .maybeSingle();
-    if (data?.plano) planoAtual = data.plano;
-  } catch (_) { /* mantém default 'starter' */ }
-}
-</script>
-</body>
-</html>

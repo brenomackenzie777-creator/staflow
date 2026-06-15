@@ -1731,12 +1731,4 @@ document.getElementById('inp-date').addEventListener('change', loadData);
   profile = await window.staflowApp.bootstrapShell({ route: 'ponto' });
   if (!profile) return;
 
-  // set default date = today
-  const inp = document.getElementById('inp-date');
-  inp.value = todayISO();
-
-  await loadData();
-})();
-</script>
-</body>
-</html>
+  // se

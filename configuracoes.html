@@ -474,11 +474,16 @@ document.getElementById('cct-file').addEventListener('change', (e) => {
     `📌 Pronto para envio: ${f.name} (${(f.size/1024).toFixed(0)} KB)`;
 });
 
+/* ── Helper: condomínio ativo no switcher multi-CNPJ ──────── */
+function getCondoId() {
+  // Usa o condomínio ATIVO selecionado no switcher (se houver);
+  // profile.condominio_id é apenas o vínculo original do usuário.
+  return window.staflowAuth.getCondominioAtualId() || profile.condominio_id;
+}
+
 /* ── Carrega o condomínio do banco ─────────────── */
 async function loadCondominio() {
-  // Usa o condomínio ATIVO selecionado no switcher multi-CNPJ (se houver);
-  // profile.condominio_id é apenas o vínculo original do usuário.
-  const condominioId = window.staflowAuth.getCondominioAtualId() || profile.condominio_id;
+  const condominioId = getCondoId();
   if (!condominioId) {
     // Sem condomínio vinculado — usuário deve cadastrar via Funcionários primeiro
     return;
@@ -542,14 +547,14 @@ document.getElementById('form-condo').addEventListener('submit', async (e) => {
   setFormDisabled(formEl, true);
 
   try {
-    if (!profile.condominio_id) {
+    if (!getCondoId()) {
       throw new Error('Condomínio ainda não cadastrado. Use o cadastro inicial.');
     }
 
     // 1) Upload da nova CCT (se houver)
     let cctPath = condo?.cct_path || null;
     if (cctNewFile) {
-      const path = `${profile.condominio_id}/cct/${Date.now()}.pdf`;
+      const path = `${getCondoId()}/cct/${Date.now()}.pdf`;
       const up = await sb.storage.from('documentos-condominio')
         .upload(path, cctNewFile, { contentType: 'application/pdf', upsert: false });
       if (up.error) throw new Error('Upload CCT: ' + up.error.message);
@@ -585,7 +590,7 @@ document.getElementById('form-condo').addEventListener('submit', async (e) => {
     patch.endereco = partes.join(' — ') || null;
 
     const { data, error } = await sb.from('condominios')
-      .update(patch).eq('id', profile.condominio_id).select().single();
+      .update(patch).eq('id', getCondoId()).select().single();
     if (error) throw error;
     condo = data;
 
@@ -718,7 +723,7 @@ document.getElementById('btn-cancel-confirm-sim').addEventListener('click', asyn
         'Authorization': `Bearer ${session.access_token}`,
         'apikey':        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzeHBza3JyenF0ZG9vZHBvb2Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDExNzksImV4cCI6MjA5NDQxNzE3OX0.GOJgWFpm9vIPuTCrhCK4TWriLrcjxXP9VGSMekI4Tfs',
       },
-      body: JSON.stringify({ condominioId: condo?.id || profile.condominio_id }),
+      body: JSON.stringify({ condominioId: condo?.id || getCondoId() }),
     });
 
     const data = await resp.json();
@@ -728,19 +733,4 @@ document.getElementById('btn-cancel-confirm-sim').addEventListener('click', asyn
     // Usa mensagem da API que inclui a data do fim do período
     T(data.message || 'Cancelamento agendado. Você mantém o acesso até o fim do período atual.', 'success');
 
-    // Atualiza UI local: plano permanece ativo, apenas marca cancelamento agendado
-    if (condo) {
-      condo.cancel_at_period_end = true;
-    }
-    atualizarCardAssinatura();
-
-  } catch (err) {
-    T(err.message || 'Erro ao cancelar. Tente novamente.', 'error');
-    btn.disabled          = false;
-    spinner.style.display = 'none';
-    label.textContent     = 'Confirmar cancelamento';
-  }
-});
-</script>
-</body>
-</html>
+    // Atualiza UI local: plano 
