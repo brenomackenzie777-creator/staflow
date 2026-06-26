@@ -160,7 +160,7 @@ img, svg { display: block; max-width: 100%; }
 
 .input {
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 16px; /* iOS: zoom automático em inputs < 16px — manter em 16px */
   background: var(--bg);
   color: var(--text);
   border: 1px solid var(--border);
