@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Allow: /planos
+Allow: /politica-privacidade
+Allow: /termos-de-uso
+Allow: /contrato
+Allow: /dpa
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /funcionarios
+Disallow: /ponto
+Disallow: /faltas
+Disallow: /tarefas
+Disallow: /configuracoes
+Disallow: /colaborador
+
+Sitemap: https://staflow.app.br/sitemap.xml
