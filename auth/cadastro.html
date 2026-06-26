@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Criar conta — StaFlow</title>
+<meta name="description" content="Crie sua conta no StaFlow e comece a gerir ponto e tarefas do seu condomínio hoje. Plano gratuito disponível.">
 <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -612,7 +613,24 @@ document.getElementById('form-1').addEventListener('submit', async (e) => {
   });
 
   btn.classList.remove('loading'); btn.disabled = false;
-  if (!res.ok) { toast(res.error, 'error'); return; }
+
+  // BUG-006 fix: se o email já existe, mandar magic link em vez de mostrar só erro
+  if (!res.ok) {
+    if (res.error && (res.error.toLowerCase().includes('já está cadastrado') || res.error.toLowerCase().includes('already registered'))) {
+      try {
+        await window.staflowSupabase.auth.signInWithOtp({ email: state.email, options: { shouldCreateUser: false } });
+        toast('✉️ Esse e-mail já tem conta. Enviamos um link de acesso direto!', 'info');
+        document.getElementById('sent-email').textContent = state.email;
+        irPara(3);
+        iniciarReenvio();
+      } catch(_) {
+        toast(res.error, 'error');
+      }
+    } else {
+      toast(res.error, 'error');
+    }
+    return;
+  }
 
   // Sinaliza para a próxima sessão (app-shell.js) que este user
   // se cadastrou como colaborador — usado apenas para mensagem
