@@ -33,18 +33,15 @@
 
 window.STAFLOW_STRIPE_PRICES = {
   // ── Mensal ──────────────────────────────────────────────────
-  // ⚠️  Trocar para price_LIVE_... ao virar produção
-  pro:              'price_1TgyK9Cop6xCn5DqhwtPtndQ',  // StaFlow Pro      — R$ 99/mês   [TEST]
-  advanced:         'price_1TgyKiCop6xCn5DqrEeTron1',  // StaFlow Advanced — R$ 159/mês  [TEST]
-  scale:            'price_1TgyKRCop6xCn5DqIhYrFzJJ',  // StaFlow Scale    — R$ 279/mês  [TEST]
+  pro:              'price_1TbmLwCop6xCn5DqUKsiRHO6',  // StaFlow Pro      — R$ 99/mês   [LIVE]
+  advanced:         'price_1TgsOxCop6xCn5DqyTsymW19',  // StaFlow Advanced — R$ 159/mês  [LIVE]
+  scale:            'price_1TbmMUCop6xCn5Dqu1HUSYyV',  // StaFlow Scale    — R$ 279/mês  [LIVE]
 
   // ── Anual ───────────────────────────────────────────────────
-  pro_annual:       'price_1ThBNjCop6xCn5DqOHGoIutH',  // StaFlow Pro      — R$ 950/ano  [TEST]
-  advanced_annual:  'price_1ThBMlCop6xCn5DqqehkpjSV',  // StaFlow Advanced — R$ 1.500/ano [TEST]
-  scale_annual:     'price_1ThBNQCop6xCn5DqngA7tzCc',  // StaFlow Scale    — R$ 2.390/ano [TEST]
+  pro_annual:       'price_1TgsT2Cop6xCn5DqPpeKRGf8',  // StaFlow Pro      — R$ 950/ano  [LIVE]
+  advanced_annual:  'price_1TgsOxCop6xCn5DqmsQJmbPx',  // StaFlow Advanced — R$ 1.500/ano [LIVE]
+  scale_annual:     'price_1TgsSUCop6xCn5DqhdqdYLNE',  // StaFlow Scale    — R$ 2.600/ano [LIVE]
 };
 
-// Flag de transparência — apenas mudou para true após o switch LIVE
-// (não afeta funcionamento, só permite UI mostrar selos diferentes
-// em ambientes test vs prod se quiser)
-window.STAFLOW_STRIPE_LIVE_MODE = false;
+// Flag de transparência — true = produção LIVE ativa
+window.STAFLOW_STRIPE_LIVE_MODE = true;

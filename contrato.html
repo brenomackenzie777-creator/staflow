@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contrato SaaS — StaFlow</title>
+<meta name="description" content="Contrato de Prestação de Serviços de Software (SaaS) — StaFlow. Versão 1.0, vigente a partir de 10 de junho de 2026.">
+<meta name="theme-color" content="#0F1624">
+<link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --navy-deep:  #0F1624;
+  --navy:       #1A2238;
+  --navy-mid:   #212F4A;
+  --navy-soft:  #2A3D5E;
+  --teal:       #06D6A0;
+  --teal-hover: #07ebb2;
+  --teal-dim:   rgba(6,214,160,0.12);
+  --teal-border:rgba(6,214,160,0.35);
+  --amber:      #FFD166;
+  --red:        #EF4444;
+  --white:      #F0F4FF;
+  --white-dim:  rgba(240,244,255,0.65);
+  --white-muted:rgba(240,244,255,0.4);
+  --border:     rgba(240,244,255,0.10);
+  --border-strong: rgba(240,244,255,0.22);
+  --radius-btn:  8px;
+  --radius-card: 12px;
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'DM Sans', system-ui, sans-serif;
+  --font-mono:    'DM Mono', ui-monospace, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--navy-deep);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+img, svg { display: block; max-width: 100%; }
+
+.container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 14px 26px;
+  border-radius: var(--radius-btn);
+  font-family: var(--font-body); font-weight: 600; font-size: 15px;
+  border: 1px solid transparent; cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--teal); color: var(--navy-deep); box-shadow: 0 4px 24px rgba(6,214,160,0.25); }
+.btn-primary:hover { background: var(--teal-hover); transform: translateY(-1px); }
+.btn-ghost { background: transparent; color: var(--white); border-color: var(--border-strong); }
+.btn-ghost:hover { border-color: var(--white); }
+
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(15,22,36,0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  max-width: 1180px; margin: 0 auto; padding: 14px 24px;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand img { width: 32px; height: 32px; }
+.brand .wm { font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: -0.3px; }
+.brand .sta { color: var(--white); }
+.brand .flow { color: var(--teal); }
+.nav-links { display: flex; gap: 28px; align-items: center; font-size: 14px; }
+.nav-links a { color: var(--white-dim); transition: color 0.2s; }
+.nav-links a:hover { color: var(--white); }
+.nav-cta { display: flex; gap: 10px; align-items: center; }
+.nav-cta .btn-ghost { padding: 9px 18px; font-size: 14px; }
+.nav-cta .btn-primary { padding: 9px 18px; font-size: 14px; }
+@media (max-width: 760px) { .nav-links { display: none; } }
+
+.page-header {
+  padding: 60px 0 40px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 48px;
+}
+.page-header .section-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: 2.5px;
+  color: var(--teal); text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.page-header h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.1; letter-spacing: -0.8px;
+  margin-bottom: 14px;
+}
+.page-header h1 .accent { color: var(--teal); }
+.page-header .meta {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--white-muted); letter-spacing: 0.5px;
+}
+
+.doc-content { padding-bottom: 80px; }
+.doc-content p { color: var(--white-dim); font-size: 15px; line-height: 1.7; margin-bottom: 14px; }
+.doc-content ul, .doc-content ol { padding-left: 22px; margin-bottom: 14px; }
+.doc-content li { color: var(--white-dim); font-size: 15px; line-height: 1.7; margin-bottom: 6px; }
+.doc-content strong { color: var(--white); font-weight: 600; }
+.doc-content a { color: var(--teal); }
+.doc-content a:hover { text-decoration: underline; }
+
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 40px 0 30px;
+  font-size: 13px; color: var(--white-muted);
+}
+.footer-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 16px;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px;
+}
+.footer .brand { font-size: 14px; }
+.footer-links { display: flex; gap: 22px; flex-wrap: wrap; }
+.footer-links a { color: var(--white-muted); transition: color 0.2s; }
+.footer-links a:hover { color: var(--teal); }
+.copyright { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/staflow-landing" class="brand">
+      <img src="/assets/logo-mark.svg" alt="StaFlow">
+      <div class="wm"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+    </a>
+    <div class="nav-links">
+      <a href="/staflow-landing#beneficios">Benefícios</a>
+      <a href="/staflow-landing#como-funciona">Como funciona</a>
+      <a href="/staflow-landing#preco">Planos</a>
+      <a href="/staflow-landing#faq">FAQ</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/auth/login.html" class="btn btn-ghost">Entrar</a>
+      <a href="/auth/cadastro.html" class="btn btn-primary">Começar grátis</a>
+    </div>
+  </div>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="container">
+  <div class="page-header">
+    <span class="section-tag">CONTRATO B2B · VERSÃO 1.0 · 10/06/2026</span>
+    <h1>Contrato de <span class="accent">Serviços SaaS</span></h1>
+    <div class="meta">Última atualização: Junho de 2026 · Versão 1.0</div>
+  </div>
+
+  <div class="doc-content">
+<section style="max-width:800px;margin:0 auto;color:var(--white-dim);font-family:'DM Sans',sans-serif;line-height:1.75;">
+
+  <!-- Banner azul -->
+  <div style="background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.35);border-radius:12px;padding:18px 22px;margin-bottom:40px;">
+    <p style="margin:0;color:rgba(147,197,253,0.95);font-size:.875rem;line-height:1.6;">
+      📋 <strong style="color:#93c5fd;">Este é o modelo de contrato utilizado pelo StaFlow.</strong> Para assinar, entre em contato pelo e-mail <a href="mailto:contato@staflow.com.br" style="color:#93c5fd;text-decoration:underline;">contato@staflow.com.br</a> ou pelo WhatsApp após criar sua conta.
+    </p>
+  </div>
+
+  <!-- Nota introdutória -->
+  <p style="font-style:italic;color:rgba(240,244,255,0.45);font-size:.875rem;margin-bottom:32px;">
+    Este contrato destina-se a clientes pagantes (planos Pro, Advanced e Scale). Os campos entre colchetes são preenchidos na versão personalizada enviada ao cliente.
+  </p>
+
+  <!-- PARTES -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Partes</h2>
+    <div style="display:grid;gap:16px;">
+      <div style="background:rgba(77,217,172,.07);border-left:3px solid var(--teal,#06D6A0);padding:16px 20px;border-radius:0 6px 6px 0;">
+        <p style="margin:0;font-size:.9375rem;"><strong style="color:#fff;">CONTRATADA:</strong><br>
+        Breno Paixão · CNPJ: 67.255.600/0001-71<br>
+        E-mail: <a href="mailto:contato@staflow.com.br" style="color:var(--teal,#06D6A0);">contato@staflow.com.br</a><br>
+        Plataforma: <a href="https://staflow.app.br" style="color:var(--teal,#06D6A0);">https://staflow.app.br</a></p>
+      </div>
+      <div style="background:rgba(240,244,255,.04);border-left:3px solid rgba(240,244,255,0.22);padding:16px 20px;border-radius:0 6px 6px 0;">
+        <p style="margin:0;font-size:.9375rem;"><strong style="color:#fff;">CONTRATANTE:</strong><br>
+        [Nome/Razão Social] · [CPF/CNPJ]<br>
+        [E-mail] · [Telefone]</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLÁUSULA 1 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 1 — Objeto</h2>
+    <p><strong style="color:#fff;">1.1</strong> O objeto do presente Contrato é a prestação, pela Contratada ao Contratante, de acesso à plataforma StaFlow na modalidade Software como Serviço (SaaS), para uso em controle de ponto digital dos funcionários do(s) condomínio(s) vinculado(s) à conta do Contratante.</p>
+    <p><strong style="color:#fff;">1.2</strong> O plano contratado é o <strong style="color:#fff;">[PLANO: Pro / Advanced / Scale]</strong>, na modalidade <strong style="color:#fff;">[mensal / anual]</strong>, conforme especificações vigentes na data da contratação e descritas no Anexo I deste Contrato.</p>
+    <p><strong style="color:#fff;">1.3</strong> As funcionalidades incluídas no plano contratado são aquelas descritas na página de planos da plataforma na data de assinatura deste Contrato, podendo ser ampliadas pela Contratada sem custo adicional ao Contratante durante a vigência.</p>
+  </div>
+
+  <!-- CLÁUSULA 2 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 2 — Preço e Forma de Pagamento</h2>
+    <p><strong style="color:#fff;">2.1</strong> O valor do plano contratado é de <strong style="color:#fff;">R$ [VALOR]</strong> por <strong style="color:#fff;">[mês / ano]</strong>, conforme plano especificado na Cláusula 1.2.</p>
+    <p><strong style="color:#fff;">2.2</strong> O pagamento será realizado por meio da plataforma de pagamentos Stripe, via cartão de crédito ou outro meio disponível na plataforma, com cobrança automática recorrente no início de cada ciclo.</p>
+    <p><strong style="color:#fff;">2.3</strong> Em caso de inadimplência por período superior a 5 dias corridos após o vencimento, o acesso à plataforma poderá ser suspenso sem aviso prévio adicional.</p>
+    <p><strong style="color:#fff;">2.4</strong> O reajuste dos valores somente ocorrerá com comunicação prévia de 30 dias ao Contratante.</p>
+    <p><strong style="color:#fff;">2.5</strong> Para Contratantes que aderiram à <strong style="color:#fff;">Oferta Fundador</strong>, o preço contratado ficará travado pelo tempo em que o Contratante permanecer ativo na plataforma sem interrupção, conforme Anexo I.</p>
+  </div>
+
+  <!-- CLÁUSULA 3 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 3 — Obrigações da Contratada</h2>
+    <p><strong style="color:#fff;">3.1</strong> A Contratada obriga-se a:</p>
+    <ol style="padding-left:20px;margin-top:8px;">
+      <li>Disponibilizar a plataforma StaFlow com esforços razoáveis de continuidade, almejando disponibilidade mínima de 99% ao mês;</li>
+      <li>Comunicar manutenções programadas com antecedência mínima de 24 horas por e-mail;</li>
+      <li>Corrigir falhas funcionais críticas em prazo máximo de 48 horas úteis após confirmação do bug;</li>
+      <li>Tratar os dados pessoais dos funcionários do Contratante em conformidade com a LGPD, na condição de operadora de dados;</li>
+      <li>Manter os dados do Contratante disponíveis para exportação durante toda a vigência contratual;</li>
+      <li>Notificar o Contratante em até 72 horas caso tome conhecimento de incidente de segurança que possa afetar seus dados.</li>
+    </ol>
+  </div>
+
+  <!-- CLÁUSULA 4 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 4 — Obrigações do Contratante</h2>
+    <p><strong style="color:#fff;">4.1</strong> O Contratante obriga-se a:</p>
+    <ol style="padding-left:20px;margin-top:8px;">
+      <li>Utilizar a plataforma exclusivamente para os fins previstos neste Contrato e nos <a href="/termos-de-uso" style="color:var(--teal,#06D6A0);">Termos de Uso</a>;</li>
+      <li>Manter os dados cadastrais dos funcionários precisos e atualizados;</li>
+      <li>Responsabilizar-se pela guarda e confidencialidade das credenciais de acesso;</li>
+      <li>Obter, quando legalmente exigido, o consentimento dos funcionários cujos dados são inseridos na plataforma;</li>
+      <li>Cumprir suas obrigações como empregador nos termos da legislação trabalhista vigente, reconhecendo que o StaFlow é uma ferramenta de apoio;</li>
+      <li>Não ceder, sublicenciar, revender ou transferir o acesso à plataforma a terceiros sem autorização prévia;</li>
+      <li>Efetuar os pagamentos nas datas acordadas.</li>
+    </ol>
+  </div>
+
+  <!-- CLÁUSULA 5 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 5 — Limitação de Responsabilidade e Conformidade Legal</h2>
+    <p><strong style="color:#fff;">5.1</strong> O StaFlow é uma ferramenta de apoio à gestão de jornada e não constitui serviço de consultoria jurídica, trabalhista ou contábil.</p>
+    <p><strong style="color:#fff;">5.2 CONFORMIDADE COM A PORTARIA MTE 671 E DEMAIS NORMAS TRABALHISTAS.</strong> O Contratante declara expressamente ter ciência de que:</p>
+    <ol style="padding-left:20px;margin:8px 0 12px;">
+      <li>O StaFlow é projetado para apoiar o cumprimento das obrigações de registro de jornada previstas na CLT e na Portaria MTE 671, mas não garante, de forma automática ou incondicional, a conformidade do Contratante com tais normas;</li>
+      <li>A conformidade legal depende de como o Contratante e seus funcionários utilizam o sistema, da correção dos dados inseridos e do cumprimento dos demais requisitos legais pelo empregador;</li>
+      <li>A responsabilidade pelo correto cumprimento das obrigações trabalhistas é exclusivamente do Contratante, na qualidade de empregador;</li>
+      <li>A Contratada não será responsabilizada por multas, autuações, autos de infração, condenações trabalhistas ou quaisquer sanções aplicadas ao Contratante por órgãos fiscalizadores.</li>
+    </ol>
+    <p><strong style="color:#fff;">5.3</strong> A Contratada não se responsabiliza por:</p>
+    <ol style="padding-left:20px;margin:8px 0 12px;">
+      <li>Danos indiretos, lucros cessantes ou quaisquer danos consequentes;</li>
+      <li>Falhas de infraestrutura de terceiros (Supabase, Vercel, processadores de pagamento);</li>
+      <li>Dados incorretos, incompletos ou fraudulentos inseridos pelo Contratante ou por seus funcionários;</li>
+      <li>Perda de dados decorrente de ação ou omissão do próprio Contratante.</li>
+    </ol>
+    <p><strong style="color:#fff;">5.4</strong> Na hipótese de responsabilização judicial da Contratada, o valor máximo de indenização ficará limitado ao total efetivamente pago pelo Contratante nos 3 meses anteriores ao evento gerador do dano.</p>
+  </div>
+
+  <!-- CLÁUSULA 6 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 6 — Vigência e Rescisão</h2>
+    <p><strong style="color:#fff;">6.1</strong> Este Contrato entra em vigor na data da confirmação do pagamento do primeiro ciclo e permanece vigente enquanto o plano estiver ativo.</p>
+    <p><strong style="color:#fff;">6.2</strong> O Contratante pode rescindir este Contrato a qualquer momento cancelando o plano pelo painel da plataforma ou por solicitação a <a href="mailto:contato@staflow.com.br" style="color:var(--teal,#06D6A0);">contato@staflow.com.br</a>.</p>
+    <p><strong style="color:#fff;">6.3</strong> A Contratada pode rescindir este Contrato imediatamente, sem aviso prévio, nos seguintes casos:</p>
+    <ol style="padding-left:20px;margin:8px 0 12px;">
+      <li>Uso da plataforma para fins ilegais ou em violação grave deste Contrato;</li>
+      <li>Fraude, falsificação de dados ou tentativa de acesso não autorizado;</li>
+      <li>Inadimplência por período superior a 30 dias após suspensão do acesso.</li>
+    </ol>
+    <p><strong style="color:#fff;">6.4</strong> Em caso de rescisão por iniciativa da Contratada sem justa causa, será devolvido ao Contratante o valor proporcional ao período não utilizado no ciclo em curso.</p>
+  </div>
+
+  <!-- CLÁUSULA 7 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 7 — Política de Reembolso</h2>
+    <p><strong style="color:#fff;">7.1</strong> <strong style="color:#fff;">Plano mensal:</strong> não há reembolso proporcional em caso de cancelamento durante o ciclo em curso.</p>
+    <p><strong style="color:#fff;">7.2</strong> <strong style="color:#fff;">Plano anual:</strong> em caso de cancelamento antecipado, será reembolsado o valor proporcional aos meses completos restantes.</p>
+    <p><strong style="color:#fff;">7.3</strong> <strong style="color:#fff;">Direito de arrependimento (CDC, Art. 49):</strong> o Contratante pessoa física tem direito ao reembolso integral se solicitar o cancelamento em até 7 dias corridos da data da contratação.</p>
+    <p><strong style="color:#fff;">7.4</strong> Solicitações de reembolso devem ser enviadas para <a href="mailto:contato@staflow.com.br" style="color:var(--teal,#06D6A0);">contato@staflow.com.br</a>. Prazo de processamento: até 10 dias úteis.</p>
+  </div>
+
+  <!-- CLÁUSULA 8 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 8 — Tratamento de Dados e LGPD</h2>
+    <p><strong style="color:#fff;">8.1</strong> As partes reconhecem que o Contratante atua como <strong style="color:#fff;">controlador</strong> dos dados pessoais dos funcionários, e o StaFlow atua como <strong style="color:#fff;">operador</strong> de dados, nos termos da LGPD.</p>
+    <p><strong style="color:#fff;">8.2</strong> O StaFlow tratará os dados pessoais dos funcionários do Contratante exclusivamente para as finalidades previstas neste Contrato e na <a href="/politica-privacidade" style="color:var(--teal,#06D6A0);">Política de Privacidade</a>.</p>
+    <p><strong style="color:#fff;">8.3</strong> O Contratante é responsável por garantir que possui base legal adequada para inserir os dados dos funcionários na plataforma.</p>
+    <p><strong style="color:#fff;">8.4</strong> Em caso de necessidade de Adendo de Tratamento de Dados (<a href="/dpa" style="color:var(--teal,#06D6A0);">DPA</a>) para fins de conformidade específica, a Contratada poderá celebrar instrumento adicional mediante solicitação a <a href="mailto:contato@staflow.com.br" style="color:var(--teal,#06D6A0);">contato@staflow.com.br</a>.</p>
+    <p><strong style="color:#fff;">8.5</strong> Após o encerramento deste Contrato, os dados serão retidos pelos prazos legais aplicáveis e então eliminados conforme a <a href="/politica-privacidade" style="color:var(--teal,#06D6A0);">Política de Privacidade</a>.</p>
+  </div>
+
+  <!-- CLÁUSULA 9 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 9 — Confidencialidade</h2>
+    <p><strong style="color:#fff;">9.1</strong> Cada parte compromete-se a manter em sigilo as informações confidenciais da outra parte obtidas no âmbito deste Contrato.</p>
+    <p><strong style="color:#fff;">9.2</strong> São consideradas informações confidenciais do Contratante: dados dos funcionários, registros de ponto, informações financeiras e quaisquer outros dados inseridos na plataforma.</p>
+    <p><strong style="color:#fff;">9.3</strong> São consideradas informações confidenciais da Contratada: código-fonte, algoritmos, arquitetura técnica, precificação interna e estratégias comerciais do StaFlow.</p>
+    <p><strong style="color:#fff;">9.4</strong> A obrigação de confidencialidade subsiste por 2 anos após o encerramento deste Contrato.</p>
+  </div>
+
+  <!-- CLÁUSULA 10 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 10 — Disposições Gerais</h2>
+    <p><strong style="color:#fff;">10.1</strong> Este Contrato constitui o acordo integral entre as partes quanto ao seu objeto.</p>
+    <p><strong style="color:#fff;">10.2</strong> Alterações unilaterais nos Termos de Uso da plataforma não alteram as condições de preço travado para Contratantes com Oferta Fundador.</p>
+    <p><strong style="color:#fff;">10.3</strong> Os <a href="/termos-de-uso" style="color:var(--teal,#06D6A0);">Termos de Uso</a> e a <a href="/politica-privacidade" style="color:var(--teal,#06D6A0);">Política de Privacidade</a> do StaFlow são partes integrantes deste Contrato.</p>
+  </div>
+
+  <!-- CLÁUSULA 11 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 11 — Lei Aplicável e Foro</h2>
+    <p>Este Contrato é regido pelas leis da República Federativa do Brasil. Fica eleito o Foro da Comarca do Rio de Janeiro/RJ, salvo nos casos em que o Contratante for consumidor pessoa física, hipótese em que prevalecerá o foro do domicílio do consumidor.</p>
+  </div>
+
+  <!-- ANEXO I -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Anexo I — Especificação do Plano Contratado</h2>
+    <div style="background:rgba(240,244,255,.04);border:1px solid rgba(240,244,255,0.10);border-radius:10px;padding:20px 24px;">
+      <table style="width:100%;border-collapse:collapse;font-size:.9375rem;">
+        <tr style="border-bottom:1px solid rgba(240,244,255,0.08);">
+          <td style="padding:10px 0;color:rgba(240,244,255,0.45);width:180px;">Plano</td>
+          <td style="padding:10px 0;color:#fff;">[Pro / Advanced / Scale]</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(240,244,255,0.08);">
+          <td style="padding:10px 0;color:rgba(240,244,255,0.45);">Modalidade</td>
+          <td style="padding:10px 0;color:#fff;">[Mensal / Anual]</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(240,244,255,0.08);">
+          <td style="padding:10px 0;color:rgba(240,244,255,0.45);">Valor</td>
+          <td style="padding:10px 0;color:#fff;">R$ [VALOR] por [mês / ano]</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(240,244,255,0.08);">
+          <td style="padding:10px 0;color:rgba(240,244,255,0.45);">Limite de funcionários</td>
+          <td style="padding:10px 0;color:#fff;">[15 / 35 / 100]</td>
+        </tr>
+        <tr style="border-bottom:1px solid rgba(240,244,255,0.08);">
+          <td style="padding:10px 0;color:rgba(240,244,255,0.45);">Oferta Fundador</td>
+          <td style="padding:10px 0;color:#fff;">[Sim / Não]</td>
+        </tr>
+        <tr>
+          <td style="padding:10px 0;color:rgba(240,244,255,0.45);">Data de início</td>
+          <td style="padding:10px 0;color:#fff;">[DATA]</td>
+        </tr>
+      </table>
+    </div>
+    <p style="margin-top:20px;"><strong style="color:#fff;">Funcionalidades incluídas:</strong></p>
+    <ul style="padding-left:20px;margin-top:8px;">
+      <li>Registro de ponto digital via PWA (iOS e Android)</li>
+      <li>GPS antifraude com 4 sinais de verificação</li>
+      <li>Funcionamento offline com sincronização automática</li>
+      <li>Dashboard em tempo real para o gestor</li>
+      <li>Espelho de ponto com hash SHA-256 de integridade</li>
+      <li>BI financeiro: provisão de 13º, férias, FGTS e passivo trabalhista</li>
+      <li>Alertas automáticos de horas extras (CLT Art. 59) e insalubridade (NR-15)</li>
+      <li>Atestados médicos em bucket privado (LGPD Art. 11)</li>
+      <li>Multi-tenancy com Row Level Security</li>
+      <li>Suporte por e-mail [e WhatsApp para planos Advanced e Scale]</li>
+    </ul>
+  </div>
+
+  <hr style="border:none;border-top:1px solid rgba(255,255,255,.1);margin:48px 0 24px;">
+  <p style="font-size:.8125rem;color:rgba(203,213,224,.5);text-align:center;">
+    Versão 1.0 — Vigente a partir de 10 de junho de 2026. &nbsp;·&nbsp; StaFlow · CNPJ: 67.255.600/0001-71 · contato@staflow.com.br
+  </p>
+
+</section>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <a href="/staflow-landing" class="brand">
+      <img src="/assets/logo-mark.svg" alt="StaFlow" style="width:24px;height:24px;">
+      <div class="wm" style="font-size:14px;"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+    </a>
+    <div class="footer-links">
+      <a href="/politica-privacidade">Política de Privacidade</a>
+      <a href="/termos-de-uso">Termos de Uso</a>
+      <a href="/contrato">Contrato</a>
+      <a href="/dpa">DPA (LGPD)</a>
+      <a href="mailto:contato@staflow.com.br">Contato</a>
+    </div>
+    <div class="copyright">© 2026 STAFLOW · CNPJ: 67.255.600/0001-71</div>
+  </div>
+</footer>
+
+</body>
+</html>

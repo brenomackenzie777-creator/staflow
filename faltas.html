@@ -288,6 +288,14 @@ textarea.input {
           <span style="color:var(--white-muted);font-size:11px;margin-left:4px;">(LGPD Art. 11 — dado sensível de saúde)</span>
         </label>
 
+        <!-- Consentimento LGPD — dado sensível de saúde (Art. 11, I) -->
+        <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:12px 16px;margin-bottom:16px;">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.875rem;color:rgba(203,213,224,0.9);">
+            <input type="checkbox" id="consentimento-saude" required style="margin-top:3px;accent-color:#4dd9ac;">
+            <span>Confirmo que possuo autorização do funcionário para inserir este documento de saúde na plataforma, conforme exigido pela LGPD (Art. 11, I).</span>
+          </label>
+        </div>
+
         <!-- Área de upload (esconde quando há arquivo selecionado) -->
         <div class="atestado-upload-area" id="atestado-drop" style="display:flex;">
           <input type="file" id="atestado-file" accept="image/jpeg,image/png,application/pdf">
@@ -729,10 +737,20 @@ document.getElementById('form-falta').addEventListener('submit', async e => {
   }
   if (!valid) return;
 
+  // Valida consentimento LGPD quando tipo = atestado e há arquivo novo
+  const tipoSel = document.getElementById('f-tipo-i').value;
+  if (tipoSel === 'atestado' && atestadoFile) {
+    const ckSaude = document.getElementById('consentimento-saude');
+    if (ckSaude && !ckSaude.checked) {
+      T('Confirme a autorização do funcionário (LGPD Art. 11) antes de enviar o atestado.', 'error');
+      return;
+    }
+  }
+
   const payload = {
     funcionario_id: funcId,
     data,
-    tipo:        document.getElementById('f-tipo-i').value,
+    tipo:        tipoSel,
     justificada: document.getElementById('f-just').checked,
     observacao:  document.getElementById('f-obs-i').value.trim() || null
   };

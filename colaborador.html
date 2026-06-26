@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#111827">
 <title>Meu painel — StaFlow</title>
 <meta name="description" content="App do colaborador StaFlow — ponto, tarefas e atestados.">
@@ -10,14 +10,14 @@
 
 <!-- ── PWA: manifest + apple-touch-icon + meta ── -->
 <link rel="manifest" href="/manifest.json">
-<link rel="apple-touch-icon" href="/assets/logo-mark.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="StaFlow">
 <meta name="mobile-web-app-capable" content="yes">
 
 <!-- TRONCO SUPERIOR DE ROTEAMENTO — carregado antes de tudo -->
-<script src="/js/route-guard.js"></script>
+<script src="/js/route-guard.js" defer></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1406,7 +1406,12 @@ async function sincronizarFilaOffline() {
   syncRunning = true;
   atualizarPillOffline({ syncing: true });
 
-  let ok = 0, fail = 0;
+  // BUG-003 fix: códigos de erro irrecuperáveis — remover da fila em vez de loops infinitos
+  // 42501 = permission denied (RLS negou), 23503 = FK violation (funcionário deletado),
+  // PGRST301 = JWT inválido/expirado, 42P01 = tabela não existe
+  const UNRECOVERABLE = new Set(['42501', '23503', 'PGRST301', '42P01']);
+
+  let ok = 0, fail = 0, dead = 0;
   for (const item of itens) {
     try {
       const { error } = await sb.from('registros_ponto').insert(item.payload);
@@ -1419,6 +1424,13 @@ async function sincronizarFilaOffline() {
           ok++;
           continue;
         }
+        // Erros irrecuperáveis: remover da fila e notificar o usuário
+        if (UNRECOVERABLE.has(error.code)) {
+          console.error('[offline] batida irrecuperável, removendo da fila:', error.code, error.message);
+          await OfflineQueue.remove(item.id);
+          dead++;
+          continue;
+        }
         fail++;
         continue;
       }
@@ -1428,6 +1440,10 @@ async function sincronizarFilaOffline() {
       fail++;
       // Não remove — tenta novamente na próxima
     }
+  }
+
+  if (dead > 0) {
+    toast(`⚠️ ${dead} batida(s) offline não puderam ser sincronizadas (acesso negado). Contate o síndico.`, 'error');
   }
 
   syncRunning = false;
@@ -1473,15 +1489,19 @@ async function registrarPonto() {
   const isOnline = navigator.onLine;
 
   if (!isOnline) {
-    // OFFLINE — marca a batida e enfileira no IndexedDB
-    payload.audit_status = 'OFFLINE_PENDENTE';
+    // OFFLINE — preserva o status GPS real, sinaliza como pendente
+    // BUG-001 fix: não sobrescreve FRAUDE_SUSPECT/MOCK_SUSPECT capturado pelo GPS
+    const _gpsStatus = pos?.audit_status ?? 'OK';
+    payload.audit_status = (_gpsStatus === 'OK' || _gpsStatus === 'LOW_ACCURACY')
+      ? 'OFFLINE_PENDENTE'
+      : `OFFLINE_PENDENTE+${_gpsStatus}`;
     try {
       await OfflineQueue.enqueue(payload);
       // Otimismo: adiciona localmente no array pra render imediato
       pontosHoje.push({
         tipo: payload.tipo,
         registrado_em: payload.registrado_em,
-        audit_status: 'OFFLINE_PENDENTE'
+        audit_status: payload.audit_status
       });
       renderPonto();
       btn.classList.remove('loading');
@@ -1501,13 +1521,17 @@ async function registrarPonto() {
   if (error) {
     // Se o INSERT falhou e o navegador "achava" que estava online
     // (ex: WiFi conectado mas sem internet real), salva offline como fallback
+    // BUG-002 fix: preserva GPS status antes de marcar como pendente
     try {
-      payload.audit_status = 'OFFLINE_PENDENTE';
+      const _gpsStatus2 = pos?.audit_status ?? 'OK';
+      payload.audit_status = (_gpsStatus2 === 'OK' || _gpsStatus2 === 'LOW_ACCURACY')
+        ? 'OFFLINE_PENDENTE'
+        : `OFFLINE_PENDENTE+${_gpsStatus2}`;
       await OfflineQueue.enqueue(payload);
       pontosHoje.push({
         tipo: payload.tipo,
         registrado_em: payload.registrado_em,
-        audit_status: 'OFFLINE_PENDENTE'
+        audit_status: payload.audit_status
       });
       renderPonto();
       await atualizarPillOffline();

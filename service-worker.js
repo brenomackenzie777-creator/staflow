@@ -10,12 +10,13 @@
      o app pode mostrar prompt "Recarregar para atualizar"
    ==================================================================== */
 
-const VERSION   = 'staflow-v1';
+const VERSION   = 'staflow-v2'; // v2: app.css no precache (BUG-009)
 const CACHE_NAME = 'staflow-' + VERSION;
 
 // Assets críticos pré-cacheados
 const PRECACHE = [
   '/colaborador',
+  '/app.css',
   '/assets/logo-mark.svg',
   '/auth/auth.css',
   '/js/supabase-client.js',

@@ -14,22 +14,16 @@
   "categories": ["business", "productivity", "utilities"],
   "icons": [
     {
-      "src": "/assets/logo-mark.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/assets/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/logo-mark.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/assets/logo-mark.svg",
+      "src": "/assets/icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [

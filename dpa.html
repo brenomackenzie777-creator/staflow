@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DPA — Adendo de Tratamento de Dados · StaFlow</title>
+<meta name="description" content="Data Processing Agreement (DPA) — Adendo de Tratamento de Dados Pessoais LGPD do StaFlow. Versão 1.0, vigente a partir de 10 de junho de 2026.">
+<meta name="theme-color" content="#0F1624">
+<link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --navy-deep:  #0F1624;
+  --navy:       #1A2238;
+  --navy-mid:   #212F4A;
+  --navy-soft:  #2A3D5E;
+  --teal:       #06D6A0;
+  --teal-hover: #07ebb2;
+  --teal-dim:   rgba(6,214,160,0.12);
+  --teal-border:rgba(6,214,160,0.35);
+  --amber:      #FFD166;
+  --red:        #EF4444;
+  --white:      #F0F4FF;
+  --white-dim:  rgba(240,244,255,0.65);
+  --white-muted:rgba(240,244,255,0.4);
+  --border:     rgba(240,244,255,0.10);
+  --border-strong: rgba(240,244,255,0.22);
+  --radius-btn:  8px;
+  --radius-card: 12px;
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'DM Sans', system-ui, sans-serif;
+  --font-mono:    'DM Mono', ui-monospace, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--navy-deep);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+img, svg { display: block; max-width: 100%; }
+
+.container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 14px 26px;
+  border-radius: var(--radius-btn);
+  font-family: var(--font-body); font-weight: 600; font-size: 15px;
+  border: 1px solid transparent; cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--teal); color: var(--navy-deep); box-shadow: 0 4px 24px rgba(6,214,160,0.25); }
+.btn-primary:hover { background: var(--teal-hover); transform: translateY(-1px); }
+.btn-ghost { background: transparent; color: var(--white); border-color: var(--border-strong); }
+.btn-ghost:hover { border-color: var(--white); }
+
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(15,22,36,0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  max-width: 1180px; margin: 0 auto; padding: 14px 24px;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand img { width: 32px; height: 32px; }
+.brand .wm { font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: -0.3px; }
+.brand .sta { color: var(--white); }
+.brand .flow { color: var(--teal); }
+.nav-links { display: flex; gap: 28px; align-items: center; font-size: 14px; }
+.nav-links a { color: var(--white-dim); transition: color 0.2s; }
+.nav-links a:hover { color: var(--white); }
+.nav-cta { display: flex; gap: 10px; align-items: center; }
+.nav-cta .btn-ghost { padding: 9px 18px; font-size: 14px; }
+.nav-cta .btn-primary { padding: 9px 18px; font-size: 14px; }
+@media (max-width: 760px) { .nav-links { display: none; } }
+
+.page-header {
+  padding: 60px 0 40px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 48px;
+}
+.page-header .section-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: 2.5px;
+  color: var(--teal); text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.page-header h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.1; letter-spacing: -0.8px;
+  margin-bottom: 14px;
+}
+.page-header h1 .accent { color: var(--teal); }
+.page-header .meta {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--white-muted); letter-spacing: 0.5px;
+}
+
+.doc-content { padding-bottom: 80px; }
+.doc-content p { color: var(--white-dim); font-size: 15px; line-height: 1.7; margin-bottom: 14px; }
+.doc-content ul, .doc-content ol { padding-left: 22px; margin-bottom: 14px; }
+.doc-content li { color: var(--white-dim); font-size: 15px; line-height: 1.7; margin-bottom: 6px; }
+.doc-content strong { color: var(--white); font-weight: 600; }
+.doc-content a { color: var(--teal); }
+.doc-content a:hover { text-decoration: underline; }
+
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 40px 0 30px;
+  font-size: 13px; color: var(--white-muted);
+}
+.footer-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 16px;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px;
+}
+.footer .brand { font-size: 14px; }
+.footer-links { display: flex; gap: 22px; flex-wrap: wrap; }
+.footer-links a { color: var(--white-muted); transition: color 0.2s; }
+.footer-links a:hover { color: var(--teal); }
+.copyright { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/staflow-landing" class="brand">
+      <img src="/assets/logo-mark.svg" alt="StaFlow">
+      <div class="wm"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+    </a>
+    <div class="nav-links">
+      <a href="/staflow-landing#beneficios">Benefícios</a>
+      <a href="/staflow-landing#como-funciona">Como funciona</a>
+      <a href="/staflow-landing#preco">Planos</a>
+      <a href="/staflow-landing#faq">FAQ</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/auth/login.html" class="btn btn-ghost">Entrar</a>
+      <a href="/auth/cadastro.html" class="btn btn-primary">Começar grátis</a>
+    </div>
+  </div>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="container">
+  <div class="page-header">
+    <span class="section-tag">LGPD · ART. 33 · DATA PROCESSING AGREEMENT</span>
+    <h1>Adendo de Tratamento de <span class="accent">Dados (DPA)</span></h1>
+    <div class="meta">Última atualização: Junho de 2026 · Versão 1.0</div>
+  </div>
+
+  <div class="doc-content">
+<section style="max-width:800px;margin:0 auto;color:var(--white-dim);font-family:'DM Sans',sans-serif;line-height:1.75;">
+
+  <!-- Banner azul -->
+  <div style="background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.35);border-radius:12px;padding:18px 22px;margin-bottom:40px;">
+    <p style="margin:0;color:rgba(147,197,253,0.95);font-size:.875rem;line-height:1.6;">
+      📄 <strong style="color:#93c5fd;">Este Adendo é celebrado entre o StaFlow e o cliente</strong> como complemento ao Contrato SaaS ou Contrato de Parceria. Para solicitar a versão assinável personalizada, entre em contato: <a href="mailto:contato@staflow.com.br" style="color:#93c5fd;text-decoration:underline;">contato@staflow.com.br</a>
+    </p>
+  </div>
+
+  <!-- Nota introdutória -->
+  <p style="font-style:italic;color:rgba(240,244,255,0.45);font-size:.875rem;margin-bottom:32px;">
+    Este Adendo integra e complementa o Contrato SaaS ou Contrato de Parceria Comercial celebrado entre as partes, sendo regido pelos mesmos termos gerais daquele instrumento.
+  </p>
+
+  <!-- PARTES -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Partes</h2>
+    <div style="display:grid;gap:16px;">
+      <div style="background:rgba(77,217,172,.07);border-left:3px solid var(--teal,#06D6A0);padding:16px 20px;border-radius:0 6px 6px 0;">
+        <p style="margin:0;font-size:.9375rem;"><strong style="color:#fff;">OPERADOR (StaFlow):</strong><br>
+        Breno Paixão · CNPJ: 67.255.600/0001-71<br>
+        E-mail: <a href="mailto:contato@staflow.com.br" style="color:var(--teal,#06D6A0);">contato@staflow.com.br</a></p>
+      </div>
+      <div style="background:rgba(240,244,255,.04);border-left:3px solid rgba(240,244,255,0.22);padding:16px 20px;border-radius:0 6px 6px 0;">
+        <p style="margin:0;font-size:.9375rem;"><strong style="color:#fff;">CONTROLADOR:</strong><br>
+        [Razão Social / Nome do Contratante ou Administradora]<br>
+        CNPJ/CPF: [CNPJ ou CPF] · E-mail do Encarregado: [E-mail]</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLÁUSULA 1 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 1 — Definições</h2>
+    <p>Para os fins deste Adendo, adotam-se as definições da Lei n.º 13.709/2018 (LGPD):</p>
+    <ul style="padding-left:20px;margin-top:8px;">
+      <li><strong style="color:#fff;">"Dado pessoal":</strong> informação relacionada a pessoa natural identificada ou identificável.</li>
+      <li><strong style="color:#fff;">"Dado pessoal sensível":</strong> dado sobre saúde, origem racial ou étnica, convicção religiosa, dado genético ou biométrico, entre outros (Art. 5º, II, LGPD).</li>
+      <li><strong style="color:#fff;">"Tratamento":</strong> toda operação realizada com dados pessoais (coleta, armazenamento, uso, transmissão, eliminação etc.).</li>
+      <li><strong style="color:#fff;">"Controlador":</strong> quem toma as decisões sobre o tratamento.</li>
+      <li><strong style="color:#fff;">"Operador":</strong> quem realiza o tratamento em nome do Controlador.</li>
+      <li><strong style="color:#fff;">"Encarregado (DPO)":</strong> canal de comunicação entre as partes e a ANPD.</li>
+      <li><strong style="color:#fff;">"Incidente de segurança":</strong> acesso não autorizado ou situação acidental de destruição, perda, alteração ou difusão indevida de dados.</li>
+      <li><strong style="color:#fff;">"Suboperador":</strong> terceiro contratado pelo Operador para parte do tratamento.</li>
+      <li><strong style="color:#fff;">"ANPD":</strong> Autoridade Nacional de Proteção de Dados.</li>
+    </ul>
+  </div>
+
+  <!-- CLÁUSULA 2 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 2 — Objeto e Finalidade do Tratamento</h2>
+    <p><strong style="color:#fff;">2.1</strong> O Operador realizará o tratamento de dados pessoais exclusivamente para:</p>
+    <ol style="padding-left:20px;margin:8px 0 12px;">
+      <li>Operação do sistema de controle de ponto digital (registro, armazenamento e exibição de registros de jornada);</li>
+      <li>Geração de relatórios de espelho de ponto, BI financeiro e alertas de conformidade trabalhista;</li>
+      <li>Armazenamento e controle de acesso a documentos de saúde (atestados médicos);</li>
+      <li>Verificação de autenticidade dos registros via GPS antifraude;</li>
+      <li>Manutenção da integridade dos dados via hash SHA-256.</li>
+    </ol>
+    <p><strong style="color:#fff;">2.2</strong> O Operador não tratará os dados para finalidades próprias, não os compartilhará com terceiros para fins comerciais e não os utilizará para perfilamento ou publicidade.</p>
+    <p><strong style="color:#fff;">2.3</strong> Qualquer tratamento para finalidade diversa somente poderá ocorrer mediante instrução escrita prévia do Controlador ou por obrigação legal.</p>
+  </div>
+
+  <!-- CLÁUSULA 3 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 3 — Categorias de Dados e Titulares</h2>
+    <p><strong style="color:#fff;">3.1</strong> O tratamento abrange:</p>
+    <div style="margin:12px 0 16px;">
+      <p style="margin-bottom:8px;"><strong style="color:#fff;">Dados comuns:</strong> nome completo, CPF, registros de ponto (data/hora), localização geográfica no momento do registro, metadados do dispositivo, informações de jornada, dados de contato do gestor.</p>
+      <p style="margin-bottom:0;"><strong style="color:var(--amber,#FFD166);">Dados sensíveis (Art. 11, LGPD):</strong> atestados médicos e documentos de afastamento por motivo de saúde.</p>
+    </div>
+    <p><strong style="color:#fff;">3.2 Titulares:</strong> funcionários dos condomínios gerenciados pelo Controlador e síndicos/gestores responsáveis pelas contas.</p>
+  </div>
+
+  <!-- CLÁUSULA 4 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 4 — Obrigações do Operador (StaFlow)</h2>
+    <p><strong style="color:#fff;">4.1</strong> O Operador obriga-se a:</p>
+    <ol style="padding-left:20px;margin-top:8px;">
+      <li>Tratar os dados exclusivamente conforme instruções documentadas do Controlador;</li>
+      <li>Garantir que pessoas autorizadas ao tratamento se comprometam com a confidencialidade;</li>
+      <li>Implementar e manter as medidas de segurança descritas na Cláusula 5;</li>
+      <li>Respeitar as condições para envolvimento de suboperadores (Cláusula 6);</li>
+      <li>Auxiliar o Controlador no cumprimento de obrigações de direitos dos titulares;</li>
+      <li>Notificar incidentes de segurança em até 72 horas (Cláusula 8);</li>
+      <li>Eliminar ou devolver todos os dados após o encerramento do Contrato Principal;</li>
+      <li>Disponibilizar informações para auditorias com aviso prévio de 15 dias úteis;</li>
+      <li>Informar imediatamente o Controlador caso alguma instrução viole a LGPD.</li>
+    </ol>
+  </div>
+
+  <!-- CLÁUSULA 5 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 5 — Medidas de Segurança</h2>
+    <p>O Operador implementa e mantém as seguintes medidas:</p>
+
+    <h3 style="font-size:.9375rem;color:var(--teal,#06D6A0);margin:20px 0 8px;">Controle de acesso</h3>
+    <ul style="padding-left:20px;">
+      <li>Autenticação individual por usuário gestor</li>
+      <li>Row Level Security (RLS) no banco de dados — isolamento total entre condomínios</li>
+      <li>Acesso a dados de saúde apenas via Signed URL com expiração de 1 hora</li>
+      <li>Princípio do mínimo privilégio</li>
+    </ul>
+
+    <h3 style="font-size:.9375rem;color:var(--teal,#06D6A0);margin:20px 0 8px;">Integridade e rastreabilidade</h3>
+    <ul style="padding-left:20px;">
+      <li>Hash SHA-256 em cada registro de ponto</li>
+      <li>Logs de acesso e modificação de dados críticos</li>
+    </ul>
+
+    <h3 style="font-size:.9375rem;color:var(--teal,#06D6A0);margin:20px 0 8px;">Segurança em trânsito e repouso</h3>
+    <ul style="padding-left:20px;">
+      <li>HTTPS/TLS 1.2+ para toda transmissão de dados</li>
+      <li>Criptografia em nível de disco (infraestrutura Supabase)</li>
+      <li>Documentos de saúde em bucket privado, não indexável</li>
+    </ul>
+
+    <h3 style="font-size:.9375rem;color:var(--teal,#06D6A0);margin:20px 0 8px;">Resiliência</h3>
+    <ul style="padding-left:20px;">
+      <li>Backups automáticos diários (Supabase)</li>
+      <li>Funcionamento offline com sincronização segura (IndexedDB)</li>
+    </ul>
+  </div>
+
+  <!-- CLÁUSULA 6 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 6 — Suboperadores</h2>
+    <p><strong style="color:#fff;">6.1</strong> O Controlador autoriza o uso dos seguintes suboperadores:</p>
+    <div style="margin:12px 0 16px;display:grid;gap:10px;">
+      <div style="background:rgba(240,244,255,.04);border:1px solid rgba(240,244,255,0.08);border-radius:8px;padding:14px 18px;">
+        <p style="margin:0;font-size:.9375rem;"><strong style="color:#fff;">Supabase Inc.</strong> — banco de dados PostgreSQL, armazenamento, autenticação. EUA.<br>
+        <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer" style="color:var(--teal,#06D6A0);font-size:.875rem;">supabase.com/privacy</a></p>
+      </div>
+      <div style="background:rgba(240,244,255,.04);border:1px solid rgba(240,244,255,0.08);border-radius:8px;padding:14px 18px;">
+        <p style="margin:0;font-size:.9375rem;"><strong style="color:#fff;">Vercel Inc.</strong> — hospedagem da aplicação web. EUA.<br>
+        <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" style="color:var(--teal,#06D6A0);font-size:.875rem;">vercel.com/legal/privacy-policy</a></p>
+      </div>
+      <div style="background:rgba(240,244,255,.04);border:1px solid rgba(240,244,255,0.08);border-radius:8px;padding:14px 18px;">
+        <p style="margin:0;font-size:.9375rem;"><strong style="color:#fff;">Stripe Inc.</strong> — processamento de pagamentos (não acessa dados de funcionários). EUA.<br>
+        <a href="https://stripe.com/br/privacy" target="_blank" rel="noopener noreferrer" style="color:var(--teal,#06D6A0);font-size:.875rem;">stripe.com/br/privacy</a></p>
+      </div>
+    </div>
+    <p><strong style="color:#fff;">6.2</strong> O Operador informará o Controlador com antecedência mínima de 15 dias sobre qualquer adição ou substituição de suboperadores.</p>
+    <p><strong style="color:#fff;">6.3</strong> O Operador permanece integralmente responsável perante o Controlador pelo cumprimento das obrigações pelos suboperadores.</p>
+  </div>
+
+  <!-- CLÁUSULA 7 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 7 — Transferência Internacional de Dados</h2>
+    <p><strong style="color:#fff;">7.1</strong> Dados pessoais podem ser transferidos e armazenados nos EUA em razão da infraestrutura de Supabase e Vercel.</p>
+    <p><strong style="color:#fff;">7.2</strong> As transferências ocorrem com base em salvaguardas: padrões SOC 2 Type II / ISO 27001 dos suboperadores e cláusulas contratuais de proteção de dados compatíveis com a LGPD (Art. 33).</p>
+    <p><strong style="color:#fff;">7.3</strong> O Controlador, ao assinar este Adendo, consente expressamente com as transferências internacionais descritas.</p>
+  </div>
+
+  <!-- CLÁUSULA 8 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 8 — Notificação de Incidentes de Segurança</h2>
+    <p><strong style="color:#fff;">8.1</strong> O Operador notificará o Controlador em até <strong style="color:#fff;">72 horas</strong> após tomar conhecimento de qualquer incidente que possa afetar dados pessoais tratados em seu nome.</p>
+    <p><strong style="color:#fff;">8.2</strong> A notificação conterá: natureza do incidente, categorias e número de titulares afetados, contato do Encarregado, impacto provável e medidas de remediação adotadas.</p>
+    <p><strong style="color:#fff;">8.3</strong> O Operador cooperará com o Controlador na avaliação da necessidade de comunicação à ANPD e aos titulares afetados (Art. 48, LGPD).</p>
+    <p><strong style="color:#fff;">8.4</strong> A notificação não implica reconhecimento de responsabilidade.</p>
+  </div>
+
+  <!-- CLÁUSULA 9 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 9 — Direitos dos Titulares</h2>
+    <p><strong style="color:#fff;">9.1</strong> O Controlador é o responsável primário pelo atendimento às solicitações de direitos dos titulares (Arts. 17–22, LGPD).</p>
+    <p><strong style="color:#fff;">9.2</strong> O Operador auxiliará o Controlador dentro de prazo razoável compatível com o prazo legal de resposta ao titular (15 dias úteis).</p>
+    <p><strong style="color:#fff;">9.3</strong> Se o Operador receber diretamente uma solicitação de titular, encaminhará ao Controlador em até 2 dias úteis.</p>
+  </div>
+
+  <!-- CLÁUSULA 10 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 10 — Obrigações do Controlador</h2>
+    <p><strong style="color:#fff;">10.1</strong> O Controlador obriga-se a:</p>
+    <ol style="padding-left:20px;margin-top:8px;">
+      <li>Garantir base legal adequada para cada categoria de dados inserida na plataforma, inclusive dados sensíveis;</li>
+      <li>Obter consentimento expresso dos titulares para dados sensíveis quando esse for o fundamento legal;</li>
+      <li>Informar os funcionários sobre o uso da plataforma e a coleta de GPS no momento do registro;</li>
+      <li>Não inserir dados cujo tratamento não seja necessário para as finalidades do serviço;</li>
+      <li>Notificar o Operador sobre qualquer uso indevido que possa afetar a segurança de dados de terceiros.</li>
+    </ol>
+  </div>
+
+  <!-- CLÁUSULA 11 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 11 — Eliminação de Dados ao Término do Contrato</h2>
+    <p><strong style="color:#fff;">11.1</strong> Após o encerramento do Contrato Principal, o Operador reterá os dados pelos prazos legais mínimos (ponto: 5 anos; saúde: conforme legislação trabalhista; demais: 90 dias após encerramento).</p>
+    <p><strong style="color:#fff;">11.2</strong> Findo o prazo de retenção, o Operador procederá à eliminação segura dos dados.</p>
+    <p><strong style="color:#fff;">11.3</strong> O Controlador pode solicitar exportação dos seus dados a qualquer tempo durante a vigência contratual. Prazo de disponibilização: 15 dias úteis.</p>
+    <p><strong style="color:#fff;">11.4</strong> O Operador emitirá declaração de eliminação dos dados mediante solicitação.</p>
+  </div>
+
+  <!-- CLÁUSULA 12 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 12 — Encarregados de Dados</h2>
+    <div style="display:grid;gap:16px;">
+      <div style="background:rgba(77,217,172,.07);border-left:3px solid var(--teal,#06D6A0);padding:16px 20px;border-radius:0 6px 6px 0;">
+        <p style="margin:0;"><strong style="color:#fff;">Encarregado do Operador (StaFlow):</strong><br>
+        Breno Paixão · <a href="mailto:contato@staflow.com.br" style="color:var(--teal,#06D6A0);">contato@staflow.com.br</a></p>
+      </div>
+      <div style="background:rgba(240,244,255,.04);border-left:3px solid rgba(240,244,255,0.22);padding:16px 20px;border-radius:0 6px 6px 0;">
+        <p style="margin:0;"><strong style="color:#fff;">Encarregado do Controlador:</strong><br>
+        [Nome] · [E-mail] · [Telefone]</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLÁUSULA 13 -->
+  <div style="margin-bottom:40px;">
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(240,244,255,0.10);">Cláusula 13 — Vigência e Lei Aplicável</h2>
+    <p><strong style="color:#fff;">13.1</strong> Este Adendo entra em vigor na data de assinatura do Contrato Principal e permanece em vigor enquanto o Operador realizar qualquer tratamento de dados em nome do Controlador.</p>
+    <p><strong style="color:#fff;">13.2</strong> Em caso de conflito entre este Adendo e o Contrato Principal, prevalece este Adendo no que se refere a obrigações de proteção de dados.</p>
+    <p><strong style="color:#fff;">13.3</strong> Este Adendo é regido pelas leis da República Federativa do Brasil, em especial a LGPD, e pelo mesmo foro eleito no <a href="/contrato" style="color:var(--teal,#06D6A0);">Contrato Principal</a>.</p>
+  </div>
+
+  <hr style="border:none;border-top:1px solid rgba(255,255,255,.1);margin:48px 0 24px;">
+  <p style="font-size:.8125rem;color:rgba(203,213,224,.5);text-align:center;">
+    Versão 1.0 — Vigente a partir de 10 de junho de 2026. &nbsp;·&nbsp; StaFlow · CNPJ: 67.255.600/0001-71 · contato@staflow.com.br
+  </p>
+
+</section>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <a href="/staflow-landing" class="brand">
+      <img src="/assets/logo-mark.svg" alt="StaFlow" style="width:24px;height:24px;">
+      <div class="wm" style="font-size:14px;"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+    </a>
+    <div class="footer-links">
+      <a href="/politica-privacidade">Política de Privacidade</a>
+      <a href="/termos-de-uso">Termos de Uso</a>
+      <a href="/contrato">Contrato</a>
+      <a href="/dpa">DPA (LGPD)</a>
+      <a href="mailto:contato@staflow.com.br">Contato</a>
+    </div>
+    <div class="copyright">© 2026 STAFLOW · CNPJ: 67.255.600/0001-71</div>
+  </div>
+</footer>
+
+</body>
+</html>
