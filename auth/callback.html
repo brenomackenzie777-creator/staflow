@@ -39,37 +39,49 @@
       ' <a href="./login.html" style="color:var(--teal);">Voltar ao login</a>';
   }
 
+  function showSuccess() {
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('msg').textContent = '✓ Conta confirmada!';
+    document.getElementById('sub').textContent = 'Redirecionando para o login…';
+    setTimeout(() => location.replace('/auth/login.html?confirmed=1'), 1000);
+  }
+
   // ── 1. Fluxo PKCE: URL contém ?code= ─────────────────────────────────
-  // IMPORTANTE: trocar o code ANTES de verificar o tipo (recovery ou signup).
-  // Se verificarmos o tipo antes, o code é perdido no redirect.
+  // Com PKCE, o Supabase NÃO inclui ?type= na URL de redirect.
+  // O tipo (signup vs recovery) só é revelado via onAuthStateChange após
+  // o code exchange — por isso escutamos o evento ANTES de trocar o code.
   const code = params.get('code');
   if (code) {
+    let detectedEvent = null;
+
+    // Registra listener antes do exchange para capturar PASSWORD_RECOVERY
+    const { data: { subscription } } = sb.auth.onAuthStateChange((event) => {
+      detectedEvent = event;
+    });
+
     let session = null;
     try {
       const { data, error } = await sb.auth.exchangeCodeForSession(location.href);
       if (error) throw error;
       session = data?.session;
     } catch (_) {
-      // Code pode ter sido trocado já (double-click) — pega sessão existente
+      // Code já foi trocado (double-click) — pega sessão existente
       session = await staflowAuth.getCurrentSession();
     }
+
+    // Aguarda o evento propagar (onAuthStateChange é assíncrono)
+    await new Promise(r => setTimeout(r, 300));
+    subscription.unsubscribe();
 
     if (!session) {
       showError('O link expirou ou já foi utilizado.');
       return;
     }
 
-    // Agora que a sessão está ativa, verificar o tipo de fluxo
-    const type = params.get('type') || hash.get('type');
-    if (type === 'recovery') {
-      // Recovery: vai para nova-senha com sessão já estabelecida
+    if (detectedEvent === 'PASSWORD_RECOVERY') {
       location.replace('./nova-senha.html');
     } else {
-      // Signup: confirma conta e vai para login
-      document.getElementById('spinner').style.display = 'none';
-      document.getElementById('msg').textContent = '✓ Conta confirmada!';
-      document.getElementById('sub').textContent = 'Redirecionando para o login…';
-      setTimeout(() => location.replace('/auth/login.html?confirmed=1'), 1000);
+      showSuccess();
     }
     return;
   }
@@ -84,10 +96,7 @@
       if (type === 'recovery') {
         location.replace('./nova-senha.html');
       } else {
-        document.getElementById('spinner').style.display = 'none';
-        document.getElementById('msg').textContent = '✓ Conta confirmada!';
-        document.getElementById('sub').textContent = 'Redirecionando para o login…';
-        setTimeout(() => location.replace('/auth/login.html?confirmed=1'), 1000);
+        showSuccess();
       }
       return;
     }
