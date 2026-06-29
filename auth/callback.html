@@ -31,20 +31,6 @@
   const params = new URLSearchParams(location.search);
   const hash   = new URLSearchParams(location.hash.replace(/^#/, ''));
 
-  // ── 1. Reset de senha (recovery) ─────────────────────────────────────
-  const type = params.get('type') || hash.get('type');
-  if (type === 'recovery') {
-    location.replace('./nova-senha.html');
-    return;
-  }
-
-  function showSuccess() {
-    document.getElementById('spinner').style.display = 'none';
-    document.getElementById('msg').textContent = '✓ Conta confirmada!';
-    document.getElementById('sub').textContent = 'Redirecionando para o login…';
-    setTimeout(() => location.replace('/auth/login.html?confirmed=1'), 1000);
-  }
-
   function showError(detail) {
     document.getElementById('spinner').style.display = 'none';
     document.getElementById('msg').textContent = 'Não foi possível confirmar';
@@ -53,29 +39,61 @@
       ' <a href="./login.html" style="color:var(--teal);">Voltar ao login</a>';
   }
 
-  // ── 2. Fluxo PKCE: URL contém ?code= ─────────────────────────────────
+  // ── 1. Fluxo PKCE: URL contém ?code= ─────────────────────────────────
+  // IMPORTANTE: trocar o code ANTES de verificar o tipo (recovery ou signup).
+  // Se verificarmos o tipo antes, o code é perdido no redirect.
   const code = params.get('code');
   if (code) {
+    let session = null;
     try {
       const { data, error } = await sb.auth.exchangeCodeForSession(location.href);
       if (error) throw error;
-      if (data?.session) { showSuccess(); return; }
-    } catch (err) {
-      // Se o code já foi trocado antes (double-click), verifica a sessão existente
-      const existing = await staflowAuth.getCurrentSession();
-      if (existing) { showSuccess(); return; }
-      showError('O link de confirmação expirou ou já foi utilizado.');
+      session = data?.session;
+    } catch (_) {
+      // Code pode ter sido trocado já (double-click) — pega sessão existente
+      session = await staflowAuth.getCurrentSession();
+    }
+
+    if (!session) {
+      showError('O link expirou ou já foi utilizado.');
+      return;
+    }
+
+    // Agora que a sessão está ativa, verificar o tipo de fluxo
+    const type = params.get('type') || hash.get('type');
+    if (type === 'recovery') {
+      // Recovery: vai para nova-senha com sessão já estabelecida
+      location.replace('./nova-senha.html');
+    } else {
+      // Signup: confirma conta e vai para login
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('msg').textContent = '✓ Conta confirmada!';
+      document.getElementById('sub').textContent = 'Redirecionando para o login…';
+      setTimeout(() => location.replace('/auth/login.html?confirmed=1'), 1000);
+    }
+    return;
+  }
+
+  // ── 2. Fluxo legado (implicit / token_hash em #) ──────────────────────
+  const tokenHash = hash.get('access_token') || hash.get('token_hash');
+  if (tokenHash) {
+    await new Promise(r => setTimeout(r, 1500));
+    const session = await staflowAuth.getCurrentSession();
+    if (session) {
+      const type = hash.get('type');
+      if (type === 'recovery') {
+        location.replace('./nova-senha.html');
+      } else {
+        document.getElementById('spinner').style.display = 'none';
+        document.getElementById('msg').textContent = '✓ Conta confirmada!';
+        document.getElementById('sub').textContent = 'Redirecionando para o login…';
+        setTimeout(() => location.replace('/auth/login.html?confirmed=1'), 1000);
+      }
       return;
     }
   }
 
-  // ── 3. Fluxo legado (implicit / token_hash) ───────────────────────────
-  // Aguarda o SDK processar o token na URL automaticamente
-  await new Promise(r => setTimeout(r, 1500));
-  const session = await staflowAuth.getCurrentSession();
-  if (session) { showSuccess(); return; }
-
-  // ── 4. Erro ───────────────────────────────────────────────────────────
+  // ── 3. Erro ───────────────────────────────────────────────────────────
   showError('O link pode ter expirado ou já foi usado.');
 })();
 </script>

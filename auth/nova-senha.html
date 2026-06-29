@@ -72,23 +72,16 @@ function toast(msg, type='error'){
   clearTimeout(window.__tt); window.__tt = setTimeout(()=>t.className='toast', 4500);
 }
 
-// Verifica se o usuário chegou aqui com sessão de recovery
-// (Supabase auto-processa o hash da URL e dispara PASSWORD_RECOVERY)
-let recoveryReady = false;
-
-staflowAuth.onAuthStateChange((event) => {
-  if (event === 'PASSWORD_RECOVERY') recoveryReady = true;
-});
-
+// Verifica sessão ativa — o callback.html já trocou o code PKCE antes de redirecionar aqui.
+// Não dependemos mais do evento PASSWORD_RECOVERY (que já disparou no callback e não repete).
 (async () => {
-  // Aguarda um instante para Supabase processar o hash
-  setTimeout(async () => {
-    const session = await staflowAuth.getCurrentSession();
-    if (!session && !recoveryReady) {
-      document.getElementById('state-form').style.display    = 'none';
-      document.getElementById('state-invalid').style.display = 'block';
-    }
-  }, 600);
+  // Aguarda o SDK inicializar a sessão persistida
+  await new Promise(r => setTimeout(r, 500));
+  const session = await staflowAuth.getCurrentSession();
+  if (!session) {
+    document.getElementById('state-form').style.display    = 'none';
+    document.getElementById('state-invalid').style.display = 'block';
+  }
 })();
 
 // Força de senha

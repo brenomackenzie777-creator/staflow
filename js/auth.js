@@ -83,7 +83,7 @@
   async function resetPassword(email) {
     try {
       const { error } = await sb.auth.resetPasswordForEmail(clean(email).toLowerCase(), {
-        redirectTo: `${location.origin}/auth/nova-senha`
+        redirectTo: `${location.origin}/auth/callback` // callback troca o code PKCE e redireciona para nova-senha
       });
       if (error) throw error;
       return { ok: true };
