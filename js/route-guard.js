@@ -97,8 +97,11 @@
           const r = opts.blockReason || 'inactive';
           return { redirectTo: '/planos.html?reason=' + encodeURIComponent(r), allow: false, reason: 'authed_on_auth_page_no_sub' };
         }
+        return { redirectTo: '/dashboard.html', allow: false, reason: 'authed_on_auth_page_to_dash' };
       }
-      return { redirectTo: '/dashboard.html', allow: false, reason: 'authed_on_auth_page_to_dash' };
+      // Usuário autenticado mas sem profile (trigger falhou) ou role desconhecida
+      // → fica na auth page em vez de entrar em loop login↔dashboard
+      return { redirectTo: null, allow: true, reason: 'authed_no_profile_stay' };
     }
 
     // 3) Páginas públicas: sempre passa (mesmo autenticado pode ver landing)
