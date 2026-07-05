@@ -90,9 +90,10 @@
       if ((profile && profile.role === 'funcionario') || pendingColab) {
         return { redirectTo: '/colaborador.html', allow: false, reason: 'authed_on_auth_page_to_colab' };
       }
-      // sindico/admin sem subscription → planos
+      // sindico/admin com subscription BLOQUEADA (past_due/canceled) → planos
+      // Starter (sem subscription) é plano gratuito legítimo — não bloqueia
       if (profile && (profile.role === 'sindico' || profile.role === 'admin')) {
-        if (opts.isBlockedSubscription || opts.hasActiveSubscription === false) {
+        if (opts.isBlockedSubscription) {
           const r = opts.blockReason || 'inactive';
           return { redirectTo: '/planos.html?reason=' + encodeURIComponent(r), allow: false, reason: 'authed_on_auth_page_no_sub' };
         }
@@ -127,13 +128,14 @@
       if (kind === 'funcionario') {
         return { redirectTo: '/dashboard.html', allow: false, reason: 'admin_ejected_from_colab' };
       }
-      // Páginas admin exigem subscription ativa
+      // Páginas admin: bloqueia só se subscription ATIVA existir mas estiver bloqueada
+      // Starter (sem subscription) = plano gratuito legítimo — não redireciona para planos
       if (kind === 'admin') {
-        if (opts.isBlockedSubscription || opts.hasActiveSubscription === false) {
+        if (opts.isBlockedSubscription) {
           const r = opts.blockReason || 'inactive';
-          return { redirectTo: '/planos.html?reason=' + encodeURIComponent(r), allow: false, reason: 'admin_no_sub' };
+          return { redirectTo: '/planos.html?reason=' + encodeURIComponent(r), allow: false, reason: 'admin_blocked_sub' };
         }
-        return { redirectTo: null, allow: true, reason: 'admin_with_sub' };
+        return { redirectTo: null, allow: true, reason: 'admin_ok' };
       }
       // Página de planos: sempre permitida pra admin (precisa pra contratar/regularizar)
       if (kind === 'planos') {
