@@ -47,11 +47,7 @@ def executar_loop():
         ],
         process=Process.sequential,   # Um agente por vez, em ordem
         verbose=True,
-        memory=True,                  # CrewAI mantém memória entre agentes
-        embedder={
-            "provider": "anthropic",
-            "config": {"model": "claude-haiku-4-5-20251001"},
-        }
+        memory=False,                 # Memória gerenciada via CLAUDE.md + context das tasks
     )
 
     resultado = crew.kickoff()
