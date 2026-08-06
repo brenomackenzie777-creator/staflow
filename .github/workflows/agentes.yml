@@ -20,7 +20,7 @@ on:
     - cron: '0 11 * * 1'   # Toda segunda 08:00 BRT
 
   push:
-    branches: [main]       # Rafael roda a cada deploy
+    branches: [main]       # Rafael roda a cada deploy seu
 
   workflow_dispatch:
     inputs:
@@ -76,7 +76,7 @@ jobs:
           git config user.name  "StaFlow Loop [Bot]"
           git config user.email "loop-bot@staflow.app.br"
           git add CLAUDE.md agents/outputs/ || true
-          git diff --cached --quiet || git commit -m "chore(loop): memória atualizada $(date +'%Y-%m-%d')"
+          git diff --cached --quiet || git commit -m "chore(loop): memória atualizada $(date +'%Y-%m-%d') [skip ci]"
           git push || true
 
   # ─── RAFAEL — QA após cada deploy ────────────────────────
