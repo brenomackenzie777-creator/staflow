@@ -1,0 +1,1 @@
+# StaFlow CrewAI — Loop Autoevolutivo

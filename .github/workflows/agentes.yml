@@ -1,0 +1,112 @@
+# ============================================================
+# StaFlow — Loop Autoevolutivo (CrewAI + Claude Haiku)
+# ============================================================
+# Schedule: toda segunda 11:00 UTC = 08:00 BRT
+# Trigger manual: Actions → Run workflow → escolhe agente
+#
+# Secrets necessários (Settings → Secrets → Actions):
+#   ANTHROPIC_API_KEY    — console.anthropic.com
+#   TAVILY_API_KEY       — app.tavily.com
+#   SUPABASE_URL         — https://wsxpskrrzqtdoodpoofx.supabase.co
+#   SUPABASE_SERVICE_KEY — Supabase → Settings → API → service_role
+#   RESEND_API_KEY       — resend.com
+#   NOTIFY_EMAIL         — brenomackenzie777@gmail.com
+# ============================================================
+
+name: StaFlow — Loop Autoevolutivo
+
+on:
+  schedule:
+    - cron: '0 11 * * 1'   # Toda segunda 08:00 BRT
+
+  push:
+    branches: [main]       # Rafael roda a cada deploy
+
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: 'O que executar'
+        required: true
+        default: 'loop-completo'
+        type: choice
+        options:
+          - loop-completo   # Todos os 7 agentes em sequência
+          - rafael          # Só QA/smoke tests
+
+jobs:
+  # ─── LOOP COMPLETO (segunda-feira ou manual) ─────────────
+  loop-autoevolutivo:
+    name: 'Loop Autoevolutivo — 7 Agentes'
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.modo == 'loop-completo')
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependências
+        run: pip install -r scripts/requirements.txt
+
+      - name: Executar loop CrewAI
+        env:
+          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
+          TAVILY_API_KEY:      ${{ secrets.TAVILY_API_KEY }}
+          SUPABASE_URL:        ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          RESEND_API_KEY:      ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_EMAIL:        ${{ secrets.NOTIFY_EMAIL }}
+          GITHUB_TOKEN:        ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY:   ${{ github.repository }}
+          PRODUCTION_URL:      'https://staflow.app.br'
+        run: python -m scripts.crew.main
+
+      - name: Commit memória atualizada (CLAUDE.md)
+        run: |
+          git config user.name  "StaFlow Loop [Bot]"
+          git config user.email "loop-bot@staflow.app.br"
+          git add CLAUDE.md agents/outputs/ || true
+          git diff --cached --quiet || git commit -m "chore(loop): memória atualizada $(date +'%Y-%m-%d')"
+          git push || true
+
+  # ─── RAFAEL — QA após cada deploy ────────────────────────
+  rafael-qa:
+    name: 'Rafael — QA & Smoke Tests'
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.modo == 'rafael')
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependências
+        run: pip install -r scripts/requirements.txt
+
+      - name: Rafael — Smoke Tests
+        env:
+          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL:        ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          RESEND_API_KEY:      ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_EMAIL:        ${{ secrets.NOTIFY_EMAIL }}
+          PRODUCTION_URL:      'https://staflow.app.br'
+        run: python scripts/agente.py rafael

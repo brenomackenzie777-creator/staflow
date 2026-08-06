@@ -1,9 +1,43 @@
 # 📘 Dossiê de Alinhamento Técnico — StaFlow
 
 **Destinatário:** Claude Co-Work (CFO / Estrategista)
-**Versão:** Snapshot pós-commit `c072bd7` · 26 de maio de 2026
+**Versão:** Snapshot pós-commit `6358f1f` · 26 de junho de 2026
 **Produção:** https://staflow.app.br · Supabase project `wsxpskrrzqtdoodpoofx`
 **Repo:** github.com/brenomackenzie777-creator/staflow
+
+---
+
+## 🆕 Changelog desta versão (26/06/2026)
+
+| Item | Status |
+|------|--------|
+| Stripe LIVE mode | ✅ Ativo — price IDs reais em `js/stripe-config.js` |
+| Logo oficial | ✅ Variante I — dois blocos azuis geométricos em S (`logo-I-geometrico-blocos.png`) |
+| `assets/logo-mark.svg` | ✅ Hexágono atualizado para azul #3B82F6 (usado no SVG do site) |
+| Foto de perfil Instagram | ✅ `assets/staflow-profile-photo.png` 500×500px |
+| BUG-001/002 GPS offline | ✅ `OFFLINE_PENDENTE+FRAUDE_SUSPECT` — fraude preservada |
+| BUG-004 FCP | ✅ `defer` no route-guard — FCP 3s → 1.2s |
+| BUG-007 WCAG | ✅ `maximum-scale=1.0` removido |
+| BUG-009 SW precache | ✅ `app.css` no PRECACHE, SW bumped para `staflow-v2` |
+| BUG-005 iOS icon | ✅ `icon-180.png` e `icon-512.png` gerados da logo I |
+| BUG-006 invite email | ✅ `signInWithOtp` fallback para email já cadastrado |
+| BUG-003 fila offline | ✅ Erros irrecuperáveis (42501/23503/PGRST301) removidos com toast |
+| BUG-010 robots.txt | ✅ Páginas autenticadas bloqueadas |
+| Security headers | ✅ `X-XSS-Protection` no vercel.json |
+| Meta descriptions | ✅ `planos.html` e `auth/cadastro.html` |
+| Skills Claude Code | ✅ 30 skills instaladas em `~/.claude/commands/` |
+| Mobile decision | ✅ PWA melhorado (sem app store) — Sprint 5 iOS pendente |
+| Instagram posts | 🟡 Camila corrigindo logo I + preços R$99/R$159/R$279 |
+| Outreach SíndicoNet | 🟡 Marcos em campo — 7 prospects Prioridade A |
+
+### Preços LIVE (definitivos)
+
+| Plano | Mensal | Anual | Funcionários |
+|-------|--------|-------|--------------|
+| Starter | R$0 | — | até 3 |
+| Pro | R$99 | R$950 | até 15 |
+| Advanced | R$159 | R$1.500 | até 35 |
+| Scale | R$279 | R$2.600 | até 100 |
 
 ---
 
