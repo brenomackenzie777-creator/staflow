@@ -1,6 +1,5 @@
 """
 StaFlow — Orquestrador principal do loop autoevolutivo
-======================================================
 Uso: python -m scripts.crew.main
 """
 import sys
@@ -17,8 +16,8 @@ from .tasks import (
     tarefa_propor, tarefa_decidir, tarefa_executar, tarefa_aprender,
 )
 
-MAX_RETRIES = 3
-RETRY_WAIT  = 90   # segundos de espera após rate limit
+MAX_RETRIES = 5
+BASE_WAIT   = 30   # segundos iniciais; dobra a cada tentativa
 
 
 def executar_loop():
@@ -28,29 +27,16 @@ def executar_loop():
     print("="*60 + "\n")
 
     crew = Crew(
-        agents=[
-            coletor,
-            pesquisador,
-            analista,
-            estrategista,
-            decisor,
-            executor,
-            observador,
-        ],
-        tasks=[
-            tarefa_coletar,
-            tarefa_pesquisar,
-            tarefa_analisar,
-            tarefa_propor,
-            tarefa_decidir,
-            tarefa_executar,
-            tarefa_aprender,
-        ],
+        agents=[coletor, pesquisador, analista,
+                estrategista, decisor, executor, observador],
+        tasks=[tarefa_coletar, tarefa_pesquisar, tarefa_analisar,
+               tarefa_propor, tarefa_decidir, tarefa_executar, tarefa_aprender],
         process=Process.sequential,
         verbose=True,
         memory=False,
     )
 
+    wait = BASE_WAIT
     for tentativa in range(1, MAX_RETRIES + 1):
         try:
             resultado = crew.kickoff()
@@ -62,16 +48,18 @@ def executar_loop():
 
         except Exception as e:
             msg = str(e)
-            if "429" in msg or "rate_limit" in msg.lower():
+            if "429" in msg or "rate_limit" in msg.lower() or "RESOURCE_EXHAUSTED" in msg:
                 if tentativa < MAX_RETRIES:
                     print(f"\n[RATE LIMIT] Tentativa {tentativa}/{MAX_RETRIES}. "
-                          f"Aguardando {RETRY_WAIT}s...\n")
-                    time.sleep(RETRY_WAIT)
+                          f"Aguardando {wait}s...\n")
+                    time.sleep(wait)
+                    wait = min(wait * 2, 300)  # exponential backoff, máx 5 min
                 else:
-                    print(f"\n[RATE LIMIT] Esgotadas as {MAX_RETRIES} tentativas. "
-                          "Tente novamente amanhã ou atualize o plano do LLM.")
+                    print(f"\n[RATE LIMIT] Esgotadas {MAX_RETRIES} tentativas. "
+                          "Tente novamente amanhã.")
                     sys.exit(1)
             else:
+                print(f"\n[ERRO] {e}")
                 raise
 
 
@@ -79,5 +67,5 @@ if __name__ == "__main__":
     try:
         executar_loop()
     except Exception as e:
-        print(f"\n[ERRO CRÍTICO] Loop falhou: {e}")
+        print(f"\n[ERRO CRÍTICO] {e}")
         sys.exit(1)
