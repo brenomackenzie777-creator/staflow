@@ -103,6 +103,27 @@
   .signal-icons { display: flex; gap: 4px; align-items: center; }
   .bar { width: 3px; border-radius: 1px; background: var(--text-muted); }
 
+  /* ── Banner de atraso ── */
+  .banner-atraso {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 20px 14px;
+    padding: 12px 12px 12px 14px;
+    background: var(--warn-dim);
+    border: 1px solid rgba(245,158,11,0.30);
+    border-left: 3px solid var(--warn);
+    border-radius: var(--radius-sm);
+  }
+  .banner-atraso .ico { font-size: 16px; flex-shrink: 0; }
+  .banner-atraso .txt { flex: 1; font-size: 12.5px; line-height: 1.4; color: var(--text); }
+  .banner-atraso .fechar {
+    background: transparent; border: none;
+    color: var(--text-muted); font-size: 14px;
+    cursor: pointer; flex-shrink: 0; padding: 2px 4px;
+  }
+  .banner-atraso .fechar:hover { color: var(--text); }
+
   /* ── Header (logo + avatar + LOGOUT GIGANTE) ── */
   .app-header {
     padding: 8px 20px 16px;
@@ -890,6 +911,13 @@
     <div class="greeting-name" id="greet-name">Olá!</div>
   </div>
 
+  <!-- Banner de atraso (aparece se a entrada de hoje foi registrada atrasada) -->
+  <div class="banner-atraso" id="banner-atraso" style="display:none;">
+    <span class="ico">⏰</span>
+    <span class="txt" id="banner-atraso-txt"></span>
+    <button type="button" class="fechar" id="banner-atraso-fechar" aria-label="Fechar aviso">✕</button>
+  </div>
+
   <!-- Tabs -->
   <div class="tabs">
     <button class="tab active" data-tab="ponto"   id="tab-ponto">⏱ Ponto</button>
@@ -1075,6 +1103,7 @@ let pontosHoje  = [];
 let tarefas     = [];
 let tipoJustif  = 'atestado';
 let arquivoJustif = null;
+let toleranciaAtrasoMin = 10;  // Configurações → tolerância de atraso (min); atualizado no boot
 
 /* ── Helpers visuais ── */
 function showSplash() { document.getElementById('splash').classList.remove('hide'); }
@@ -1098,6 +1127,72 @@ function saudacao() {
   if (h < 12) return 'Bom dia';
   if (h < 18) return 'Boa tarde';
   return 'Boa noite';
+}
+
+/* ════════════════════════════════════════════════════════════════
+   AVISO DE ATRASO — banner in-app + email pro síndico
+   ════════════════════════════════════════════════════════════════ */
+function chaveBannerAtrasoHoje() {
+  const d = new Date();
+  const dia = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return `staflow_atraso_${funcionario?.id}_${dia}`;
+}
+
+/* Retorna minutos de atraso (>tolerância) ou null */
+function calcularMinutosAtraso(horarioInicio, registradoEmISO) {
+  if (!horarioInicio || !registradoEmISO) return null;
+  const [hh, mm] = horarioInicio.split(':').map(Number);
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+  const real = new Date(registradoEmISO);
+  const esperado = new Date(real);
+  esperado.setHours(hh, mm, 0, 0);
+  const diff = Math.round((real - esperado) / 60000);
+  return diff > toleranciaAtrasoMin ? diff : null;
+}
+
+function mostrarBannerAtraso(min) {
+  const banner = document.getElementById('banner-atraso');
+  document.getElementById('banner-atraso-txt').textContent =
+    `Você bateu a entrada ${min} min depois do seu horário. O síndico foi avisado.`;
+  banner.style.display = 'flex';
+}
+
+function checkBannerAtrasoSalvo() {
+  try {
+    const min = localStorage.getItem(chaveBannerAtrasoHoje());
+    if (min) mostrarBannerAtraso(Number(min));
+  } catch (_) { /* storage bloqueado — ignora */ }
+}
+
+document.getElementById('banner-atraso-fechar')?.addEventListener('click', () => {
+  document.getElementById('banner-atraso').style.display = 'none';
+});
+
+/* Se a batida for uma entrada atrasada: mostra banner (persistido no dia)
+   e dispara email best-effort pro síndico via edge function. Nunca lança —
+   falhas aqui não podem atrapalhar a batida de ponto já registrada. */
+async function avisarSeAtrasado(tipo, registradoEmISO) {
+  if (tipo !== 'entrada') return;
+  const min = calcularMinutosAtraso(funcionario?.horario_inicio, registradoEmISO);
+  if (min == null) return;
+
+  try { localStorage.setItem(chaveBannerAtrasoHoje(), String(min)); } catch (_) {}
+  mostrarBannerAtraso(min);
+
+  try {
+    const { data: sess } = await sb.auth.getSession();
+    const token = sess?.session?.access_token;
+    if (!token) return;
+    fetch('https://wsxpskrrzqtdoodpoofx.functions.supabase.co/notificar-atraso', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({
+        funcionario_id: funcionario.id,
+        minutos_atraso: min,
+        registrado_em: registradoEmISO
+      })
+    }).catch(() => { /* best-effort — sem retry, sem bloquear UX */ });
+  } catch (_) { /* best-effort */ }
 }
 function fmtHHMM(d) {
   const h = String(d.getHours()).padStart(2,'0');
@@ -1436,6 +1531,9 @@ async function sincronizarFilaOffline() {
       }
       await OfflineQueue.remove(item.id);
       ok++;
+      if (item.payload?.tipo === 'entrada') {
+        avisarSeAtrasado(item.payload.tipo, item.payload.registrado_em);
+      }
     } catch (_) {
       fail++;
       // Não remove — tenta novamente na próxima
@@ -1552,6 +1650,8 @@ async function registrarPonto() {
   } else {
     toast('✅ ' + labelBatida + ' registrada às ' + fmtHHMM(new Date()), 'success');
   }
+
+  avisarSeAtrasado(tipo, payload.registrado_em);
 
   await loadPontoHoje();
   loadHorasMes();
@@ -1866,7 +1966,7 @@ function mostrarBlock(email) {
 
   // 5. Carrega ficha do funcionário
   const { data: f, error: fErr } = await sb.from('funcionarios')
-    .select('id, nome, cargo, condominio_id, turno')
+    .select('id, nome, cargo, condominio_id, turno, horario_inicio')
     .eq('id', funcId)
     .single();
   if (fErr) { toast(fErr.message, 'error'); return; }
@@ -1874,9 +1974,13 @@ function mostrarBlock(email) {
 
   // 6. Carrega condomínio
   const { data: condo } = await sb.from('condominios')
-    .select('nome')
+    .select('nome, tolerancia_atraso_min')
     .eq('id', funcionario.condominio_id)
     .maybeSingle();
+  if (condo?.tolerancia_atraso_min != null) toleranciaAtrasoMin = condo.tolerancia_atraso_min;
+
+  // Mostra aviso de atraso salvo de hoje (se houver)
+  checkBannerAtrasoSalvo();
 
   // 7. Renderiza header
   document.getElementById('avatar-el').textContent  = iniciais(funcionario.nome);
