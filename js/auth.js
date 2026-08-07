@@ -30,6 +30,11 @@
         msg.includes('invalid token'))                 return 'Link expirado. Solicite um novo.';
     if (msg.includes('network'))                       return 'Sem conexão. Verifique sua internet.';
     if (msg.includes('user not found'))                return 'Conta não encontrada.';
+    if (msg.includes('different from the old password')) return 'A nova senha precisa ser diferente da senha atual.';
+    if (msg.includes('auth session missing') ||
+        msg.includes('session_not_found'))             return 'Sessão expirada. Solicite um novo link de redefinição de senha.';
+    if (msg.includes('weak') || msg.includes('easy to guess') ||
+        msg.includes('pwned') || msg.includes('leaked'))  return 'Essa senha é considerada fraca ou já vazou em outros sites. Escolha uma senha diferente.';
     return 'Não foi possível concluir. Tente novamente em instantes.';
   }
 

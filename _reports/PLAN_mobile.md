@@ -1,6 +1,19 @@
 # PLAN_mobile.md — Plano App Mobile Fase 2 StaFlow
-**Status:** AGUARDA APROVAÇÃO DO BRENO antes de executar  
+**Status:** DECIDIDO — aguarda o loop de Produto/Desenvolvimento transformar em tasks
 **Data:** 26/06/2026 | **Metodologia:** writing-plans + grill-me
+**Decisão registrada em:** 07/08/2026 (revisão com o Breno)
+
+---
+
+## ✅ Decisão do Breno (07/08/2026)
+
+Respostas às 7 perguntas abaixo:
+
+1. **Motivo do app nativo:** nenhum — não há necessidade técnica que o PWA atual não resolva. Não é prioridade ir pra loja de app agora.
+2. **Usuários:** funcionários **e síndicos** — diferente do escopo original deste doc (que previa só funcionário). O painel do síndico também precisa de uma experiência mobile melhor, não só responsiva.
+3. **Caminho escolhido: Opção C — PWA Melhorado.** Sem app nativo por enquanto. Foco em corrigir bugs e melhorar a experiência do PWA existente (`colaborador.html`) e estender atenção mobile ao painel do síndico.
+
+**Consequência pro escopo original:** a seção "Won't Have no MVP" deste doc listava "Dashboard do síndico (mantém versão web)" — isso muda. O próximo passo do loop de Produto/Desenvolvimento é desenhar o que "PWA melhorado para o síndico" significa na prática (ainda web responsivo, ou um shell mobile dedicado como o do colaborador?).
 
 ---
 
