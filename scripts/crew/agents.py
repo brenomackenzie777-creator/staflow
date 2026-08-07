@@ -9,7 +9,7 @@ scripts/crew/prompts/meta.json.
 import json
 import os
 from crewai import Agent
-from .config import haiku, PRODUCT_CONTEXT
+from .config import haiku, PRODUCT_CONTEXT, MAX_ITER
 from .tools import (
     SupabaseMetricsTool, SupabaseWriteTool, SupabaseSmokeTestTool,
     TavilySearchTool, GitHubPRTool, UpdateMemoryTool, NotifyTool,
@@ -55,6 +55,7 @@ def _build_agent(prompts: dict, key: str, tools: list) -> Agent:
         llm=haiku,
         verbose=VERBOSE,
         allow_delegation=False,
+        max_iter=MAX_ITER,
     )
 
 
@@ -91,6 +92,7 @@ def build_meta_agent() -> Agent:
         llm=haiku,
         verbose=VERBOSE,
         allow_delegation=False,
+        max_iter=MAX_ITER,
     )
 
 
@@ -105,4 +107,5 @@ def build_meta_relator() -> Agent:
         llm=haiku,
         verbose=VERBOSE,
         allow_delegation=False,
+        max_iter=MAX_ITER,
     )

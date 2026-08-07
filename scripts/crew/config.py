@@ -5,14 +5,27 @@ import os
 from crewai import LLM
 
 # ─── LLM ─────────────────────────────────────────────────────────
-# Groq llama-3.1-8b-instant — free tier 500k tokens/dia (vs 100k do 70b)
+# Limites do free tier do Groq (docs oficiais):
+#   llama-3.1-8b-instant     ->  6.000 tokens/min | 500.000/dia
+#   llama-3.3-70b-versatile  -> 12.000 tokens/min | 100.000/dia
+# O gargalo real é o limite POR MINUTO: o CrewAI reenvia toda a conversa a
+# cada chamada de ferramenta, então uma única requisição passa de 6k fácil.
+# O 70b dobra essa folga e ainda raciocina melhor.
 haiku = LLM(
-    model="openai/llama-3.1-8b-instant",
+    model="openai/llama-3.3-70b-versatile",
     api_key=os.environ["GROQ_API_KEY"],
     base_url="https://api.groq.com/openai/v1",
     max_tokens=1200,
     temperature=0.3,
 )
+
+# Teto de rodadas de ferramenta por agente. Cada rodada acumula na conversa,
+# e é isso que estoura o limite por minuto. 4 é suficiente: nenhum agente
+# tem mais de 4 ferramentas.
+MAX_ITER = int(os.environ.get("MAX_ITER", "4"))
+
+# RPM do free tier é 30. 20 deixa margem e evita rajadas.
+MAX_RPM = int(os.environ.get("MAX_RPM", "20"))
 
 # ─── Variáveis de ambiente ────────────────────────────────────────
 SUPABASE_URL        = os.environ["SUPABASE_URL"]

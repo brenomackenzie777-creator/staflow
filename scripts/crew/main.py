@@ -11,6 +11,7 @@ import logging
 import datetime
 from crewai import Crew, Process
 
+from .config import MAX_RPM
 from .agents import build_loop_agents, build_meta_agent, build_meta_relator
 from .tasks import build_loop_tasks, build_meta_task, build_meta_relatorio_task
 
@@ -55,7 +56,8 @@ def montar_crew(loop_key: str) -> Crew:
         tarefa_relato = build_meta_relatorio_task(meta_relator, tarefa_meta)
         return Crew(agents=[meta_agente, meta_relator],
                     tasks=[tarefa_meta, tarefa_relato],
-                    process=Process.sequential, verbose=VERBOSE, memory=False)
+                    process=Process.sequential, verbose=VERBOSE, memory=False,
+                    max_rpm=MAX_RPM)
 
     agents = build_loop_agents(loop_key)
     tasks  = build_loop_tasks(loop_key, agents)
@@ -65,6 +67,7 @@ def montar_crew(loop_key: str) -> Crew:
         process=Process.sequential,
         verbose=VERBOSE,
         memory=False,
+        max_rpm=MAX_RPM,
     )
 
 
@@ -97,15 +100,27 @@ def executar_loop():
         except Exception as e:
             msg = str(e)
 
-            # 413 = pedido grande demais. Esperar não resolve — o tamanho não
-            # muda com o tempo. Falha rápido com diagnóstico em vez de gastar
-            # 5 tentativas inúteis.
+            # 413 = pedido grande demais. Esperar não resolve, mas encolher a
+            # memória resolve: cada tentativa aperta o teto de leitura e
+            # remonta o crew do zero, com conversa limpa.
             if "413" in msg or "Request too large" in msg:
+                from . import tools
+                if tentativa < 3:
+                    tools.LIMITE_MEMORIA = max(1200, tools.LIMITE_MEMORIA // 2)
+                    tools.LIMITE_PROMPTS = max(1000, tools.LIMITE_PROMPTS // 2)
+                    log.warning(
+                        "Pedido grande demais. Reduzindo a memória lida "
+                        "(agora %d caracteres) e tentando de novo (%d/3).",
+                        tools.LIMITE_MEMORIA, tentativa
+                    )
+                    time.sleep(65)          # zera a janela de tokens/minuto
+                    crew = montar_crew(loop_key)   # conversa limpa
+                    continue
+
                 log.error(
-                    "Pedido grande demais para o modelo (limite de 6.000 "
-                    "tokens/minuto do plano gratuito). Isso indica que a "
-                    "memória ou o histórico cresceram além do teto. "
-                    "Detalhe: %s", msg[:300]
+                    "Pedido segue grande demais mesmo com a memória mínima. "
+                    "O limite do plano gratuito do Groq (12.000 tokens/min) "
+                    "não comporta este ciclo. Detalhe: %s", msg[:250]
                 )
                 sys.exit(1)
 
