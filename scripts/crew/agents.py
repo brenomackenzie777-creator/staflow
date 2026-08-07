@@ -6,6 +6,7 @@ from .config import haiku, PRODUCT_CONTEXT
 from .tools import (
     SupabaseMetricsTool, SupabaseWriteTool, SupabaseSmokeTestTool,
     TavilySearchTool, GitHubPRTool, UpdateMemoryTool, NotifyTool,
+    ReadMemoryTool, SubAgentTool,
 )
 
 # ─── Instâncias das ferramentas ──────────────────────────────────
@@ -16,22 +17,43 @@ tavily_search    = TavilySearchTool()
 github_pr        = GitHubPRTool()
 update_memory    = UpdateMemoryTool()
 notify           = NotifyTool()
+read_memory      = ReadMemoryTool()
+create_sub_agent = SubAgentTool()
+
+
+# ─── Metodologia compartilhada (todos os agentes seguem) ─────────
+METODOLOGIA = """
+METODOLOGIA DE OPERAÇÃO (siga sempre):
+1. CONTEXTO: Leia a memória do ciclo anterior antes de agir — o histórico informa suas decisões
+2. EXECUÇÃO: Execute sua função com dados reais — nunca invente métricas ou resultados
+3. SUB-AGENTE: Se a tarefa exigir especialização que você não tem, use create_sub_agent
+4. REFLEXÃO: Ao final do seu output, inclua sempre uma seção assim:
+
+   --- REFLEXÃO DO AGENTE ---
+   Eficácia deste ciclo: [1-10]
+   O que funcionou: [descrição]
+   O que melhorar: [melhoria concreta para o próximo ciclo]
+   Sub-agente útil: [papel + objetivo do sub-agente, ou "não necessário"]
+   Prioridade para o próximo ciclo: [o que o próximo agente deve focar]
+   --------------------------
+"""
 
 
 # ─── AGENTE 1: COLETOR ──────────────────────────────────────────
 coletor = Agent(
     role="Coletor de Dados",
     goal=(
-        "Coletar todos os dados relevantes do StaFlow: métricas do Supabase, "
-        "histórico de execuções anteriores e resultados dos agentes. "
-        "Produzir um relatório de dados estruturado e completo."
+        "Iniciar cada ciclo lendo a memória histórica e depois coletando dados reais do Supabase. "
+        "Produzir um relatório que combina: contexto de ciclos anteriores + métricas atuais."
     ),
     backstory=(
-        "Você é o olhos e ouvidos da startup. Antes de qualquer decisão, "
-        "você garante que a equipe tenha acesso aos dados reais — nunca suposições. "
+        "Você é o ponto de partida de cada loop. Antes de qualquer decisão, você garante que "
+        "a equipe entenda onde estávamos (memória) e onde estamos agora (dados). "
+        "Você é o elo entre o passado e o presente do StaFlow."
         f"\n\nContexto do produto:\n{PRODUCT_CONTEXT}"
+        f"\n\n{METODOLOGIA}"
     ),
-    tools=[supabase_metrics],
+    tools=[read_memory, supabase_metrics, create_sub_agent],
     llm=haiku,
     verbose=True,
     allow_delegation=False,
@@ -41,18 +63,17 @@ coletor = Agent(
 pesquisador = Agent(
     role="Pesquisador de Mercado",
     goal=(
-        "Pesquisar o mercado externo: o que os concorrentes estão fazendo, "
-        "tendências do setor de condomínios no Brasil, regulações novas, "
-        "e oportunidades que o StaFlow ainda não está aproveitando."
+        "Pesquisar o mercado externo com foco no que o Coletor identificou como prioritário. "
+        "Cada ciclo a pesquisa evolui — use as reflexões anteriores para aprofundar os temas certos."
     ),
     backstory=(
-        "Você monitora o mercado incansavelmente. Enquanto a equipe está focada no produto, "
-        "você mantém um olho no mundo lá fora — concorrentes, tendências, riscos. "
-        "Você pesquisa sempre com foco em ação: não coleta informação por coletar, "
-        "mas para gerar insights que viram melhorias reais."
+        "Você monitora o mercado incansavelmente. Você não repete as mesmas buscas todo ciclo — "
+        "você aprende com o que já foi pesquisado e vai mais fundo onde há oportunidade real. "
+        "Se precisar de análise especializada, crie um sub-agente para isso."
         f"\n\nContexto do produto:\n{PRODUCT_CONTEXT}"
+        f"\n\n{METODOLOGIA}"
     ),
-    tools=[tavily_search],
+    tools=[tavily_search, create_sub_agent],
     llm=haiku,
     verbose=True,
     allow_delegation=False,
@@ -62,18 +83,17 @@ pesquisador = Agent(
 analista = Agent(
     role="Analista de Dados",
     goal=(
-        "Analisar os dados coletados e a pesquisa de mercado. "
-        "Identificar padrões, problemas, oportunidades e pontos críticos. "
-        "Produzir uma análise clara com os 3-5 principais insights acionáveis."
+        "Cruzar dados internos e pesquisa de mercado para gerar insights acionáveis. "
+        "Comparar com ciclos anteriores para identificar tendências e evolução."
     ),
     backstory=(
-        "Você transforma dados brutos em insights. Você sabe que números sozinhos "
-        "não significam nada — o valor está em conectar os pontos: por que os usuários "
-        "estão churnando? O que os concorrentes fazem melhor? Onde está o maior potencial? "
-        "Você nunca especula — suas conclusões são sempre baseadas nos dados disponíveis."
+        "Você transforma dados brutos em insights. Você olha para o ciclo atual E para os anteriores "
+        "para entender se estamos evoluindo. Suas conclusões são sempre baseadas em dados reais — "
+        "nunca em suposições. Se precisar de análise estatística especializada, crie um sub-agente."
         f"\n\nContexto do produto:\n{PRODUCT_CONTEXT}"
+        f"\n\n{METODOLOGIA}"
     ),
-    tools=[],
+    tools=[create_sub_agent],
     llm=haiku,
     verbose=True,
     allow_delegation=False,
@@ -84,17 +104,16 @@ estrategista = Agent(
     role="Estrategista de Crescimento",
     goal=(
         "Criar propostas concretas de melhoria baseadas na análise. "
-        "Cada proposta deve ter: o quê mudar, por quê, impacto esperado (baixo/médio/alto), "
-        "esforço estimado (pequeno/médio/grande) e critério de sucesso mensurável."
+        "Aprender com o que foi aprovado/rejeitado em ciclos anteriores para propor melhor."
     ),
     backstory=(
-        "Você é o estrategista da startup. Não gosta de 'poderia funcionar' — "
-        "você quer saber 'vai funcionar, e vamos medir assim'. "
-        "Você prioriza pelos 4 quadrantes: alto impacto + baixo esforço primeiro. "
-        "Você respeita os recursos limitados de uma startup early-stage."
+        "Você é o estrategista da startup. Você aprende com o histórico: propostas rejeitadas pelo Breno "
+        "não voltam, propostas aprovadas viram benchmark. Você prioriza alto impacto + baixo esforço. "
+        "Se uma proposta for muito complexa, crie um sub-agente para quebrá-la em partes menores."
         f"\n\nContexto do produto:\n{PRODUCT_CONTEXT}"
+        f"\n\n{METODOLOGIA}"
     ),
-    tools=[],
+    tools=[create_sub_agent],
     llm=haiku,
     verbose=True,
     allow_delegation=False,
@@ -104,19 +123,18 @@ estrategista = Agent(
 decisor = Agent(
     role="Decisor de Prioridades",
     goal=(
-        "Filtrar as propostas do Estrategista e decidir o que realmente vai ser executado. "
-        "Classificar cada proposta: AUTO-EXECUTAR (baixo risco, pequeno esforço) ou "
-        "APROVAR-BRENO (alto impacto ou risco, precisa de revisão humana). "
-        "Máximo 2 tarefas por ciclo para manter foco."
+        "Filtrar propostas e decidir autonomamente o máximo possível. "
+        "Só envia ao Breno o que realmente exige decisão humana — mudanças de banco, "
+        "novas features grandes, ou riscos altos. O resto: executa."
     ),
     backstory=(
-        "Você é o filtro de qualidade da startup. Sem você, a equipe tentaria fazer tudo "
-        "e terminaria nada. Você sabe que uma startup de early-stage precisa de foco cirúrgico. "
-        "Mudanças pequenas de UI e copy → executa automático. "
-        "Novas features e mudanças no banco → manda pro Breno revisar."
+        "Você prefere agir a perguntar. Se é pequeno e reversível, você executa. "
+        "Se é grande e irreversível, você consulta. Com o tempo, você aprende o estilo de decisão "
+        "do Breno e precisa consultá-lo cada vez menos."
         f"\n\nContexto do produto:\n{PRODUCT_CONTEXT}"
+        f"\n\n{METODOLOGIA}"
     ),
-    tools=[notify],
+    tools=[notify, create_sub_agent],
     llm=haiku,
     verbose=True,
     allow_delegation=False,
@@ -126,19 +144,18 @@ decisor = Agent(
 executor = Agent(
     role="Executor de Código",
     goal=(
-        "Para cada tarefa aprovada para AUTO-EXECUTAR: gerar as mudanças de código "
-        "e criar um Pull Request no GitHub. O código deve ser funcional, seguir o "
-        "design system do StaFlow, e incluir uma descrição clara do que muda e por quê."
+        "Transformar decisões em código real e criar Pull Requests no GitHub. "
+        "Se a implementação for complexa, crie sub-agentes especializados para partes específicas."
     ),
     backstory=(
-        "Você é o engenheiro da crew. Você traduz decisões em código real. "
-        "Você conhece o stack do StaFlow: HTML/CSS/JS puro, Supabase para dados, "
+        "Você é o engenheiro da crew. Você conhece o stack: HTML/CSS/JS puro, Supabase, "
         "design system com #3B82F6 azul, #111827 fundo, Inter font. "
-        "Você nunca inventa features não aprovadas — você executa exatamente o que foi decidido. "
-        "Cada PR que você cria tem uma descrição que qualquer pessoa consiga entender."
+        "Para tarefas complexas, você divide: cria um sub-agente de UI, outro de lógica, "
+        "combina os resultados e abre um único PR bem descrito."
         f"\n\nContexto do produto:\n{PRODUCT_CONTEXT}"
+        f"\n\n{METODOLOGIA}"
     ),
-    tools=[github_pr, supabase_write],
+    tools=[github_pr, supabase_write, create_sub_agent],
     llm=haiku,
     verbose=True,
     allow_delegation=False,
@@ -148,19 +165,19 @@ executor = Agent(
 observador = Agent(
     role="Observador de Aprendizado",
     goal=(
-        "Medir os resultados do ciclo atual, comparar com o ciclo anterior, "
-        "identificar o que funcionou e o que não funcionou, e atualizar a memória "
-        "compartilhada (CLAUDE.md) com os aprendizados. "
-        "Este aprendizado alimenta o próximo ciclo do loop."
+        "Fechar o ciclo registrando aprendizados que alimentarão o próximo loop. "
+        "O CLAUDE.md que você escreve é o ponto de partida do Coletor no próximo ciclo — "
+        "escreva pensando em quem vai ler."
     ),
     backstory=(
-        "Você é a memória da startup. Sem você, a equipe cometeria os mesmos erros "
-        "semana após semana. Você registra o que foi tentado, o que deu certo, "
-        "o que Breno aprovou, o que foi rejeitado, e os números antes/depois de cada mudança. "
-        "Você escreve de forma concisa — a memória deve ser útil, não um livro."
+        "Você é a memória viva da startup. Você não apenas registra o que aconteceu — "
+        "você extrai o que é útil para o próximo ciclo ser melhor. "
+        "Você mede evolução: o StaFlow está crescendo? Os agentes estão melhorando? "
+        "Seus registros criam o loop de autoevolução."
         f"\n\nContexto do produto:\n{PRODUCT_CONTEXT}"
+        f"\n\n{METODOLOGIA}"
     ),
-    tools=[supabase_metrics, update_memory, notify],
+    tools=[supabase_metrics, update_memory, notify, create_sub_agent],
     llm=haiku,
     verbose=True,
     allow_delegation=False,

@@ -13,6 +13,105 @@ from github import Github
 from .config import SUPABASE_URL, SUPABASE_KEY, TAVILY_API_KEY, GITHUB_TOKEN, GITHUB_REPO, PRODUCTION_URL
 
 
+# ─── Memória ─────────────────────────────────────────────────────
+
+class ReadMemoryTool(BaseTool):
+    name: str = "read_memory"
+    description: str = (
+        "Lê o CLAUDE.md — memória compartilhada de todos os ciclos anteriores. "
+        "Use no início da sua tarefa para entender o histórico do produto, "
+        "o que foi tentado antes, o que funcionou e as prioridades do próximo ciclo."
+    )
+
+    def _run(self) -> str:
+        claude_md = os.path.join(os.path.dirname(__file__), "..", "..", "CLAUDE.md")
+        try:
+            with open(claude_md, "r", encoding="utf-8") as f:
+                return f.read()
+        except Exception as e:
+            return f"Sem memória prévia disponível: {e}"
+
+
+class UpdateMemoryTool(BaseTool):
+    name: str = "update_memory"
+    description: str = (
+        "Atualiza o CLAUDE.md com os aprendizados do ciclo atual. "
+        "Escreva de forma útil para o próximo ciclo — este texto será lido "
+        "pelo Coletor na próxima execução. Input: string com o conteúdo."
+    )
+
+    def _run(self, content: str) -> str:
+        claude_md = os.path.join(os.path.dirname(__file__), "..", "..", "CLAUDE.md")
+        try:
+            with open(claude_md, "r", encoding="utf-8") as f:
+                atual = f.read()
+
+            hoje      = datetime.date.today().isoformat()
+            nova_linha = f"\n## [{hoje}] Loop automático\n{content}\n"
+            novo      = atual + nova_linha
+
+            # Mantém últimas 30 entradas
+            partes = novo.split("\n## [")
+            if len(partes) > 31:
+                partes = partes[:1] + partes[-30:]
+            novo = "\n## [".join(partes)
+
+            with open(claude_md, "w", encoding="utf-8") as f:
+                f.write(novo)
+            return "CLAUDE.md atualizado com sucesso."
+        except Exception as e:
+            return f"Erro ao atualizar CLAUDE.md: {e}"
+
+
+# ─── Sub-agente ──────────────────────────────────────────────────
+
+class SubAgentTool(BaseTool):
+    name: str = "create_sub_agent"
+    description: str = (
+        "Cria e executa um sub-agente especializado para uma tarefa específica. "
+        "Use quando sua tarefa principal exigir especialização extra que você não tem. "
+        "Input: JSON com 'role' (papel), 'goal' (objetivo) e 'task' (tarefa detalhada)."
+    )
+
+    def _run(self, data: str) -> str:
+        from crewai import Agent, Task, Crew, Process
+        from .config import haiku
+
+        try:
+            payload = json.loads(data) if isinstance(data, str) else data
+
+            sub_agent = Agent(
+                role=payload["role"],
+                goal=payload["goal"],
+                backstory=(
+                    f"Você é um sub-agente especializado criado para: {payload['goal']}. "
+                    "Execute com precisão e retorne um resultado detalhado e acionável."
+                ),
+                llm=haiku,
+                verbose=False,
+                allow_delegation=False,
+            )
+
+            sub_task = Task(
+                description=payload["task"],
+                expected_output="Resultado detalhado e acionável da tarefa especializada.",
+                agent=sub_agent,
+            )
+
+            sub_crew = Crew(
+                agents=[sub_agent],
+                tasks=[sub_task],
+                process=Process.sequential,
+                verbose=False,
+                memory=False,
+            )
+
+            result = sub_crew.kickoff()
+            return f"Sub-agente '{payload['role']}' concluiu:\n{str(result)}"
+        except Exception as e:
+            return f"Erro ao criar sub-agente: {e}"
+
+
 # ─── Supabase ────────────────────────────────────────────────────
 
 class SupabaseMetricsTool(BaseTool):
@@ -30,7 +129,6 @@ class SupabaseMetricsTool(BaseTool):
             feedbacks    = sb.table("feedback").select("mensagem,tipo,created_at").order("created_at", desc=True).limit(10).execute()
             agent_runs   = sb.table("agent_runs").select("agent_name,status,output_summary,feedback_breno").order("created_at", desc=True).limit(20).execute()
 
-            # Calcula cadastros desta semana
             semana_atras = (datetime.datetime.utcnow() - datetime.timedelta(days=7)).isoformat()
             novos        = sb.table("profiles").select("id", count="exact").gte("created_at", semana_atras).execute()
 
@@ -129,11 +227,9 @@ class GitHubPRTool(BaseTool):
             repo     = g.get_repo(GITHUB_REPO)
             main_sha = repo.get_branch("main").commit.sha
 
-            # Cria branch
             branch = payload.get("branch", f"agent/auto-{datetime.date.today().isoformat()}")
             repo.create_git_ref(ref=f"refs/heads/{branch}", sha=main_sha)
 
-            # Cria ou atualiza arquivos
             for filename, content in payload.get("files", {}).items():
                 try:
                     existing = repo.get_contents(filename, ref=branch)
@@ -141,7 +237,6 @@ class GitHubPRTool(BaseTool):
                 except Exception:
                     repo.create_file(filename, f"agent: create {filename}", content, branch=branch)
 
-            # Abre PR
             pr = repo.create_pull(
                 title=payload["title"],
                 body=payload["body"],
@@ -151,38 +246,6 @@ class GitHubPRTool(BaseTool):
             return f"PR criado: {pr.html_url}"
         except Exception as e:
             return f"Erro ao criar PR: {e}"
-
-
-# ─── CLAUDE.md Update ────────────────────────────────────────────
-
-class UpdateMemoryTool(BaseTool):
-    name: str = "update_memory"
-    description: str = (
-        "Atualiza o CLAUDE.md (memória compartilhada dos agentes) com aprendizados. "
-        "Input: string com o conteúdo a adicionar na seção de últimas execuções."
-    )
-
-    def _run(self, content: str) -> str:
-        claude_md = os.path.join(os.path.dirname(__file__), "..", "..", "CLAUDE.md")
-        try:
-            with open(claude_md, "r", encoding="utf-8") as f:
-                atual = f.read()
-
-            hoje      = datetime.date.today().isoformat()
-            nova_linha = f"\n## [{hoje}] Loop automático\n{content}\n"
-            novo      = atual + nova_linha
-
-            # Mantém últimas 30 entradas
-            partes = novo.split("\n## [")
-            if len(partes) > 31:
-                partes = partes[:1] + partes[-30:]
-            novo = "\n## [".join(partes)
-
-            with open(claude_md, "w", encoding="utf-8") as f:
-                f.write(novo)
-            return "CLAUDE.md atualizado com sucesso."
-        except Exception as e:
-            return f"Erro ao atualizar CLAUDE.md: {e}"
 
 
 # ─── Notificação Email ───────────────────────────────────────────
@@ -195,7 +258,7 @@ class NotifyTool(BaseTool):
     )
 
     def _run(self, data: str) -> str:
-        resend_key = os.environ.get("RESEND_API_KEY", "")
+        resend_key   = os.environ.get("RESEND_API_KEY", "")
         notify_email = os.environ.get("NOTIFY_EMAIL", "brenomackenzie777@gmail.com")
         if not resend_key:
             return "RESEND_API_KEY não configurado — email não enviado."
