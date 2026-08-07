@@ -5,12 +5,11 @@ import os
 from crewai import LLM
 
 # ─── LLM ─────────────────────────────────────────────────────────
-# Gemini 1.5 Flash via endpoint OpenAI-compatível (sem pacote nativo)
-# Free tier: 1500 req/dia, 1M tokens/min
+# Groq llama-3.3-70b — free tier, OpenAI-compatível, confirmado funcional
 haiku = LLM(
-    model="openai/gemini-1.5-flash",
-    api_key=os.environ["GOOGLE_API_KEY"],
-    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    model="openai/llama-3.3-70b-versatile",
+    api_key=os.environ["GROQ_API_KEY"],
+    base_url="https://api.groq.com/openai/v1",
     max_tokens=1500,
     temperature=0.3,
 )
