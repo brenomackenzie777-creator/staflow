@@ -29,16 +29,9 @@ PRODUCTION_URL      = os.environ.get("PRODUCTION_URL", "https://staflow.app.br")
 
 # ─── Contexto do produto ─────────────────────────────────────────
 PRODUCT_CONTEXT = """
-Produto: StaFlow — controle de presença para condomínios
-URL: https://staflow.app.br
-Stack: HTML/CSS/JS + Supabase + Stripe LIVE + Vercel
-
-Planos:
-- Starter: R$0 (até 3 funcionários)
-- Pro: R$99/mês (até 15)
-- Advanced: R$159/mês (até 35)
-- Scale: R$279/mês (até 100)
-
-Design: azul #3B82F6, fundo #111827, fonte Inter
-Mercado: síndicos e administradoras de condomínio no Brasil
+StaFlow — controle de presença para condomínios (https://staflow.app.br)
+Stack: HTML/CSS/JS + Supabase + Stripe + Vercel
+Planos: Starter R$0 (3 func.) | Pro R$99 (15) | Advanced R$159 (35) | Scale R$279 (100)
+Design: #3B82F6 azul, #111827 fundo, fonte Inter
+Público: síndicos e administradoras de condomínio no Brasil
 """

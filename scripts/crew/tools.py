@@ -20,18 +20,39 @@ from .config import (
 
 # ─── Memória ─────────────────────────────────────────────────────
 
+# O free tier do Groq aceita no máximo 6.000 tokens por minuto (~24.000
+# caracteres). Ferramentas que leem arquivos precisam de teto, senão a
+# memória cresce e derruba o ciclo com erro 413.
+LIMITE_MEMORIA = 6000     # caracteres do CLAUDE.md
+LIMITE_PROMPTS = 4000     # caracteres do dump de prompts
+
+
 class ReadMemoryTool(BaseTool):
     name: str = "read_memory"
     description: str = (
-        "Lê o CLAUDE.md com o histórico de ciclos anteriores. "
-        "Use no início de cada tarefa para entender o contexto."
+        "Lê o histórico dos ciclos anteriores (CLAUDE.md), já resumido nas "
+        "entradas mais recentes. Use no início de cada tarefa."
     )
 
     def _run(self, input: str = "") -> str:
         path = os.path.join(os.path.dirname(__file__), "..", "..", "CLAUDE.md")
         try:
             with open(path, "r", encoding="utf-8") as f:
-                return f.read()
+                texto = f.read()
+
+            if len(texto) <= LIMITE_MEMORIA:
+                return texto
+
+            # Mantém o cabeçalho (contexto fixo do produto) + entradas recentes
+            marcador = "\n\n## ["
+            if marcador in texto:
+                cabecalho, _, historico = texto.partition(marcador)
+                cabecalho = cabecalho[:2000]
+                recente   = (marcador + historico)[-(LIMITE_MEMORIA - len(cabecalho)):]
+                return (cabecalho + "\n\n[...ciclos mais antigos omitidos...]\n"
+                        + recente)
+
+            return texto[-LIMITE_MEMORIA:]
         except Exception as e:
             return f"Sem memória prévia: {e}"
 
@@ -52,8 +73,8 @@ class UpdateMemoryTool(BaseTool):
             hoje = datetime.date.today().isoformat()
             novo = atual + f"\n\n## [{hoje}] Ciclo automático\n{content}\n"
             partes = novo.split("\n\n## [")
-            if len(partes) > 41:
-                partes = partes[:1] + partes[-40:]
+            if len(partes) > 21:
+                partes = partes[:1] + partes[-20:]
             novo = "\n\n## [".join(partes)
             with open(path, "w", encoding="utf-8") as f:
                 f.write(novo)
@@ -96,8 +117,14 @@ class SupabaseMetricsTool(BaseTool):
                 "novos_semana":       novos.count or 0,
                 "assinaturas_ativas": assinaturas.count or 0,
                 "planos":             [r["plan"] for r in (assinaturas.data or [])],
-                "feedbacks":          feedbacks.data or [],
-                "ultimas_execucoes":  runs.data or [],
+                "feedbacks":          [{"tipo": f.get("tipo"),
+                                       "msg": (f.get("mensagem") or "")[:150]}
+                                      for f in (feedbacks.data or [])],
+                "ultimas_execucoes":  [{"agente": r.get("agent_name"),
+                                       "area": r.get("loop_name"),
+                                       "status": r.get("status"),
+                                       "resumo": (r.get("output_summary") or "")[:150]}
+                                      for r in (runs.data or [])],
             }, ensure_ascii=False, indent=2)
         except Exception as e:
             return f"Erro Supabase: {e}"
@@ -159,10 +186,10 @@ class TavilySearchTool(BaseTool):
             return "TAVILY_API_KEY não configurado."
         try:
             client  = TavilyClient(api_key=TAVILY_API_KEY)
-            results = client.search(query=query, max_results=5, search_depth="basic")
+            results = client.search(query=query, max_results=4, search_depth="basic")
             saida   = []
             for r in results.get("results", []):
-                saida.append(f"**{r['title']}**\n{r['url']}\n{r.get('content','')[:200]}")
+                saida.append(f"**{r['title']}**\n{r['url']}\n{r.get('content','')[:180]}")
             return "\n---\n".join(saida) or "Sem resultados."
         except Exception as e:
             return f"Erro Tavily: {e}"
@@ -273,12 +300,23 @@ class SupabaseFeedbackTool(BaseTool):
                 .select("agent_name,loop_name,output_summary,status,feedback_breno,created_at")
                 .not_.is_("feedback_breno", "null")
                 .order("created_at", desc=True)
-                .limit(40)
+                .limit(15)
                 .execute()
             )
             if not runs.data:
                 return "Nenhum feedback registrado pelo Breno ainda."
-            return json.dumps(runs.data, ensure_ascii=False, indent=2)
+            # Corta textos longos: o free tier aceita só 6k tokens/minuto
+            enxuto = []
+            for r in runs.data:
+                enxuto.append({
+                    "agente":   r.get("agent_name"),
+                    "area":     r.get("loop_name"),
+                    "resumo":   (r.get("output_summary") or "")[:180],
+                    "status":   r.get("status"),
+                    "feedback": (r.get("feedback_breno") or "")[:180],
+                    "data":     (r.get("created_at") or "")[:10],
+                })
+            return json.dumps(enxuto, ensure_ascii=False, indent=2)
         except Exception as e:
             return f"Erro ao ler feedback: {e}"
 
@@ -286,24 +324,44 @@ class SupabaseFeedbackTool(BaseTool):
 class ReadPromptsTool(BaseTool):
     name: str = "read_prompts"
     description: str = (
-        "Lê o goal e backstory atuais dos agentes de um loop específico "
-        "(marketing, produto, financeiro, suporte) ou de todos, se o "
-        "parâmetro loop for vazio. Use antes de propor qualquer mudança."
+        "Lê os prompts dos agentes. SEM parâmetro: devolve só um índice "
+        "resumido (quais loops e agentes existem) — use para escolher onde "
+        "olhar. COM o parâmetro loop (marketing, produto, financeiro ou "
+        "suporte): devolve o conteúdo completo daquele loop, para você "
+        "poder propor a mudança."
     )
 
     def _run(self, loop: str = "") -> str:
         base = os.path.join(os.path.dirname(__file__), "prompts")
         try:
             if loop:
+                loop = loop.strip().lower().replace(".json", "")
                 path = os.path.join(base, f"{loop}.json")
+                if not os.path.exists(path):
+                    disponiveis = [f.replace(".json", "")
+                                   for f in sorted(os.listdir(base))
+                                   if f.endswith(".json")]
+                    return (f"Loop '{loop}' não existe. "
+                            f"Disponíveis: {', '.join(disponiveis)}")
                 with open(path, "r", encoding="utf-8") as f:
-                    return f.read()
-            saida = {}
+                    conteudo = f.read()
+                if len(conteudo) > LIMITE_PROMPTS:
+                    return conteudo[:LIMITE_PROMPTS] + "\n[...truncado...]"
+                return conteudo
+
+            # Sem parâmetro: índice enxuto, apenas papéis e objetivos curtos.
+            indice = {}
             for fname in sorted(os.listdir(base)):
-                if fname.endswith(".json"):
-                    with open(os.path.join(base, fname), "r", encoding="utf-8") as f:
-                        saida[fname.replace(".json", "")] = json.load(f)
-            return json.dumps(saida, ensure_ascii=False, indent=2)
+                if not fname.endswith(".json"):
+                    continue
+                with open(os.path.join(base, fname), "r", encoding="utf-8") as f:
+                    dados = json.load(f)
+                indice[fname.replace(".json", "")] = {
+                    k: v.get("goal", "")[:110] for k, v in dados.items()
+                }
+            return (json.dumps(indice, ensure_ascii=False, indent=2)
+                    + "\n\nPara ver um loop completo, chame read_prompts "
+                      "novamente com o parâmetro loop.")
         except Exception as e:
             return f"Erro ao ler prompts: {e}"
 

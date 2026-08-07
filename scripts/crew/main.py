@@ -96,6 +96,19 @@ def executar_loop():
 
         except Exception as e:
             msg = str(e)
+
+            # 413 = pedido grande demais. Esperar não resolve — o tamanho não
+            # muda com o tempo. Falha rápido com diagnóstico em vez de gastar
+            # 5 tentativas inúteis.
+            if "413" in msg or "Request too large" in msg:
+                log.error(
+                    "Pedido grande demais para o modelo (limite de 6.000 "
+                    "tokens/minuto do plano gratuito). Isso indica que a "
+                    "memória ou o histórico cresceram além do teto. "
+                    "Detalhe: %s", msg[:300]
+                )
+                sys.exit(1)
+
             if "429" in msg or "rate_limit" in msg.lower() or "RESOURCE_EXHAUSTED" in msg:
                 if tentativa < MAX_RETRIES:
                     log.warning("Limite da IA atingido (tentativa %d/%d). "
