@@ -88,12 +88,13 @@ class UpdateMemoryTool(BaseTool):
 class SupabaseMetricsTool(BaseTool):
     name: str = "supabase_metrics"
     description: str = (
-        "Lê métricas reais do StaFlow: usuários, assinaturas, feedbacks, e "
-        "histórico de execuções. Parâmetro opcional: loop (marketing, "
-        "produto, financeiro ou suporte) para filtrar o histórico só desta área."
+        "Lê métricas reais do StaFlow: usuários, assinaturas, feedbacks e "
+        "histórico de execuções. Parâmetro obrigatório loop: informe a área "
+        "(marketing, produto, financeiro, suporte ou meta) para filtrar o "
+        "histórico, ou 'todos' para ver o histórico geral."
     )
 
-    def _run(self, loop: str = "") -> str:
+    def _run(self, loop: str = "todos") -> str:
         try:
             sb = create_client(SUPABASE_URL, SUPABASE_KEY)
             usuarios    = sb.table("profiles").select("id,created_at,role", count="exact").execute()
@@ -108,8 +109,9 @@ class SupabaseMetricsTool(BaseTool):
                 .order("created_at", desc=True)
                 .limit(10)
             )
-            if loop:
-                query = query.eq("loop_name", loop)
+            alvo = (loop or "").strip().lower()
+            if alvo and alvo not in ("todos", "geral", "all"):
+                query = query.eq("loop_name", alvo)
             runs = query.execute()
 
             return json.dumps({
@@ -321,35 +323,20 @@ class SupabaseFeedbackTool(BaseTool):
             return f"Erro ao ler feedback: {e}"
 
 
-class ReadPromptsTool(BaseTool):
-    name: str = "read_prompts"
+LOOPS_VALIDOS = ("marketing", "produto", "financeiro", "suporte", "meta")
+
+
+class ListPromptsTool(BaseTool):
+    name: str = "listar_agentes"
     description: str = (
-        "Lê os prompts dos agentes. SEM parâmetro: devolve só um índice "
-        "resumido (quais loops e agentes existem) — use para escolher onde "
-        "olhar. COM o parâmetro loop (marketing, produto, financeiro ou "
-        "suporte): devolve o conteúdo completo daquele loop, para você "
-        "poder propor a mudança."
+        "Devolve o índice resumido de todas as áreas e seus agentes, com o "
+        "objetivo de cada um em uma linha. Use PRIMEIRO, para descobrir "
+        "qual área investigar. Parâmetro input: passe string vazia."
     )
 
-    def _run(self, loop: str = "") -> str:
+    def _run(self, input: str = "") -> str:
         base = os.path.join(os.path.dirname(__file__), "prompts")
         try:
-            if loop:
-                loop = loop.strip().lower().replace(".json", "")
-                path = os.path.join(base, f"{loop}.json")
-                if not os.path.exists(path):
-                    disponiveis = [f.replace(".json", "")
-                                   for f in sorted(os.listdir(base))
-                                   if f.endswith(".json")]
-                    return (f"Loop '{loop}' não existe. "
-                            f"Disponíveis: {', '.join(disponiveis)}")
-                with open(path, "r", encoding="utf-8") as f:
-                    conteudo = f.read()
-                if len(conteudo) > LIMITE_PROMPTS:
-                    return conteudo[:LIMITE_PROMPTS] + "\n[...truncado...]"
-                return conteudo
-
-            # Sem parâmetro: índice enxuto, apenas papéis e objetivos curtos.
             indice = {}
             for fname in sorted(os.listdir(base)):
                 if not fname.endswith(".json"):
@@ -360,8 +347,35 @@ class ReadPromptsTool(BaseTool):
                     k: v.get("goal", "")[:110] for k, v in dados.items()
                 }
             return (json.dumps(indice, ensure_ascii=False, indent=2)
-                    + "\n\nPara ver um loop completo, chame read_prompts "
-                      "novamente com o parâmetro loop.")
+                    + "\n\nPara ver os detalhes de uma área, use read_prompts "
+                      "informando o nome dela.")
+        except Exception as e:
+            return f"Erro ao listar agentes: {e}"
+
+
+class ReadPromptsTool(BaseTool):
+    name: str = "read_prompts"
+    description: str = (
+        "Devolve o conteúdo completo dos prompts de UMA área. "
+        "Parâmetro obrigatório loop: marketing, produto, financeiro, "
+        "suporte ou meta. Use antes de propor qualquer mudança."
+    )
+
+    def _run(self, loop: str) -> str:
+        base = os.path.join(os.path.dirname(__file__), "prompts")
+        try:
+            alvo = (loop or "").strip().lower().replace(".json", "")
+            if alvo not in LOOPS_VALIDOS:
+                return (f"Área '{loop}' não existe. "
+                        f"Use uma destas: {', '.join(LOOPS_VALIDOS)}")
+
+            path = os.path.join(base, f"{alvo}.json")
+            with open(path, "r", encoding="utf-8") as f:
+                conteudo = f.read()
+
+            if len(conteudo) > LIMITE_PROMPTS:
+                return conteudo[:LIMITE_PROMPTS] + "\n[...truncado...]"
+            return conteudo
         except Exception as e:
             return f"Erro ao ler prompts: {e}"
 

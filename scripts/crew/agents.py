@@ -14,6 +14,7 @@ from .tools import (
     SupabaseMetricsTool, SupabaseWriteTool, SupabaseSmokeTestTool,
     TavilySearchTool, GitHubPRTool, UpdateMemoryTool, NotifyTool,
     ReadMemoryTool, SupabaseFeedbackTool, ReadPromptsTool,
+    ListPromptsTool,
 )
 
 supabase_metrics  = SupabaseMetricsTool()
@@ -26,6 +27,7 @@ notify            = NotifyTool()
 read_memory       = ReadMemoryTool()
 supabase_feedback = SupabaseFeedbackTool()
 read_prompts      = ReadPromptsTool()
+listar_agentes    = ListPromptsTool()
 
 # Log verboso do CrewAI estoura o limite de 500 linhas/seg do Railway.
 # Ligue com VERBOSE=1 só quando precisar depurar.
@@ -84,7 +86,8 @@ def build_meta_agent() -> Agent:
         role=p["role"],
         goal=p["goal"],
         backstory=p["backstory"] + BASE,
-        tools=[read_memory, supabase_feedback, read_prompts, github_pr],
+        tools=[read_memory, supabase_feedback, listar_agentes,
+               read_prompts, github_pr],
         llm=haiku,
         verbose=VERBOSE,
         allow_delegation=False,
