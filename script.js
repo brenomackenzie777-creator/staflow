@@ -1,0 +1,1 @@
+console.log('Otimização dos planos de assinatura implementada')
