@@ -135,7 +135,12 @@ def executar_loop():
 
             # Chamada de ferramenta malformada pelo modelo. É falha de geração,
             # não de código — outra tentativa normalmente sai correta.
-            if "tool_use_failed" in msg or "Failed to call a function" in msg:
+            # O Groq manda essa falha com pelo menos 3 textos diferentes;
+            # os três precisam cair aqui, senão o loop inteiro trava.
+            if ("tool_use_failed" in msg
+                    or "Failed to call a function" in msg
+                    or "tool call validation failed" in msg
+                    or "which was not in request.tools" in msg):
                 if tentativa < MAX_RETRIES:
                     log.warning("O modelo gerou uma chamada de ferramenta "
                                 "inválida (tentativa %d/%d). Refazendo em 10s.",
