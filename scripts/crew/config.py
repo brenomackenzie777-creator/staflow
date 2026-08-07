@@ -5,10 +5,12 @@ import os
 from crewai import LLM
 
 # ─── LLM ─────────────────────────────────────────────────────────
-# Gemini 1.5 Flash — free tier real: 1500 req/dia, 1M tokens/min
+# Gemini 1.5 Flash via endpoint OpenAI-compatível (sem pacote nativo)
+# Free tier: 1500 req/dia, 1M tokens/min
 haiku = LLM(
-    model="gemini/gemini-1.5-flash",
+    model="openai/gemini-1.5-flash",
     api_key=os.environ["GOOGLE_API_KEY"],
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
     max_tokens=1500,
     temperature=0.3,
 )
