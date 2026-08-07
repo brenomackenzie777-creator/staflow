@@ -14,6 +14,7 @@ from github import Github
 from .config import (
     SUPABASE_URL, SUPABASE_KEY, TAVILY_API_KEY,
     GITHUB_TOKEN, GITHUB_REPO, PRODUCTION_URL,
+    RESEND_API_KEY, NOTIFY_EMAIL,
 )
 
 
@@ -210,6 +211,50 @@ class GitHubPRTool(BaseTool):
             return f"PR criado: {pr.html_url}"
         except Exception as e:
             return f"Erro PR: {e}"
+
+
+# ─── Meta-Agente Evolutivo ────────────────────────────────────────
+
+class SupabaseFeedbackTool(BaseTool):
+    name: str = "supabase_feedback_history"
+    description: str = (
+        "Lê o histórico de aprovações/rejeições do Breno nos agent_runs, "
+        "incluindo o motivo (feedback_breno). Use para identificar padrões "
+        "do que está funcionando ou não nos agentes."
+    )
+
+    def _run(self, input: str = "") -> str:
+        try:
+            sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+            runs = (
+                sb.table("agent_runs")
+                .select("agent_name,output_summary,status,feedback_breno,created_at")
+                .not_.is_("feedback_breno", "null")
+                .order("created_at", desc=True)
+                .limit(30)
+                .execute()
+            )
+            if not runs.data:
+                return "Nenhum feedback registrado pelo Breno ainda."
+            return json.dumps(runs.data, ensure_ascii=False, indent=2)
+        except Exception as e:
+            return f"Erro ao ler feedback: {e}"
+
+
+class ReadPromptsTool(BaseTool):
+    name: str = "read_prompts"
+    description: str = (
+        "Lê o goal e backstory atuais de todos os agentes, em JSON editável. "
+        "Use antes de propor qualquer mudança de comportamento."
+    )
+
+    def _run(self, input: str = "") -> str:
+        path = os.path.join(os.path.dirname(__file__), "prompts.json")
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read()
+        except Exception as e:
+            return f"Erro ao ler prompts: {e}"
 
 
 # ─── Email ───────────────────────────────────────────────────────

@@ -25,12 +25,21 @@
 - Texto: #F9FAFB
 - Fonte: Inter
 
-## Agentes e Responsabilidades
-| Agente | Foco | Schedule |
-|--------|------|----------|
-| Camila | Design, Instagram, marketing | Toda segunda 08:00 BRT |
-| Marcos | Vendas, outreach, SíndicoNet | Toda segunda 09:00 BRT |
-| Rafael | QA, smoke tests, bugs | A cada push em main |
+## Agentes e Responsabilidades (loop autoevolutivo — Railway, toda segunda 08:00 BRT)
+| # | Agente | Foco |
+|---|--------|------|
+| 1 | Coletor de Dados | Lê CLAUDE.md + métricas reais do Supabase |
+| 2 | Pesquisador de Mercado | Pesquisa concorrentes e tendências (Tavily) |
+| 3 | Analista de Dados | Cruza dados internos + pesquisa em insights |
+| 4 | Estrategista de Crescimento | Propõe até 3 melhorias concretas |
+| 5 | Decisor de Prioridades | Filtra: auto-executa ou pede aprovação do Breno |
+| 6 | Executor de Código | Escreve código e abre PR no GitHub |
+| 7 | Observador de Aprendizado | Salva aprendizados aqui para o próximo ciclo |
+| 8 | Meta-Agente Evolutivo | Analisa aprovações/rejeições e propõe mudanças de prompt via PR |
+
+Os prompts (goal/backstory) dos agentes 1–7 ficam em `scripts/crew/prompts.json`,
+não fixos no código — isso permite que o Meta-Agente proponha mudanças reais de
+comportamento sem editar Python.
 
 ## Regras de Ouro (todos os agentes devem seguir)
 1. Nunca inventar dados ou métricas — sempre ler do Supabase
@@ -38,6 +47,9 @@
 3. Output sempre em Markdown estruturado
 4. Primeira linha do output = resumo de 1 linha (vai para o log)
 5. Se houver dúvida, registrar no output e sinalizar para o Breno
+6. **Nenhum agente se auto-modifica em produção.** O Meta-Agente só propõe
+   mudanças de prompt via Pull Request — elas só valem depois que o Breno
+   revisa e faz merge no GitHub.
 
 ## Últimas Execuções
 <!-- Preenchido automaticamente pelos agentes -->

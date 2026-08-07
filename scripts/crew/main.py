@@ -9,11 +9,12 @@ from crewai import Crew, Process
 
 from .agents import (
     coletor, pesquisador, analista,
-    estrategista, decisor, executor, observador,
+    estrategista, decisor, executor, observador, meta_agente,
 )
 from .tasks import (
     tarefa_coletar, tarefa_pesquisar, tarefa_analisar,
     tarefa_propor, tarefa_decidir, tarefa_executar, tarefa_aprender,
+    tarefa_evoluir,
 )
 
 MAX_RETRIES = 5
@@ -27,10 +28,11 @@ def executar_loop():
     print("="*60 + "\n")
 
     crew = Crew(
-        agents=[coletor, pesquisador, analista,
-                estrategista, decisor, executor, observador],
+        agents=[coletor, pesquisador, analista, estrategista,
+                decisor, executor, observador, meta_agente],
         tasks=[tarefa_coletar, tarefa_pesquisar, tarefa_analisar,
-               tarefa_propor, tarefa_decidir, tarefa_executar, tarefa_aprender],
+               tarefa_propor, tarefa_decidir, tarefa_executar,
+               tarefa_aprender, tarefa_evoluir],
         process=Process.sequential,
         verbose=True,
         memory=False,

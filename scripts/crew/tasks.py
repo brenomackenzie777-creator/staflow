@@ -4,7 +4,7 @@ StaFlow — Tarefas do loop autoevolutivo
 from crewai import Task
 from .agents import (
     coletor, pesquisador, analista,
-    estrategista, decisor, executor, observador,
+    estrategista, decisor, executor, observador, meta_agente,
 )
 
 # ─── TAREFA 1: COLETAR ──────────────────────────────────────────
@@ -123,4 +123,37 @@ tarefa_aprender = Task(
     ),
     agent=observador,
     context=[tarefa_coletar, tarefa_analisar, tarefa_propor, tarefa_decidir, tarefa_executar],
+)
+
+# ─── TAREFA 8: EVOLUIR (Meta-Agente) ────────────────────────────
+tarefa_evoluir = Task(
+    description=(
+        "Você NÃO opera o produto — sua função é melhorar OS OUTROS AGENTES.\n\n"
+        "1. Use read_memory para ver o histórico de ciclos.\n"
+        "2. Use supabase_feedback_history para ver aprovações/rejeições do "
+        "Breno com o motivo.\n"
+        "3. Use read_prompts para ver o goal/backstory atual de cada agente.\n"
+        "4. Identifique um PADRÃO: algum agente comete o mesmo erro mais de "
+        "uma vez? Algum tipo de proposta é sempre rejeitado pelo mesmo motivo?\n"
+        "5. SE houver um padrão claro (2+ ocorrências), proponha uma mudança "
+        "pontual no goal ou backstory de UM único agente.\n"
+        "6. Use create_github_pr para propor: branch "
+        "'agent/evolve-prompts-YYYY-MM-DD', title '[Meta-Agente] Evolução: "
+        "<agente> — <resumo>', body explicando o padrão observado e a "
+        "mudança proposta, files com o JSON COMPLETO e atualizado de "
+        "scripts/crew/prompts.json (mude apenas o agente identificado, "
+        "mantenha os outros 7 exatamente iguais).\n"
+        "7. Se NÃO houver padrão claro (menos de 2 ocorrências), NÃO crie PR. "
+        "Apenas declare 'sem mudanças necessárias' e explique por quê.\n\n"
+        "IMPORTANTE: nunca proponha mudança em mais de 1 agente por ciclo. "
+        "Toda mudança de prompt precisa ser pequena, específica e testável — "
+        "e só entra em vigor se o Breno aprovar o Pull Request."
+    ),
+    expected_output=(
+        "OU (a) confirmação de PR criado com o padrão observado e a mudança "
+        "proposta, OU (b) confirmação explícita de que nenhuma mudança foi "
+        "necessária, com a justificativa."
+    ),
+    agent=meta_agente,
+    context=[tarefa_coletar, tarefa_decidir, tarefa_executar, tarefa_aprender],
 )
