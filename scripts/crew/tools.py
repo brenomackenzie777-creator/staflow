@@ -170,11 +170,61 @@ class TavilySearchTool(BaseTool):
 
 # ─── GitHub ──────────────────────────────────────────────────────
 
+# Arquivos e pastas que NENHUM agente pode criar ou modificar.
+# Mexer neles pode derrubar o site em produção ou o próprio loop de agentes.
+ARQUIVOS_PROIBIDOS = {
+    "index.html", "style.css", "script.js",
+    "vercel.json", "railway.json", "package.json", "package-lock.json",
+    "requirements.txt", "CLAUDE.md", ".gitignore", ".env",
+}
+PASTAS_PROIBIDAS = (
+    "scripts/",   # o próprio código dos agentes
+    ".github/",   # automações do repositório
+    "sql/",       # migrações do banco de dados
+    "auth/",      # fluxo de login — crítico
+)
+# Tamanho mínimo para considerar que há conteúdo real (evita esqueletos vazios)
+TAMANHO_MINIMO = 200
+
+
+def _validar_arquivos(files_dict: dict) -> str:
+    """Retorna string de erro se algo for bloqueado, ou '' se estiver tudo ok."""
+    if not files_dict:
+        return "Nenhum arquivo informado — PR não criado."
+
+    for fname, content in files_dict.items():
+        alvo = fname.strip().lstrip("./")
+
+        if alvo in ARQUIVOS_PROIBIDOS:
+            return (f"BLOQUEADO: '{alvo}' é um arquivo crítico do StaFlow em "
+                    "produção e não pode ser alterado por agentes. "
+                    "Proponha a mudança em texto no relatório para o Breno "
+                    "decidir manualmente.")
+
+        for pasta in PASTAS_PROIBIDAS:
+            if alvo.startswith(pasta):
+                return (f"BLOQUEADO: '{alvo}' está em '{pasta}', uma pasta "
+                        "protegida. Agentes não alteram esta área. "
+                        "Proponha a mudança em texto no relatório.")
+
+        if not isinstance(content, str) or len(content.strip()) < TAMANHO_MINIMO:
+            return (f"BLOQUEADO: o conteúdo de '{alvo}' tem apenas "
+                    f"{len(str(content).strip())} caracteres — parece um "
+                    "rascunho vazio, não código funcional. Escreva o arquivo "
+                    "completo e funcional, ou não proponha a mudança.")
+
+    return ""
+
+
 class GitHubPRTool(BaseTool):
     name: str = "create_github_pr"
     description: str = (
-        "Cria um Pull Request no GitHub. "
-        "Parâmetros: title, body, branch, files (JSON string de filename→conteúdo)."
+        "Cria um Pull Request no GitHub com código NOVO e COMPLETO. "
+        "Parâmetros: title, body, branch, files (JSON string de filename→conteúdo). "
+        "PROIBIDO alterar: index.html, style.css, script.js, arquivos de "
+        "configuração, e as pastas scripts/, sql/, auth/, .github/. "
+        "Cada arquivo precisa ter conteúdo real e funcional — rascunhos "
+        "vazios são rejeitados automaticamente."
     )
 
     def _run(self, title: str, body: str, branch: str = "", files: str = "{}") -> str:
@@ -182,6 +232,11 @@ class GitHubPRTool(BaseTool):
             return "GITHUB_TOKEN não configurado."
         try:
             files_dict = json.loads(files) if isinstance(files, str) else files
+
+            erro = _validar_arquivos(files_dict)
+            if erro:
+                return erro
+
             g        = Github(GITHUB_TOKEN)
             repo     = g.get_repo(GITHUB_REPO)
             sha      = repo.get_branch("main").commit.sha
