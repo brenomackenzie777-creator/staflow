@@ -105,23 +105,50 @@ def build_loop_tasks(loop_key: str, agents: dict) -> dict:
             "   - PRs criados automaticamente\n"
             "   - Itens enviados para Breno\n"
             "   - PRIORIDADE DO PRÓXIMO CICLO desta área\n"
-            "   - Queries de pesquisa usadas (para não repetir)\n"
-            f"3. Use notify_breno com subject 'StaFlow [{nome}]: resumo do ciclo' "
-            "e HTML com métricas, ações, pendências."
+            "   - Queries de pesquisa usadas (para não repetir)"
         ),
         expected_output=(
-            "Confirmação de que CLAUDE.md foi atualizado e email enviado, "
-            "com o conteúdo exato salvo na memória."
+            "Confirmação de que CLAUDE.md foi atualizado, com o conteúdo "
+            "exato salvo na memória."
         ),
         agent=agents["observador"],
         context=[tarefa_coletar, tarefa_analisar, tarefa_propor, tarefa_decidir, tarefa_executar],
+    )
+
+    tarefa_relatar = Task(
+        description=(
+            f"Escreva o relatório do ciclo de {nome} para o Breno (CEO, não "
+            "programador). Ele precisa entender tudo sem saber nada de código.\n\n"
+            "Estruture o email em HTML simples, com estas seções:\n\n"
+            "1. RESUMO EM UMA FRASE — o que aconteceu hoje, direto\n"
+            "2. OS NÚMEROS — as métricas desta área, sempre comparando com o "
+            "ciclo anterior. Se não houver dado, diga que ainda não temos\n"
+            "3. O QUE DESCOBRIMOS — os principais achados da análise e da "
+            "pesquisa de mercado, em linguagem comum\n"
+            "4. O QUE JÁ FIZEMOS — mudanças que o time preparou sozinho. "
+            "Explique o que muda na prática para o usuário do StaFlow, não "
+            "como foi feito tecnicamente\n"
+            "5. PRECISA DA SUA DECISÃO — o que está esperando ele. Para cada "
+            "item: o que é, por que importa, e o que acontece se ele aprovar "
+            "ou não. Se não há nada esperando, diga isso claramente\n"
+            "6. O QUE VEM NO PRÓXIMO CICLO desta área\n\n"
+            "Use HTML básico (h2, p, ul, li, strong). Nada de jargão técnico.\n"
+            f"Envie com notify_breno, subject: 'StaFlow [{nome}] — relatório de hoje'."
+        ),
+        expected_output=(
+            "Confirmação do envio do email + o texto completo do relatório "
+            "que foi enviado."
+        ),
+        agent=agents["relator"],
+        context=[tarefa_coletar, tarefa_pesquisar, tarefa_analisar,
+                 tarefa_propor, tarefa_decidir, tarefa_executar, tarefa_aprender],
     )
 
     return {
         "coletar": tarefa_coletar, "pesquisar": tarefa_pesquisar,
         "analisar": tarefa_analisar, "propor": tarefa_propor,
         "decidir": tarefa_decidir, "executar": tarefa_executar,
-        "aprender": tarefa_aprender,
+        "aprender": tarefa_aprender, "relatar": tarefa_relatar,
     }
 
 
@@ -161,4 +188,39 @@ def build_meta_task(meta_agente) -> Task:
             "mudança foi necessária, com justificativa."
         ),
         agent=meta_agente,
+    )
+
+
+def build_meta_relatorio_task(relator, tarefa_meta) -> Task:
+    """Relatório semanal de sexta — fecha a semana para o CEO."""
+    return Task(
+        description=(
+            "Escreva o FECHAMENTO DA SEMANA para o Breno (CEO, não "
+            "programador). Ele precisa entender tudo sem saber nada de código.\n\n"
+            "1. Use read_memory para ver tudo que aconteceu nos 4 loops "
+            "desta semana (Marketing segunda, Produto terça, Financeiro "
+            "quarta, Suporte quinta).\n"
+            "2. Use supabase_metrics para os números gerais do StaFlow.\n\n"
+            "Estruture o email em HTML simples, com estas seções:\n\n"
+            "1. A SEMANA EM UMA FRASE\n"
+            "2. OS NÚMEROS DO STAFLOW — usuários, assinaturas, comparando "
+            "com a semana anterior. Se não houver dado, diga que ainda não temos\n"
+            "3. O QUE CADA ÁREA FEZ — um parágrafo curto por área "
+            "(Marketing, Produto, Financeiro, Suporte)\n"
+            "4. TUDO QUE ESPERA SUA DECISÃO — lista consolidada da semana "
+            "inteira. Para cada item: o que é, por que importa, o que "
+            "acontece se aprovar ou não. Se não há nada, diga isso\n"
+            "5. O TIME ESTÁ MELHORANDO? — o que o Meta-Agente observou e "
+            "se ele propôs alguma mudança no jeito dos agentes trabalharem\n"
+            "6. PRIORIDADES DA PRÓXIMA SEMANA\n\n"
+            "Use HTML básico (h2, p, ul, li, strong). Nada de jargão técnico.\n"
+            "Envie com notify_breno, subject: "
+            "'StaFlow — fechamento da semana'."
+        ),
+        expected_output=(
+            "Confirmação do envio do email + o texto completo do relatório "
+            "semanal que foi enviado."
+        ),
+        agent=relator,
+        context=[tarefa_meta],
     )

@@ -9,8 +9,8 @@ import time
 import datetime
 from crewai import Crew, Process
 
-from .agents import build_loop_agents, build_meta_agent
-from .tasks import build_loop_tasks, build_meta_task
+from .agents import build_loop_agents, build_meta_agent, build_meta_relator
+from .tasks import build_loop_tasks, build_meta_task, build_meta_relatorio_task
 
 MAX_RETRIES = 5
 BASE_WAIT   = 30   # segundos iniciais; dobra a cada tentativa
@@ -25,16 +25,19 @@ DIA_PARA_LOOP = {
 }
 
 ORDEM_AGENTES = ["coletor", "pesquisador", "analista", "estrategista",
-                  "decisor", "executor", "observador"]
+                  "decisor", "executor", "observador", "relator"]
 ORDEM_TAREFAS = ["coletar", "pesquisar", "analisar", "propor",
-                  "decidir", "executar", "aprender"]
+                  "decidir", "executar", "aprender", "relatar"]
 
 
 def montar_crew(loop_key: str) -> Crew:
     if loop_key == "meta":
-        meta_agente = build_meta_agent()
-        tarefa      = build_meta_task(meta_agente)
-        return Crew(agents=[meta_agente], tasks=[tarefa],
+        meta_agente    = build_meta_agent()
+        meta_relator   = build_meta_relator()
+        tarefa_meta    = build_meta_task(meta_agente)
+        tarefa_relato  = build_meta_relatorio_task(meta_relator, tarefa_meta)
+        return Crew(agents=[meta_agente, meta_relator],
+                    tasks=[tarefa_meta, tarefa_relato],
                     process=Process.sequential, verbose=True, memory=False)
 
     agents = build_loop_agents(loop_key)

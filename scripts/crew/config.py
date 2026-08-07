@@ -22,6 +22,9 @@ GITHUB_TOKEN        = os.environ.get("GITHUB_TOKEN", "")
 GITHUB_REPO         = os.environ.get("GITHUB_REPOSITORY", "brenomackenzie777-creator/staflow")
 NOTIFY_EMAIL        = os.environ.get("NOTIFY_EMAIL", "brenomackenzie777@gmail.com")
 RESEND_API_KEY      = os.environ.get("RESEND_API_KEY", "")
+# onboarding@resend.dev funciona sem verificar domínio — troque para
+# agentes@staflow.app.br só depois de verificar o domínio no Resend.
+RESEND_FROM         = os.environ.get("RESEND_FROM", "onboarding@resend.dev")
 PRODUCTION_URL      = os.environ.get("PRODUCTION_URL", "https://staflow.app.br")
 
 # ─── Contexto do produto ─────────────────────────────────────────

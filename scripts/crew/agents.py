@@ -62,20 +62,39 @@ def build_loop_agents(loop_key: str) -> dict:
         "estrategista": _build_agent(prompts, "estrategista", []),
         "decisor":      _build_agent(prompts, "decisor", [notify]),
         "executor":     _build_agent(prompts, "executor", [github_pr, supabase_write]),
-        "observador":   _build_agent(prompts, "observador", [supabase_metrics, update_memory, notify]),
+        "observador":   _build_agent(prompts, "observador", [supabase_metrics, update_memory]),
+        "relator":      _build_agent(prompts, "relator", [notify]),
     }
+
+
+def _load_meta_prompts() -> dict:
+    path = os.path.join(PROMPTS_DIR, "meta.json")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def build_meta_agent() -> Agent:
     """Meta-Agente Evolutivo — compartilhado entre os 4 loops."""
-    path = os.path.join(PROMPTS_DIR, "meta.json")
-    with open(path, "r", encoding="utf-8") as f:
-        p = json.load(f)["meta_agente"]
+    p = _load_meta_prompts()["meta_agente"]
     return Agent(
         role=p["role"],
         goal=p["goal"],
         backstory=p["backstory"] + BASE,
         tools=[read_memory, supabase_feedback, read_prompts, github_pr],
+        llm=haiku,
+        verbose=True,
+        allow_delegation=False,
+    )
+
+
+def build_meta_relator() -> Agent:
+    """Relator semanal — fecha a sexta-feira com o resumo da semana."""
+    p = _load_meta_prompts()["relator"]
+    return Agent(
+        role=p["role"],
+        goal=p["goal"],
+        backstory=p["backstory"] + BASE,
+        tools=[read_memory, supabase_metrics, notify],
         llm=haiku,
         verbose=True,
         allow_delegation=False,

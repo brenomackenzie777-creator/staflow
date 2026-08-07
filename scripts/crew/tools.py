@@ -14,7 +14,7 @@ from github import Github
 from .config import (
     SUPABASE_URL, SUPABASE_KEY, TAVILY_API_KEY,
     GITHUB_TOKEN, GITHUB_REPO, PRODUCTION_URL,
-    RESEND_API_KEY, NOTIFY_EMAIL,
+    RESEND_API_KEY, NOTIFY_EMAIL, RESEND_FROM,
 )
 
 
@@ -266,16 +266,19 @@ class NotifyTool(BaseTool):
         if not RESEND_API_KEY:
             return "RESEND_API_KEY não configurado — email não enviado."
         try:
-            httpx.post(
+            r = httpx.post(
                 "https://api.resend.com/emails",
                 headers={"Authorization": f"Bearer {RESEND_API_KEY}",
                          "Content-Type": "application/json"},
-                json={"from": "agentes@staflow.app.br",
+                json={"from": RESEND_FROM,
                       "to": [NOTIFY_EMAIL],
                       "subject": subject,
                       "html": html_body},
-                timeout=10,
+                timeout=15,
             )
+            if r.status_code >= 400:
+                return (f"FALHA ao enviar email (HTTP {r.status_code}): "
+                        f"{r.text[:300]}")
             return f"Email enviado para {NOTIFY_EMAIL}"
         except Exception as e:
             return f"Erro email: {e}"

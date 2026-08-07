@@ -37,11 +37,16 @@ não é mais um loop geral tocando tudo de uma vez.
 | Quinta | Suporte / Sucesso do Cliente | Feedbacks, onboarding, atendimento |
 | Sexta | Meta-Agente Evolutivo | Avalia a semana inteira nos 4 loops |
 
-Cada loop tem os mesmos 7 papéis (Coletor → Pesquisador → Analista →
-Estrategista → Decisor → Executor → Observador), mas com prompts próprios em
-`scripts/crew/prompts/<loop>.json`. O Meta-Agente é compartilhado entre todos
-os loops (`scripts/crew/prompts/meta.json`) e lê o histórico de aprovações/
-rejeições de qualquer loop antes de propor uma mudança de prompt.
+Cada loop tem os mesmos 8 papéis (Coletor → Pesquisador → Analista →
+Estrategista → Decisor → Executor → Observador → **Relator**), mas com prompts
+próprios em `scripts/crew/prompts/<loop>.json`. O Meta-Agente é compartilhado
+entre todos os loops (`scripts/crew/prompts/meta.json`) e lê o histórico de
+aprovações/rejeições de qualquer loop antes de propor uma mudança de prompt.
+
+**O Relator** é o último agente de cada ciclo e o único que fala com o Breno.
+Ele traduz tudo para português leigo (o Breno é CEO, não programador) e envia
+por email via Resend. Na sexta-feira há um Relator Semanal que fecha a semana
+consolidando os 4 loops. Termos técnicos são proibidos nos relatórios.
 
 Configuração de cada loop (foco e queries de pesquisa) fica em
 `scripts/crew/loops.json`. Execuções ficam marcadas no Supabase
