@@ -213,18 +213,21 @@ window.staflowApp = window.staflowApp || {};
     }
 
     // 8. Mobile drawer + backdrop
-    //    Três gatilhos abrem o mesmo drawer: o hambúrguer legado de cada
-    //    página, o da barra superior fixa e o botão "Mais" da navegação
-    //    inferior (onde vivem Faltas e Configurações).
+    //    Dois gatilhos abrem o menu: o da barra superior fixa e o botão
+    //    "Mais" da navegação inferior (onde vivem Faltas e Configurações).
+    //    O #menu-toggle antigo de cada página fica de fora de propósito:
+    //    ele já está escondido por CSS no celular e cada página wireia o
+    //    seu próprio — se entrasse aqui, os dois listeners disparariam no
+    //    mesmo toque e um desfaria o outro (abre + fecha = nada acontece).
     const sb = document.getElementById('sidebar');
     const gatilhos = [
-      document.getElementById('menu-toggle'),
       document.getElementById('mab-menu'),
       document.getElementById('tabbar-mais')
     ].filter(Boolean);
 
     if (sb && gatilhos.length) {
-      // Cria backdrop sob demanda
+      // Cria backdrop sob demanda (usado só no desktop/tablet — no celular
+      // o menu é tela cheia e o CSS esconde o backdrop)
       let bd = document.querySelector('.sidebar-backdrop');
       if (!bd) {
         bd = document.createElement('div');
@@ -235,12 +238,19 @@ window.staflowApp = window.staflowApp || {};
         sb.classList.remove('open');
         bd.classList.remove('show');
       };
-      gatilhos.forEach(t => t.addEventListener('click', () => {
-        const open = sb.classList.toggle('open');
-        bd.classList.toggle('show', open);
+      const openDrawer = () => {
+        sb.classList.add('open');
+        bd.classList.add('show');
+      };
+
+      gatilhos.forEach(t => t.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sb.classList.contains('open') ? closeDrawer() : openDrawer();
       }));
+
+      document.getElementById('sb-close')?.addEventListener('click', closeDrawer);
       bd.addEventListener('click', closeDrawer);
-      // Fecha ao navegar dentro do drawer
+      // Fecha ao navegar dentro do menu
       sb.querySelectorAll('a.sb-link').forEach(a => a.addEventListener('click', closeDrawer));
       // Fecha com Esc
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
@@ -449,6 +459,8 @@ window.staflowApp = window.staflowApp || {};
   // ---------- HTML do Sidebar (injetado para evitar duplicação) ----------
   function sidebarHTML() {
     return `
+      <button type="button" class="sb-close" id="sb-close" aria-label="Fechar menu">✕</button>
+
       <a href="/dashboard.html" class="sb-brand">
         <img src="/assets/logo-mark.svg" alt="StaFlow">
         <div class="wm"><span class="sta">STA</span><span class="flow">FLOW</span></div>

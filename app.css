@@ -551,16 +551,77 @@ tr.sk-row .sk-text-block {
 
 /* ── Tablet / mobile ── */
 @media (max-width: 768px) {
-  .app { grid-template-columns: 1fr; }
+  /* ★ CAUSA RAIZ do "menu escuro e botões que não clicam":
+     .app tinha `position: relative; z-index: 1`, o que cria uma caixa
+     de empilhamento própria. O menu lateral mora DENTRO dessa caixa,
+     mas a camada escura e as barras do app são criadas FORA dela, no
+     body. Por isso, por mais alto que fosse o z-index do menu, ele
+     nunca conseguia subir acima delas — ficava por baixo, escurecido
+     e com os toques sendo interceptados pela camada de cima.
+     Neutralizar a caixa no celular resolve os dois sintomas. */
+  .app {
+    grid-template-columns: 1fr;
+    position: static;
+    z-index: auto;
+  }
+
+  /* ── Menu em TELA CHEIA (não é mais gaveta) ──────────────────
+     A gaveta antiga ocupava 80% da tela e escurecia o resto, o que
+     deixava tudo com aparência suja/apagada. Agora o menu ocupa a
+     tela inteira com fundo sólido: nada atrás pra escurecer, nada
+     competindo visualmente. ──────────────────────────────────── */
   .sidebar {
-    position: fixed; top: 0; left: 0; bottom: 0;
-    width: 270px; max-width: 80vw;
+    position: fixed; inset: 0;
+    width: 100%; max-width: 100%;
+    height: 100%;
+    background: var(--navy-deep);
+    border-right: none;
     transform: translateX(-100%);
-    z-index: 100;
-    transition: transform .28s cubic-bezier(.4,0,.2,1);
-    box-shadow: 4px 0 32px rgba(0,0,0,0.4);
+    z-index: 130;
+    transition: transform .26s cubic-bezier(.4,0,.2,1);
+    box-shadow: none;
+    overflow-y: auto;
+    padding: 18px 18px calc(28px + env(safe-area-inset-bottom, 0px));
+    padding-top: calc(18px + env(safe-area-inset-top, 0px));
+    gap: 4px;
   }
   .sidebar.open { transform: translateX(0); }
+
+  /* Backdrop não faz mais sentido com menu de tela cheia */
+  .sidebar-backdrop { display: none !important; }
+
+  /* Botão de fechar (X) — só existe no celular */
+  .sb-close {
+    display: inline-flex !important;
+    align-items: center; justify-content: center;
+    position: absolute;
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    right: 14px;
+    width: 40px; height: 40px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--white);
+    font-size: 17px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sb-close:active { background: rgba(240,244,255,0.08); }
+
+  /* Links maiores e mais espaçados — é uma tela inteira agora */
+  .sidebar .sb-link {
+    font-size: 16px;
+    padding: 14px 12px;
+    min-height: 52px;
+  }
+  .sidebar .sb-link .ico { font-size: 19px; width: 22px; }
+  .sidebar .sb-section { padding: 18px 12px 6px; }
+  .sidebar .sb-brand { padding-right: 56px; }
+
+  /* Card do usuário fica no fim, sem menu flutuante — as ações da
+     conta já vivem no avatar da barra superior. */
+  .sidebar .sb-user { margin-top: 8px; }
+  .sidebar .user-menu { bottom: 96px; }
   .main { padding: 16px 14px 80px; }
   .topbar { flex-direction: column; align-items: stretch; gap: 12px; margin-bottom: 20px; }
   .topbar h1 { font-size: 22px; }
@@ -680,7 +741,8 @@ tr.sk-row .sk-text-block {
    como um bloco solto no rodapé da versão desktop. */
 .mobile-appbar,
 .mobile-tabbar,
-.mab-user-menu { display: none; }
+.mab-user-menu,
+.sb-close { display: none; }
 
 @media (max-width: 768px) {
 
