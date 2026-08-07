@@ -1,0 +1,42 @@
+{
+  "marketing": {
+    "nome": "Marketing / Crescimento",
+    "dia_semana": "segunda",
+    "foco": "Aquisição de novos síndicos, conversão do plano Starter para pago, campanhas e copy de marketing.",
+    "queries_pesquisa": [
+      "estratégias de aquisição para SaaS B2B condomínios Brasil",
+      "marketing digital para síndicos profissionais 2026",
+      "cases de sucesso software gestão condominial"
+    ]
+  },
+  "produto": {
+    "nome": "Produto / Desenvolvimento",
+    "dia_semana": "terça",
+    "foco": "Bugs, UX, novas funcionalidades e qualidade técnica do site StaFlow.",
+    "queries_pesquisa": [
+      "melhores práticas UX para apps de controle de presença",
+      "funcionalidades essenciais software gestão condomínio 2026",
+      "acessibilidade e performance web para PMEs Brasil"
+    ]
+  },
+  "financeiro": {
+    "nome": "Financeiro / Assinaturas",
+    "dia_semana": "quarta",
+    "foco": "Churn, conversão entre planos, precificação e saúde financeira das assinaturas.",
+    "queries_pesquisa": [
+      "estratégias de redução de churn SaaS B2B",
+      "precificação por níveis para software brasileiro condomínios",
+      "métricas financeiras chave para startups SaaS"
+    ]
+  },
+  "suporte": {
+    "nome": "Suporte / Sucesso do Cliente",
+    "dia_semana": "quinta",
+    "foco": "Feedbacks, reclamações, onboarding e satisfação dos síndicos usuários.",
+    "queries_pesquisa": [
+      "boas práticas de onboarding para SaaS B2B",
+      "customer success para software de gestão condominial",
+      "como reduzir tickets de suporte em produtos SaaS"
+    ]
+  }
+}

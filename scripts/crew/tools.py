@@ -40,7 +40,8 @@ class UpdateMemoryTool(BaseTool):
     name: str = "update_memory"
     description: str = (
         "Salva aprendizados no CLAUDE.md para o próximo ciclo. "
-        "Parâmetro: content (texto com resumo do ciclo atual)."
+        "Parâmetro: content (texto com resumo do ciclo atual, prefixado "
+        "com o nome da área, ex: '[Marketing] ...')."
     )
 
     def _run(self, content: str) -> str:
@@ -51,8 +52,8 @@ class UpdateMemoryTool(BaseTool):
             hoje = datetime.date.today().isoformat()
             novo = atual + f"\n\n## [{hoje}] Ciclo automático\n{content}\n"
             partes = novo.split("\n\n## [")
-            if len(partes) > 31:
-                partes = partes[:1] + partes[-30:]
+            if len(partes) > 41:
+                partes = partes[:1] + partes[-40:]
             novo = "\n\n## [".join(partes)
             with open(path, "w", encoding="utf-8") as f:
                 f.write(novo)
@@ -61,44 +62,17 @@ class UpdateMemoryTool(BaseTool):
             return f"Erro ao atualizar CLAUDE.md: {e}"
 
 
-# ─── Sub-agente ──────────────────────────────────────────────────
-
-class SubAgentTool(BaseTool):
-    name: str = "create_sub_agent"
-    description: str = (
-        "Cria e executa um sub-agente especializado. "
-        "Parâmetros: role (papel), goal (objetivo), task (tarefa detalhada)."
-    )
-
-    def _run(self, role: str, goal: str, task: str) -> str:
-        from crewai import Agent, Task, Crew, Process
-        from .config import haiku
-        try:
-            agent = Agent(
-                role=role, goal=goal,
-                backstory=f"Sub-agente especializado: {goal}",
-                llm=haiku, verbose=False, allow_delegation=False,
-            )
-            t = Task(
-                description=task,
-                expected_output="Resultado detalhado e acionável.",
-                agent=agent,
-            )
-            crew = Crew(agents=[agent], tasks=[t], process=Process.sequential,
-                        verbose=False, memory=False)
-            result = crew.kickoff()
-            return f"Sub-agente '{role}':\n{str(result)}"
-        except Exception as e:
-            return f"Erro no sub-agente: {e}"
-
-
 # ─── Supabase ────────────────────────────────────────────────────
 
 class SupabaseMetricsTool(BaseTool):
     name: str = "supabase_metrics"
-    description: str = "Lê métricas reais do StaFlow: usuários, assinaturas, feedbacks."
+    description: str = (
+        "Lê métricas reais do StaFlow: usuários, assinaturas, feedbacks, e "
+        "histórico de execuções. Parâmetro opcional: loop (marketing, "
+        "produto, financeiro ou suporte) para filtrar o histórico só desta área."
+    )
 
-    def _run(self, input: str = "") -> str:
+    def _run(self, loop: str = "") -> str:
         try:
             sb = create_client(SUPABASE_URL, SUPABASE_KEY)
             usuarios    = sb.table("profiles").select("id,created_at,role", count="exact").execute()
@@ -106,7 +80,17 @@ class SupabaseMetricsTool(BaseTool):
             feedbacks   = sb.table("feedback").select("mensagem,tipo,created_at").order("created_at", desc=True).limit(5).execute()
             semana      = (datetime.datetime.utcnow() - datetime.timedelta(days=7)).isoformat()
             novos       = sb.table("profiles").select("id", count="exact").gte("created_at", semana).execute()
-            runs        = sb.table("agent_runs").select("agent_name,status,output_summary").order("created_at", desc=True).limit(10).execute()
+
+            query = (
+                sb.table("agent_runs")
+                .select("agent_name,status,output_summary,loop_name")
+                .order("created_at", desc=True)
+                .limit(10)
+            )
+            if loop:
+                query = query.eq("loop_name", loop)
+            runs = query.execute()
+
             return json.dumps({
                 "total_usuarios":     usuarios.count or 0,
                 "novos_semana":       novos.count or 0,
@@ -123,16 +107,19 @@ class SupabaseWriteTool(BaseTool):
     name: str = "supabase_write_agent_run"
     description: str = (
         "Salva o resultado de um agente no Supabase. "
-        "Parâmetros: agent_name, output_summary, output_completo."
+        "Parâmetros: agent_name, output_summary, output_completo, loop_name "
+        "(marketing, produto, financeiro, suporte ou meta)."
     )
 
-    def _run(self, agent_name: str, output_summary: str, output_completo: str = "") -> str:
+    def _run(self, agent_name: str, output_summary: str,
+             output_completo: str = "", loop_name: str = "geral") -> str:
         try:
             sb = create_client(SUPABASE_URL, SUPABASE_KEY)
             res = sb.table("agent_runs").insert({
                 "agent_name":      agent_name,
                 "output_summary":  output_summary,
                 "output_completo": output_completo,
+                "loop_name":       loop_name,
                 "status":          "pending",
                 "created_at":      datetime.datetime.utcnow().isoformat(),
             }).execute()
@@ -218,9 +205,9 @@ class GitHubPRTool(BaseTool):
 class SupabaseFeedbackTool(BaseTool):
     name: str = "supabase_feedback_history"
     description: str = (
-        "Lê o histórico de aprovações/rejeições do Breno nos agent_runs, "
-        "incluindo o motivo (feedback_breno). Use para identificar padrões "
-        "do que está funcionando ou não nos agentes."
+        "Lê o histórico de aprovações/rejeições do Breno em TODOS os loops, "
+        "incluindo o motivo (feedback_breno) e a área (loop_name). Use para "
+        "identificar padrões do que está funcionando ou não em cada agente."
     )
 
     def _run(self, input: str = "") -> str:
@@ -228,10 +215,10 @@ class SupabaseFeedbackTool(BaseTool):
             sb = create_client(SUPABASE_URL, SUPABASE_KEY)
             runs = (
                 sb.table("agent_runs")
-                .select("agent_name,output_summary,status,feedback_breno,created_at")
+                .select("agent_name,loop_name,output_summary,status,feedback_breno,created_at")
                 .not_.is_("feedback_breno", "null")
                 .order("created_at", desc=True)
-                .limit(30)
+                .limit(40)
                 .execute()
             )
             if not runs.data:
@@ -244,15 +231,24 @@ class SupabaseFeedbackTool(BaseTool):
 class ReadPromptsTool(BaseTool):
     name: str = "read_prompts"
     description: str = (
-        "Lê o goal e backstory atuais de todos os agentes, em JSON editável. "
-        "Use antes de propor qualquer mudança de comportamento."
+        "Lê o goal e backstory atuais dos agentes de um loop específico "
+        "(marketing, produto, financeiro, suporte) ou de todos, se o "
+        "parâmetro loop for vazio. Use antes de propor qualquer mudança."
     )
 
-    def _run(self, input: str = "") -> str:
-        path = os.path.join(os.path.dirname(__file__), "prompts.json")
+    def _run(self, loop: str = "") -> str:
+        base = os.path.join(os.path.dirname(__file__), "prompts")
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                return f.read()
+            if loop:
+                path = os.path.join(base, f"{loop}.json")
+                with open(path, "r", encoding="utf-8") as f:
+                    return f.read()
+            saida = {}
+            for fname in sorted(os.listdir(base)):
+                if fname.endswith(".json"):
+                    with open(os.path.join(base, fname), "r", encoding="utf-8") as f:
+                        saida[fname.replace(".json", "")] = json.load(f)
+            return json.dumps(saida, ensure_ascii=False, indent=2)
         except Exception as e:
             return f"Erro ao ler prompts: {e}"
 
