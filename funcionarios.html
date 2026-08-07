@@ -456,6 +456,24 @@
 
         <div class="field-row">
           <div class="field">
+            <label for="f-hora-ini">Horário de início</label>
+            <input class="input" id="f-hora-ini" type="time" step="60">
+          </div>
+          <div class="field">
+            <label for="f-hora-fim">Horário de fim</label>
+            <input class="input" id="f-hora-fim" type="time" step="60">
+          </div>
+          <div class="field">
+            <label for="f-almoco">Almoço (min)</label>
+            <input class="input" id="f-almoco" type="number" min="0" max="240" step="5" placeholder="60">
+          </div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:1px;color:var(--white-muted);text-transform:uppercase;margin:-6px 0 14px;">
+          Usado pra marcar atraso na tela de Ponto (com a tolerância definida em Configurações)
+        </div>
+
+        <div class="field-row">
+          <div class="field">
             <label for="f-adm">Data de admissão</label>
             <input class="input" id="f-adm" type="date">
           </div>
@@ -878,7 +896,7 @@ async function loadAll() {
   window.staflowApp.skeletonRows('tbody', 6, 5);
 
   const { data, error } = await sb.from('funcionarios')
-    .select('id, nome, cargo, turno, telefone, cpf, email, data_admissao, ativo, observacoes, foto_path, salario_base, adicional_insalubridade, created_at')
+    .select('id, nome, cargo, turno, telefone, cpf, email, data_admissao, ativo, observacoes, foto_path, salario_base, adicional_insalubridade, horario_inicio, horario_fim, horas_almoco_min, created_at')
     .order('nome', { ascending: true });
   if (error) { T(error.message, 'error'); return; }
   allRows = data || [];
@@ -920,6 +938,9 @@ async function openEdit(row) {
   document.getElementById('f-nome').value    = row.nome || '';
   document.getElementById('f-cargo-i').value = row.cargo || 'porteiro';
   document.getElementById('f-turno-i').value = row.turno || 'integral';
+  document.getElementById('f-hora-ini').value = (row.horario_inicio || '').slice(0, 5);
+  document.getElementById('f-hora-fim').value = (row.horario_fim || '').slice(0, 5);
+  document.getElementById('f-almoco').value   = (row.horas_almoco_min != null) ? row.horas_almoco_min : '';
   document.getElementById('f-tel').value     = row.telefone || '';
   document.getElementById('f-cpf').value     = row.cpf || '';
   document.getElementById('f-email-i').value = row.email || '';
@@ -942,7 +963,7 @@ async function openEdit(row) {
   }
 
   // Se houver dados em campos opcionais, abre o accordion automaticamente
-  if (row.telefone || row.turno || row.data_admissao || row.observacoes || row.foto_path || row.ativo === false) {
+  if (row.telefone || row.turno || row.data_admissao || row.observacoes || row.foto_path || row.ativo === false || row.horario_inicio || row.horario_fim || row.horas_almoco_min != null) {
     abrirDetalhes();
   } else {
     fecharDetalhes();
@@ -1020,10 +1041,14 @@ document.getElementById('form-func').addEventListener('submit', async (e) => {
   }
 
   const salarioRaw = document.getElementById('f-salario').value.trim();
+  const almocoRaw  = document.getElementById('f-almoco').value.trim();
   const payload = {
     nome,
     cargo:                    document.getElementById('f-cargo-i').value,
     turno:                    document.getElementById('f-turno-i').value,
+    horario_inicio:           document.getElementById('f-hora-ini').value || null,
+    horario_fim:              document.getElementById('f-hora-fim').value || null,
+    horas_almoco_min:         almocoRaw ? Number(almocoRaw) : null,
     telefone:                 document.getElementById('f-tel').value.trim() || null,
     cpf:                      document.getElementById('f-cpf').value.trim() || null,
     email:                    document.getElementById('f-email-i').value.trim() || null,

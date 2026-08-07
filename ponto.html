@@ -638,6 +638,7 @@ let profile      = null;
 let allFuncs     = [];   // funcionários ativos
 let allRegistros = [];   // registros_ponto do dia selecionado
 let rows         = [];   // dados mesclados (um por funcionário)
+let toleranciaAtrasoMin = 10;  // Configurações → tolerância de atraso (min)
 
 // Condomínio ATIVO (switcher multi-CNPJ); fallback no vínculo do perfil.
 function getCondoId() {
@@ -728,6 +729,29 @@ function auditPill(reg) {
   }
 }
 
+/* Calcula atraso da entrada vs. horario_inicio do funcionário + tolerância.
+   Retorna minutos de atraso (>0) ou null se não há como calcular / não atrasou. */
+function minutosAtraso(func, entradaReg) {
+  if (!func?.horario_inicio || !entradaReg?.registrado_em) return null;
+  const [hh, mm] = func.horario_inicio.split(':').map(Number);
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+
+  const real = new Date(entradaReg.registrado_em);
+  const esperado = new Date(real);
+  esperado.setHours(hh, mm, 0, 0);
+
+  const diffMin = Math.round((real - esperado) / 60000);
+  if (diffMin > toleranciaAtrasoMin) return diffMin;
+  return null;
+}
+
+/* Pill de atraso para a célula de Entrada */
+function atrasoPill(func, entradaReg) {
+  const min = minutosAtraso(func, entradaReg);
+  if (min == null) return '';
+  return ` <span class="audit-pill danger" title="Horário previsto: ${escapeHtml(func.horario_inicio.slice(0,5))} · tolerância ${toleranciaAtrasoMin}min">⏰ Atrasado ${min}min</span>`;
+}
+
 /* Botão pequeno de editar batida (✏️) */
 function editBtn(reg) {
   if (!reg) return '';
@@ -813,7 +837,7 @@ function renderTable() {
           </div>
         </td>
         <td data-label="Entrada">
-          <span class="hora-cell ${hasEnt ? 'has' : 'dash'}">${horaEnt}</span>${auditPill(row.entrada)}${editBtn(row.entrada)}
+          <span class="hora-cell ${hasEnt ? 'has' : 'dash'}">${horaEnt}</span>${auditPill(row.entrada)}${atrasoPill(f, row.entrada)}${editBtn(row.entrada)}
         </td>
         <td data-label="Saída">
           <span class="hora-cell ${hasSai ? 'has' : 'dash'}">${horaSai}</span>${auditPill(row.saida)}${editBtn(row.saida)}
@@ -860,7 +884,7 @@ async function loadData() {
 
   const [resFuncs, resReg] = await Promise.all([
     sb.from('funcionarios')
-      .select('id, nome, cargo, turno, ativo, condominio_id')
+      .select('id, nome, cargo, turno, ativo, condominio_id, horario_inicio')
       .eq('ativo', true)
       .order('nome', { ascending: true }),
     sb.from('registros_ponto')
@@ -1730,6 +1754,15 @@ document.getElementById('inp-date').addEventListener('change', loadData);
   window.staflowApp.renderSidebar('sidebar');
   profile = await window.staflowApp.bootstrapShell({ route: 'ponto' });
   if (!profile) return;
+
+  // Carrega tolerância de atraso configurada (Configurações → default 10min)
+  try {
+    const { data } = await sb.from('condominios')
+      .select('tolerancia_atraso_min')
+      .eq('id', getCondoId())
+      .maybeSingle();
+    if (data?.tolerancia_atraso_min != null) toleranciaAtrasoMin = data.tolerancia_atraso_min;
+  } catch (_) { /* mantém default 10 */ }
 
   // Define data padrão = hoje e carrega os dados
   document.getElementById('inp-date').value = todayISO();
