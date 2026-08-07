@@ -73,18 +73,16 @@ class SubAgentTool(BaseTool):
         "Input: JSON com 'role' (papel), 'goal' (objetivo) e 'task' (tarefa detalhada)."
     )
 
-    def _run(self, data: str) -> str:
+    def _run(self, role: str, goal: str, task: str) -> str:
         from crewai import Agent, Task, Crew, Process
         from .config import haiku
 
         try:
-            payload = json.loads(data) if isinstance(data, str) else data
-
             sub_agent = Agent(
-                role=payload["role"],
-                goal=payload["goal"],
+                role=role,
+                goal=goal,
                 backstory=(
-                    f"Você é um sub-agente especializado criado para: {payload['goal']}. "
+                    f"Você é um sub-agente especializado criado para: {goal}. "
                     "Execute com precisão e retorne um resultado detalhado e acionável."
                 ),
                 llm=haiku,
@@ -93,7 +91,7 @@ class SubAgentTool(BaseTool):
             )
 
             sub_task = Task(
-                description=payload["task"],
+                description=task,
                 expected_output="Resultado detalhado e acionável da tarefa especializada.",
                 agent=sub_agent,
             )
@@ -107,7 +105,7 @@ class SubAgentTool(BaseTool):
             )
 
             result = sub_crew.kickoff()
-            return f"Sub-agente '{payload['role']}' concluiu:\n{str(result)}"
+            return f"Sub-agente '{role}' concluiu:\n{str(result)}"
         except Exception as e:
             return f"Erro ao criar sub-agente: {e}"
 
@@ -148,15 +146,20 @@ class SupabaseWriteTool(BaseTool):
     name: str = "supabase_write_agent_run"
     description: str = (
         "Salva o resultado de uma execução do agente no Supabase (tabela agent_runs). "
-        "Input: JSON com agent_name, output_summary, output_completo."
+        "Parâmetros: agent_name (nome do agente), output_summary (resumo curto), "
+        "output_completo (output completo em texto)."
     )
 
-    def _run(self, data: str) -> str:
+    def _run(self, agent_name: str, output_summary: str, output_completo: str = "") -> str:
         sb = create_client(SUPABASE_URL, SUPABASE_KEY)
         try:
-            payload = json.loads(data) if isinstance(data, str) else data
-            payload["created_at"] = datetime.datetime.utcnow().isoformat()
-            payload["status"]     = "pending"
+            payload = {
+                "agent_name":      agent_name,
+                "output_summary":  output_summary,
+                "output_completo": output_completo,
+                "created_at":      datetime.datetime.utcnow().isoformat(),
+                "status":          "pending",
+            }
             res = sb.table("agent_runs").insert(payload).execute()
             return f"Salvo com ID: {res.data[0]['id']}"
         except Exception as e:
@@ -214,23 +217,25 @@ class GitHubPRTool(BaseTool):
     name: str = "create_github_pr"
     description: str = (
         "Cria um Pull Request no GitHub com mudanças de código propostas. "
-        "Input: JSON com 'title', 'body' (descrição), 'files' (dict filename→content), "
-        "'branch' (nome do branch)."
+        "Parâmetros: title (título do PR), body (descrição do que muda e como testar), "
+        "branch (nome do branch, ex: agent/auto-2026-08-07-nome), "
+        "files (JSON string com dict filename→content dos arquivos a criar/atualizar)."
     )
 
-    def _run(self, data: str) -> str:
+    def _run(self, title: str, body: str, branch: str = "", files: str = "{}") -> str:
         if not GITHUB_TOKEN:
             return "GITHUB_TOKEN não configurado — PR não criado."
         try:
-            payload  = json.loads(data) if isinstance(data, str) else data
-            g        = Github(GITHUB_TOKEN)
-            repo     = g.get_repo(GITHUB_REPO)
-            main_sha = repo.get_branch("main").commit.sha
+            files_dict = json.loads(files) if isinstance(files, str) else files
+            g          = Github(GITHUB_TOKEN)
+            repo       = g.get_repo(GITHUB_REPO)
+            main_sha   = repo.get_branch("main").commit.sha
 
-            branch = payload.get("branch", f"agent/auto-{datetime.date.today().isoformat()}")
+            if not branch:
+                branch = f"agent/auto-{datetime.date.today().isoformat()}"
             repo.create_git_ref(ref=f"refs/heads/{branch}", sha=main_sha)
 
-            for filename, content in payload.get("files", {}).items():
+            for filename, content in files_dict.items():
                 try:
                     existing = repo.get_contents(filename, ref=branch)
                     repo.update_file(filename, f"agent: update {filename}", content, existing.sha, branch=branch)
@@ -238,8 +243,8 @@ class GitHubPRTool(BaseTool):
                     repo.create_file(filename, f"agent: create {filename}", content, branch=branch)
 
             pr = repo.create_pull(
-                title=payload["title"],
-                body=payload["body"],
+                title=title,
+                body=body,
                 head=branch,
                 base="main",
             )
@@ -254,24 +259,23 @@ class NotifyTool(BaseTool):
     name: str = "notify_breno"
     description: str = (
         "Envia email de notificação para o Breno via Resend. "
-        "Input: JSON com 'subject' e 'html_body'."
+        "Parâmetros: subject (assunto do email), html_body (corpo em HTML)."
     )
 
-    def _run(self, data: str) -> str:
+    def _run(self, subject: str, html_body: str) -> str:
         resend_key   = os.environ.get("RESEND_API_KEY", "")
         notify_email = os.environ.get("NOTIFY_EMAIL", "brenomackenzie777@gmail.com")
         if not resend_key:
             return "RESEND_API_KEY não configurado — email não enviado."
         try:
-            payload = json.loads(data) if isinstance(data, str) else data
             httpx.post(
                 "https://api.resend.com/emails",
                 headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
                 json={
                     "from":    "agentes@staflow.app.br",
                     "to":      [notify_email],
-                    "subject": payload["subject"],
-                    "html":    payload["html_body"],
+                    "subject": subject,
+                    "html":    html_body,
                 },
                 timeout=10,
             )
