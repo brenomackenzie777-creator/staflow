@@ -663,6 +663,143 @@ tr.sk-row .sk-text-block {
   .kpi-grid { grid-template-columns: 1fr !important; }
 }
 
+/* ============================================================
+   MODO APP — Painel do síndico no celular
+   ------------------------------------------------------------
+   Transforma o painel (que é um layout desktop com sidebar) numa
+   experiência de aplicativo quando aberto no celular: barra
+   superior fixa, navegação inferior por abas, respeito ao notch.
+   Tudo abaixo de 768px. No desktop nada disso aparece.
+   ============================================================ */
+
+/* Elementos são injetados por app-shell.js — escondidos por padrão
+   (desktop) e revelados apenas no breakpoint mobile. */
+.mobile-appbar,
+.mobile-tabbar { display: none; }
+
+@media (max-width: 768px) {
+
+  /* ── Barra superior fixa ── */
+  .mobile-appbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 80;
+    padding: 10px 14px;
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
+    background: rgba(17, 24, 39, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .mobile-appbar .mab-menu {
+    background: transparent;
+    border: none;
+    color: var(--white);
+    font-size: 22px;
+    line-height: 1;
+    padding: 6px;
+    margin: -6px;
+    cursor: pointer;
+    min-width: 44px; min-height: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-appbar .mab-brand {
+    font-family: var(--font-display);
+    font-size: 16px; font-weight: 800;
+    letter-spacing: 0.5px;
+  }
+  .mobile-appbar .mab-brand .sta  { color: var(--white); }
+  .mobile-appbar .mab-brand .flow { color: var(--teal); }
+  .mobile-appbar .mab-spacer { flex: 1; }
+  .mobile-appbar .mab-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--navy-brand);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 800; font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  /* O hambúrguer solto de cada página vira redundante — a barra fixa
+     já tem o dela. Escondemos sem quebrar os handlers existentes. */
+  .menu-toggle { display: none !important; }
+
+  /* ── Navegação inferior por abas ── */
+  .mobile-tabbar {
+    display: flex;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 85;
+    background: rgba(17, 24, 39, 0.94);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mobile-tabbar a,
+  .mobile-tabbar button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 8px 2px 7px;
+    min-height: 52px;
+    background: transparent;
+    border: none;
+    color: var(--white-muted);
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color .18s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-tabbar .ico { font-size: 18px; line-height: 1; }
+  .mobile-tabbar a.active,
+  .mobile-tabbar button.active { color: var(--teal); }
+  .mobile-tabbar a:active,
+  .mobile-tabbar button:active { opacity: 0.6; }
+
+  /* Espaço pro conteúdo não ficar embaixo da barra inferior */
+  .main { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+
+  /* Toast sobe pra não colidir com a navegação inferior */
+  .toast { bottom: calc(74px + env(safe-area-inset-bottom, 0px)); }
+
+  /* Sensação de app: sem realce azul de toque, rolagem com inércia */
+  body {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Sidebar (drawer) começa abaixo da barra fixa e respeita o notch */
+  .sidebar { padding-top: calc(22px + env(safe-area-inset-top, 0px)); }
+
+  /* Switcher de condomínio ocupa a largura toda no celular */
+  .condo-switcher {
+    display: flex !important;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .condo-switcher select { flex: 1; max-width: none !important; }
+}
+
+/* Quando instalado na tela inicial (modo standalone), some com o que
+   lembra navegador e firma a sensação de app. */
+@media (display-mode: standalone) {
+  .mobile-appbar { border-bottom-color: transparent; }
+}
+
 /* ── Disclaimer MTE 671 (ponto.html, faltas.html) ── */
 .disclaimer-mte {
   color: var(--white-muted);

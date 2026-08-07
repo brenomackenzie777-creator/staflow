@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "name": "StaFlow — Painel do Síndico",
+  "short_name": "StaFlow Síndico",
+  "description": "Gerencie ponto, faltas, tarefas e equipe do seu condomínio direto do celular.",
+  "id": "/dashboard",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#111827",
+  "background_color": "#111827",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/assets/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ponto de hoje",
+      "short_name": "Ponto",
+      "description": "Abre direto no registro de ponto da equipe",
+      "url": "/ponto",
+      "icons": [{ "src": "/assets/logo-mark.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Funcionários",
+      "short_name": "Equipe",
+      "description": "Abre direto na lista de funcionários",
+      "url": "/funcionarios",
+      "icons": [{ "src": "/assets/logo-mark.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}

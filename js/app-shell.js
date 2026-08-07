@@ -182,6 +182,9 @@ window.staflowApp = window.staflowApp || {};
     // 5b. ★ MULTI-CNPJ — monta o switcher de condomínios no topo
     renderCondoSwitcher(condominios || [], condominioAtualId);
 
+    // 5c. ★ MODO APP — barra superior fixa + navegação inferior (só celular)
+    renderMobileShell(route, profile);
+
     // 5. Highlight do link ativo
     document.querySelectorAll('.sb-link').forEach(a => {
       a.classList.toggle('active', a.dataset.route === route);
@@ -210,9 +213,17 @@ window.staflowApp = window.staflowApp || {};
     }
 
     // 8. Mobile drawer + backdrop
-    const tgl = document.getElementById('menu-toggle');
-    const sb  = document.getElementById('sidebar');
-    if (tgl && sb) {
+    //    Três gatilhos abrem o mesmo drawer: o hambúrguer legado de cada
+    //    página, o da barra superior fixa e o botão "Mais" da navegação
+    //    inferior (onde vivem Faltas e Configurações).
+    const sb = document.getElementById('sidebar');
+    const gatilhos = [
+      document.getElementById('menu-toggle'),
+      document.getElementById('mab-menu'),
+      document.getElementById('tabbar-mais')
+    ].filter(Boolean);
+
+    if (sb && gatilhos.length) {
       // Cria backdrop sob demanda
       let bd = document.querySelector('.sidebar-backdrop');
       if (!bd) {
@@ -224,10 +235,10 @@ window.staflowApp = window.staflowApp || {};
         sb.classList.remove('open');
         bd.classList.remove('show');
       };
-      tgl.addEventListener('click', () => {
+      gatilhos.forEach(t => t.addEventListener('click', () => {
         const open = sb.classList.toggle('open');
         bd.classList.toggle('show', open);
-      });
+      }));
       bd.addEventListener('click', closeDrawer);
       // Fecha ao navegar dentro do drawer
       sb.querySelectorAll('a.sb-link').forEach(a => a.addEventListener('click', closeDrawer));
@@ -328,6 +339,62 @@ window.staflowApp = window.staflowApp || {};
   function escapeHtml(s) {
     return String(s || '').replace(/[&<>"']/g,
       c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  // ---------- MODO APP (celular) ----------
+  // Injeta barra superior fixa + navegação inferior por abas. No desktop
+  // o CSS mantém os dois escondidos, então isso é inócuo lá.
+  // Idempotente: se já existe, só atualiza o estado ativo.
+  const TABBAR_ITENS = [
+    { route: 'dashboard',    href: '/dashboard.html',    ico: '▦', label: 'Início'  },
+    { route: 'ponto',        href: '/ponto.html',        ico: '●', label: 'Ponto'   },
+    { route: 'tarefas',      href: '/tarefas.html',      ico: '✓', label: 'Tarefas' },
+    { route: 'funcionarios', href: '/funcionarios.html', ico: '◐', label: 'Equipe'  }
+  ];
+
+  function renderMobileShell(route, profile) {
+    // ── Barra superior ──
+    let appbar = document.getElementById('mobile-appbar');
+    if (!appbar) {
+      appbar = document.createElement('header');
+      appbar.id = 'mobile-appbar';
+      appbar.className = 'mobile-appbar';
+      appbar.innerHTML = `
+        <button class="mab-menu" id="mab-menu" aria-label="Abrir menu">☰</button>
+        <div class="mab-brand"><span class="sta">STA</span><span class="flow">FLOW</span></div>
+        <div class="mab-spacer"></div>
+        <div class="mab-avatar" id="mab-avatar">—</div>
+      `;
+      document.body.insertBefore(appbar, document.body.firstChild);
+    }
+    const mabAvatar = document.getElementById('mab-avatar');
+    if (mabAvatar) mabAvatar.textContent = iniciais(profile?.full_name);
+
+    // ── Navegação inferior ──
+    let tabbar = document.getElementById('mobile-tabbar');
+    if (!tabbar) {
+      tabbar = document.createElement('nav');
+      tabbar.id = 'mobile-tabbar';
+      tabbar.className = 'mobile-tabbar';
+      tabbar.innerHTML = TABBAR_ITENS.map(i => `
+        <a href="${i.href}" data-route="${i.route}">
+          <span class="ico">${i.ico}</span><span>${i.label}</span>
+        </a>
+      `).join('') + `
+        <button type="button" id="tabbar-mais" aria-label="Mais opções">
+          <span class="ico">⋯</span><span>Mais</span>
+        </button>
+      `;
+      document.body.appendChild(tabbar);
+    }
+    // Marca a aba ativa (rotas fora da barra — faltas, configurações —
+    // acendem o "Mais", que é onde elas vivem no drawer)
+    const naBarra = TABBAR_ITENS.some(i => i.route === route);
+    tabbar.querySelectorAll('a').forEach(a => {
+      a.classList.toggle('active', a.dataset.route === route);
+    });
+    const btnMais = document.getElementById('tabbar-mais');
+    if (btnMais) btnMais.classList.toggle('active', !naBarra);
   }
 
   // ---------- HTML do Sidebar (injetado para evitar duplicação) ----------
