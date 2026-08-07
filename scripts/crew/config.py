@@ -5,12 +5,12 @@ import os
 from crewai import LLM
 
 # ─── LLM ─────────────────────────────────────────────────────────
-# Groq llama-3.3-70b — free tier, OpenAI-compatível, confirmado funcional
+# Groq llama-3.1-8b-instant — free tier 500k tokens/dia (vs 100k do 70b)
 haiku = LLM(
-    model="openai/llama-3.3-70b-versatile",
+    model="openai/llama-3.1-8b-instant",
     api_key=os.environ["GROQ_API_KEY"],
     base_url="https://api.groq.com/openai/v1",
-    max_tokens=1500,
+    max_tokens=1200,
     temperature=0.3,
 )
 

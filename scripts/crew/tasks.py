@@ -12,8 +12,7 @@ tarefa_coletar = Task(
     description=(
         "1. Use read_memory para ler o CLAUDE.md completo e entender o histórico.\n"
         "2. Use supabase_metrics para coletar dados atuais: usuários, assinaturas, feedbacks.\n"
-        "3. Compare: estamos crescendo em relação ao ciclo anterior?\n"
-        "4. Se precisar de análise mais profunda, use create_sub_agent."
+        "3. Compare: estamos crescendo em relação ao ciclo anterior?"
     ),
     expected_output=(
         "Relatório com: (a) contexto histórico resumido, "
@@ -30,7 +29,7 @@ tarefa_pesquisar = Task(
         "1. Baseada na prioridade do ciclo anterior\n"
         "2. 'software controle presença condomínio Brasil 2026'\n"
         "3. 'síndico profissional app tendências'\n"
-        "Não repita queries de ciclos anteriores. Use create_sub_agent se necessário."
+        "Não repita queries de ciclos anteriores."
     ),
     expected_output=(
         "Relatório com: (a) achados principais por query, "

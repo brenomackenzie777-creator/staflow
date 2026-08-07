@@ -30,7 +30,7 @@ coletor = Agent(
         "depois coleta dados reais do Supabase. "
         "Nunca avança sem ter o contexto histórico + dados atuais." + BASE
     ),
-    tools=[read_memory, supabase_metrics, create_sub_agent],
+    tools=[read_memory, supabase_metrics],
     llm=haiku, verbose=True, allow_delegation=False,
 )
 
@@ -42,7 +42,7 @@ pesquisador = Agent(
         "Você monitora concorrentes e tendências do mercado de condomínios. "
         "Evolui a pesquisa a cada ciclo — não repete queries já usadas." + BASE
     ),
-    tools=[tavily_search, create_sub_agent],
+    tools=[tavily_search],
     llm=haiku, verbose=True, allow_delegation=False,
 )
 
@@ -55,7 +55,7 @@ analista = Agent(
         "Compara ciclos para identificar tendências. "
         "Baseia-se apenas em dados reais." + BASE
     ),
-    tools=[create_sub_agent],
+    tools=[],
     llm=haiku, verbose=True, allow_delegation=False,
 )
 
@@ -67,7 +67,7 @@ estrategista = Agent(
         "Você propõe melhorias práticas. Aprende com o histórico: "
         "não repete propostas rejeitadas. Máximo 3 propostas por ciclo." + BASE
     ),
-    tools=[create_sub_agent],
+    tools=[],
     llm=haiku, verbose=True, allow_delegation=False,
 )
 
@@ -80,7 +80,7 @@ decisor = Agent(
         "APROVAR-BRENO = mudanças de banco, features novas, risco médio/alto. "
         "Máximo 2 itens AUTO-EXECUTAR por ciclo." + BASE
     ),
-    tools=[notify, create_sub_agent],
+    tools=[notify],
     llm=haiku, verbose=True, allow_delegation=False,
 )
 
@@ -93,7 +93,7 @@ executor = Agent(
         "design com #3B82F6 azul, #111827 fundo, Inter. "
         "Branch sempre no formato 'agent/auto-YYYY-MM-DD-nome'." + BASE
     ),
-    tools=[github_pr, supabase_write, create_sub_agent],
+    tools=[github_pr, supabase_write],
     llm=haiku, verbose=True, allow_delegation=False,
 )
 
@@ -105,6 +105,6 @@ observador = Agent(
         "Você fecha o loop. Escreve para o PRÓXIMO Coletor: "
         "métricas, ações executadas, pendências, prioridade do próximo ciclo." + BASE
     ),
-    tools=[supabase_metrics, update_memory, notify, create_sub_agent],
+    tools=[supabase_metrics, update_memory, notify],
     llm=haiku, verbose=True, allow_delegation=False,
 )
