@@ -6,8 +6,8 @@ from crewai import LLM
 
 # ─── LLM ─────────────────────────────────────────────────────────
 haiku = LLM(
-    model="claude-haiku-4-5-20251001",
-    api_key=os.environ["ANTHROPIC_API_KEY"],
+    model="groq/llama-3.1-70b-versatile",
+    api_key=os.environ["GROQ_API_KEY"],
     max_tokens=4096,
     temperature=0.3,
 )
