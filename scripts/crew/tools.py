@@ -23,7 +23,7 @@ class ReadMemoryTool(BaseTool):
         "o que foi tentado antes, o que funcionou e as prioridades do próximo ciclo."
     )
 
-    def _run(self) -> str:
+    def _run(self, input: str = "") -> str:
         claude_md = os.path.join(os.path.dirname(__file__), "..", "..", "CLAUDE.md")
         try:
             with open(claude_md, "r", encoding="utf-8") as f:
@@ -121,7 +121,7 @@ class SupabaseMetricsTool(BaseTool):
         "feedbacks, conversão. Use para coletar dados antes de analisar."
     )
 
-    def _run(self) -> str:
+    def _run(self, input: str = "") -> str:
         sb = create_client(SUPABASE_URL, SUPABASE_KEY)
         try:
             usuarios     = sb.table("profiles").select("id,created_at,role", count="exact").execute()
@@ -167,7 +167,7 @@ class SupabaseSmokeTestTool(BaseTool):
     name: str = "smoke_tests"
     description: str = "Roda smoke tests HTTP em produção e retorna status de cada página."
 
-    def _run(self) -> str:
+    def _run(self, input: str = "") -> str:
         paginas = [
             "/", "/staflow-landing.html", "/auth/login.html",
             "/auth/cadastro.html", "/planos.html", "/dashboard.html",
