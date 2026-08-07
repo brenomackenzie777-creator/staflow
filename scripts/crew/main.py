@@ -124,6 +124,29 @@ def executar_loop():
                 )
                 sys.exit(1)
 
+            # Cota DIÁRIA esgotada: esperar minutos não resolve, só vira o dia.
+            if "tokens per day" in msg or "TPD" in msg:
+                log.error(
+                    "Cota diária de IA esgotada (100.000 tokens/dia do plano "
+                    "gratuito). O ciclo roda normalmente amanhã. Para rodar "
+                    "mais vezes por dia, é preciso o plano pago do Groq."
+                )
+                sys.exit(1)
+
+            # Chamada de ferramenta malformada pelo modelo. É falha de geração,
+            # não de código — outra tentativa normalmente sai correta.
+            if "tool_use_failed" in msg or "Failed to call a function" in msg:
+                if tentativa < MAX_RETRIES:
+                    log.warning("O modelo gerou uma chamada de ferramenta "
+                                "inválida (tentativa %d/%d). Refazendo em 10s.",
+                                tentativa, MAX_RETRIES)
+                    time.sleep(10)
+                    crew = montar_crew(loop_key)   # conversa limpa
+                    continue
+                log.error("O modelo falhou em chamar as ferramentas "
+                          "corretamente após %d tentativas.", MAX_RETRIES)
+                sys.exit(1)
+
             if "429" in msg or "rate_limit" in msg.lower() or "RESOURCE_EXHAUSTED" in msg:
                 if tentativa < MAX_RETRIES:
                     log.warning("Limite da IA atingido (tentativa %d/%d). "
