@@ -27,6 +27,10 @@ read_memory       = ReadMemoryTool()
 supabase_feedback = SupabaseFeedbackTool()
 read_prompts      = ReadPromptsTool()
 
+# Log verboso do CrewAI estoura o limite de 500 linhas/seg do Railway.
+# Ligue com VERBOSE=1 só quando precisar depurar.
+VERBOSE = os.environ.get("VERBOSE", "").strip() in ("1", "true", "True")
+
 PROMPTS_DIR = os.path.join(os.path.dirname(__file__), "prompts")
 BASE = f"\n\nProduto:\n{PRODUCT_CONTEXT}\n\nRegra: use apenas dados reais. Nunca invente métricas."
 
@@ -47,7 +51,7 @@ def _build_agent(prompts: dict, key: str, tools: list) -> Agent:
         backstory=p["backstory"] + BASE,
         tools=tools,
         llm=haiku,
-        verbose=True,
+        verbose=VERBOSE,
         allow_delegation=False,
     )
 
@@ -82,7 +86,7 @@ def build_meta_agent() -> Agent:
         backstory=p["backstory"] + BASE,
         tools=[read_memory, supabase_feedback, read_prompts, github_pr],
         llm=haiku,
-        verbose=True,
+        verbose=VERBOSE,
         allow_delegation=False,
     )
 
@@ -96,6 +100,6 @@ def build_meta_relator() -> Agent:
         backstory=p["backstory"] + BASE,
         tools=[read_memory, supabase_metrics, notify],
         llm=haiku,
-        verbose=True,
+        verbose=VERBOSE,
         allow_delegation=False,
     )
