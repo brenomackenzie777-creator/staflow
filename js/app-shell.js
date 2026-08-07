@@ -109,12 +109,49 @@ window.staflowApp = window.staflowApp || {};
   // window.staflowGuard.executarRoteamentoSeguro (tronco superior de
   // roteamento). bootstrapShell só faz a parte VISUAL e de DOM depois
   // que o guard autoriza.
+  // Nenhuma chamada de rede aqui tinha timeout — se uma trava (cold start,
+  // rede instável, RLS travando uma RPC), a página inteira fica presa na
+  // splash pra sempre, sem erro nenhum pro usuário. Isso resolve.
+  function withTimeout(promise, ms, label) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT:' + label)), ms)
+      ),
+    ]);
+  }
+
+  function mostrarErroBoot(motivo) {
+    hideSplash();
+    const main = document.querySelector('.main') || document.body;
+    const box = document.createElement('div');
+    box.style.cssText = 'max-width:420px;margin:15vh auto;text-align:center;padding:24px;';
+    box.innerHTML = `
+      <h2 style="margin-bottom:8px;">Não conseguimos carregar essa página</h2>
+      <p style="opacity:.75;margin-bottom:16px;">
+        A conexão demorou demais pra responder. Isso costuma ser algo
+        temporário — tente de novo.
+      </p>
+      <button id="btn-retry-boot" class="btn-primary" style="padding:10px 20px;border-radius:8px;cursor:pointer;">
+        Tentar de novo
+      </button>`;
+    main.prepend(box);
+    document.getElementById('btn-retry-boot')?.addEventListener('click', () => location.reload());
+    console.error('[bootstrapShell] falhou:', motivo);
+  }
+
   async function bootstrapShell(opts = {}) {
     const route = opts.route || 'dashboard';
+    let sessao;
 
     // 1. Carrega sessão completa: user + claim + profile + subscription + condominios
-    const { user, profile, subscription, claimed, condominios, condominioAtualId } =
-      await window.staflowAuth.loadFullSession();
+    try {
+      sessao = await withTimeout(window.staflowAuth.loadFullSession(), 12000, 'loadFullSession');
+    } catch (e) {
+      mostrarErroBoot(e.message);
+      return null;
+    }
+    const { user, profile, subscription, claimed, condominios, condominioAtualId } = sessao;
 
     // 2. Se o claim vinculou, limpa a flag de pending (cadastro como colab)
     if (claimed) window.staflowGuard.limparPendingColabClaim();
@@ -129,9 +166,10 @@ window.staflowApp = window.staflowApp || {};
 
     // 4. Daqui pra baixo: sindico/admin autorizado em página admin.
     //    Garante condomínio vinculado (síndico recém-criado pode não ter).
+    //    Best-effort: nunca deve travar o boot, só tem um teto de espera.
     try {
-      await window.staflowSupabase.rpc('ensure_condominio');
-    } catch (_) { /* silencioso */ }
+      await withTimeout(window.staflowSupabase.rpc('ensure_condominio'), 6000, 'ensure_condominio');
+    } catch (_) { /* silencioso — best-effort, segue o boot normalmente */ }
 
     // 5. Preencher sidebar
     const elName   = document.getElementById('u-name');

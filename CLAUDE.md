@@ -8,6 +8,12 @@
 - **URL produção:** https://staflow.app.br
 - **Stack:** HTML/CSS/JS estático + Supabase + Stripe LIVE + Vercel
 - **Status:** Em produção com usuários reais
+- **Mercado e concorrência:** ver `mercado-concorrencia.md` (pesquisa breve de
+  07/08/2026 — 327 mil condomínios ativos no Brasil, dois tipos de concorrente:
+  ERPs condominiais completos como Superlógica/TownSq/MyCond, e SaaS de ponto
+  genérico como Ahgora/Tangerino/Pontotel. StaFlow é nicho: ponto feito
+  especificamente pra condomínio, preço mais simples e direto). Os agentes de
+  marketing e financeiro têm a ferramenta `read_market_context` pra ler isso.
 
 ## Planos e Preços (DEFINITIVOS — não alterar)
 | Plano     | Mensal    | Funcionários |

@@ -918,11 +918,11 @@ document.getElementById('btn-export').addEventListener('click', () => {
     });
   }
 }
-</script>
-<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
-</body>
-</html>
-file = await window.staflowApp.bootstrapShell({ route: 'faltas' });
+
+// ── Boot ─────────────────────────────────────────────────────────
+(async () => {
+  window.staflowApp.renderSidebar('sidebar');
+  profile = await window.staflowApp.bootstrapShell({ route: 'faltas' });
   if (!profile) return;
 
   // Define mês padrão = atual

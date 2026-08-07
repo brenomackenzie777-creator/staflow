@@ -25,6 +25,30 @@ from .config import (
 # memória cresce e derruba o ciclo com erro 413.
 LIMITE_MEMORIA = 6000     # caracteres do CLAUDE.md
 LIMITE_PROMPTS = 4000     # caracteres do dump de prompts
+LIMITE_MERCADO = 4000     # caracteres do doc de mercado/concorrência
+
+
+class ReadMarketContextTool(BaseTool):
+    name: str = "read_market_context"
+    description: str = (
+        "Lê o resumo de mercado e concorrência do StaFlow "
+        "(mercado-concorrencia.md) — tamanho do mercado, concorrentes "
+        "diretos e indiretos, posicionamento de preço. Use antes de propor "
+        "estratégia de marketing, posicionamento ou análise financeira "
+        "que dependa de contexto competitivo."
+    )
+
+    def _run(self, input: str = "") -> str:
+        path = os.path.join(os.path.dirname(__file__), "..", "..",
+                             "mercado-concorrencia.md")
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                texto = f.read()
+            if len(texto) <= LIMITE_MERCADO:
+                return texto
+            return texto[:LIMITE_MERCADO] + "\n\n[...documento truncado...]"
+        except Exception as e:
+            return f"Sem doc de mercado disponível: {e}"
 
 
 class ReadMemoryTool(BaseTool):
