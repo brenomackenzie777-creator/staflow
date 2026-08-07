@@ -2,11 +2,9 @@
 StaFlow — Orquestrador principal do loop autoevolutivo
 ======================================================
 Uso: python -m scripts.crew.main
-
-Este script monta e executa a Crew completa dos 7 agentes em sequência.
-Cada agente recebe o output do anterior como contexto.
 """
 import sys
+import time
 import datetime
 from crewai import Crew, Process
 
@@ -18,6 +16,9 @@ from .tasks import (
     tarefa_coletar, tarefa_pesquisar, tarefa_analisar,
     tarefa_propor, tarefa_decidir, tarefa_executar, tarefa_aprender,
 )
+
+MAX_RETRIES = 3
+RETRY_WAIT  = 90   # segundos de espera após rate limit
 
 
 def executar_loop():
@@ -45,19 +46,33 @@ def executar_loop():
             tarefa_executar,
             tarefa_aprender,
         ],
-        process=Process.sequential,   # Um agente por vez, em ordem
+        process=Process.sequential,
         verbose=True,
-        memory=False,                 # Memória gerenciada via CLAUDE.md + context das tasks
+        memory=False,
     )
 
-    resultado = crew.kickoff()
+    for tentativa in range(1, MAX_RETRIES + 1):
+        try:
+            resultado = crew.kickoff()
+            print("\n" + "="*60)
+            print("  Loop concluído com sucesso!")
+            print(f"  Fim: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            print("="*60 + "\n")
+            return resultado
 
-    print("\n" + "="*60)
-    print("  Loop concluído com sucesso!")
-    print(f"  Fim: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("="*60 + "\n")
-
-    return resultado
+        except Exception as e:
+            msg = str(e)
+            if "429" in msg or "rate_limit" in msg.lower():
+                if tentativa < MAX_RETRIES:
+                    print(f"\n[RATE LIMIT] Tentativa {tentativa}/{MAX_RETRIES}. "
+                          f"Aguardando {RETRY_WAIT}s...\n")
+                    time.sleep(RETRY_WAIT)
+                else:
+                    print(f"\n[RATE LIMIT] Esgotadas as {MAX_RETRIES} tentativas. "
+                          "Tente novamente amanhã ou atualize o plano do LLM.")
+                    sys.exit(1)
+            else:
+                raise
 
 
 if __name__ == "__main__":

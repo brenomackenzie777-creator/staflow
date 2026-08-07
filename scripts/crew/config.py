@@ -5,18 +5,19 @@ import os
 from crewai import LLM
 
 # ─── LLM ─────────────────────────────────────────────────────────
+# Gemini 2.0 Flash Lite — 1 M tokens/dia grátis (vs 100k do Groq)
 haiku = LLM(
-    model="openai/llama-3.3-70b-versatile",
-    api_key=os.environ["GROQ_API_KEY"],
-    base_url="https://api.groq.com/openai/v1",
-    max_tokens=4096,
+    model="openai/gemini-2.0-flash-lite",
+    api_key=os.environ["GOOGLE_API_KEY"],
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    max_tokens=2048,
     temperature=0.3,
 )
 
 # ─── Variáveis de ambiente ────────────────────────────────────────
 SUPABASE_URL        = os.environ["SUPABASE_URL"]
 SUPABASE_KEY        = os.environ["SUPABASE_SERVICE_KEY"]
-TAVILY_API_KEY      = os.environ["TAVILY_API_KEY"]
+TAVILY_API_KEY      = os.environ.get("TAVILY_API_KEY", "")
 GITHUB_TOKEN        = os.environ.get("GITHUB_TOKEN", "")
 GITHUB_REPO         = os.environ.get("GITHUB_REPOSITORY", "brenomackenzie777-creator/staflow")
 NOTIFY_EMAIL        = os.environ.get("NOTIFY_EMAIL", "brenomackenzie777@gmail.com")
