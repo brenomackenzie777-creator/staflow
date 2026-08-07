@@ -535,12 +535,14 @@ tr.sk-row .sk-text-block {
 }
 .menu-toggle:hover { border-color: var(--teal); color: var(--teal); }
 
-/* Backdrop do drawer */
+/* Backdrop do drawer — escurece o fundo sem desfocar.
+   O blur foi removido de propósito: no celular ele deixava a tela
+   com aparência "suja"/embaçada e ainda pesa no desempenho de
+   aparelhos mais simples. Escurecer basta pra dar foco na gaveta. */
 .sidebar-backdrop {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(2px);
-  z-index: 90;
+  background: rgba(0,0,0,0.6);
+  z-index: 95;
   opacity: 0;
   pointer-events: none;
   transition: opacity .25s ease;
@@ -673,9 +675,12 @@ tr.sk-row .sk-text-block {
    ============================================================ */
 
 /* Elementos são injetados por app-shell.js — escondidos por padrão
-   (desktop) e revelados apenas no breakpoint mobile. */
+   (desktop) e revelados apenas no breakpoint mobile.
+   O .mab-user-menu precisa estar aqui também: sem isso ele vazaria
+   como um bloco solto no rodapé da versão desktop. */
 .mobile-appbar,
-.mobile-tabbar { display: none; }
+.mobile-tabbar,
+.mab-user-menu { display: none; }
 
 @media (max-width: 768px) {
 
@@ -689,9 +694,9 @@ tr.sk-row .sk-text-block {
     z-index: 80;
     padding: 10px 14px;
     padding-top: calc(10px + env(safe-area-inset-top, 0px));
-    background: rgba(17, 24, 39, 0.92);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    /* Fundo sólido — nada de transparência/desfoque: no celular isso
+       deixa o texto do conteúdo "vazando" por trás da barra. */
+    background: var(--navy-deep);
     border-bottom: 1px solid var(--border);
   }
   .mobile-appbar .mab-menu {
@@ -715,16 +720,74 @@ tr.sk-row .sk-text-block {
   .mobile-appbar .mab-brand .sta  { color: var(--white); }
   .mobile-appbar .mab-brand .flow { color: var(--teal); }
   .mobile-appbar .mab-spacer { flex: 1; }
+
+  /* Avatar tocável — abre o menu da conta (perfil, ajuda, sair) */
   .mobile-appbar .mab-avatar {
-    width: 32px; height: 32px;
+    width: 34px; height: 34px;
     border-radius: 50%;
     background: var(--navy-brand);
     color: #fff;
+    border: 1px solid var(--border-strong);
     display: inline-flex; align-items: center; justify-content: center;
     font-family: var(--font-display);
     font-weight: 800; font-size: 12px;
     flex-shrink: 0;
+    cursor: pointer;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: var(--transition);
   }
+  .mobile-appbar .mab-avatar:active { transform: scale(0.94); }
+
+  /* Menu da conta ancorado no avatar */
+  .mab-user-menu {
+    display: none;
+    position: fixed;
+    top: calc(58px + env(safe-area-inset-top, 0px));
+    right: 12px;
+    min-width: 210px;
+    background: var(--navy);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    padding: 6px;
+    box-shadow: 0 18px 44px rgba(0,0,0,0.55);
+    z-index: 120;
+  }
+  .mab-user-menu.show { display: block; }
+  .mab-user-menu .mum-head {
+    padding: 10px 12px 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 6px;
+  }
+  .mab-user-menu .mum-name {
+    font-size: 14px; font-weight: 600; color: var(--white);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mab-user-menu .mum-role {
+    font-family: var(--font-mono);
+    font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--white-muted);
+    margin-top: 2px;
+  }
+  .mab-user-menu a,
+  .mab-user-menu button {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%;
+    min-height: 44px;
+    background: none; border: none;
+    color: var(--white); font-size: 14px;
+    font-family: inherit;
+    text-align: left;
+    text-decoration: none;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mab-user-menu a:active,
+  .mab-user-menu button:active { background: rgba(240,244,255,0.07); }
+  .mab-user-menu button.danger { color: var(--red); }
+  .mab-user-menu hr { border: none; border-top: 1px solid var(--border); margin: 4px 2px; }
 
   /* O hambúrguer solto de cada página vira redundante — a barra fixa
      já tem o dela. Escondemos sem quebrar os handlers existentes. */
@@ -736,9 +799,7 @@ tr.sk-row .sk-text-block {
     position: fixed;
     left: 0; right: 0; bottom: 0;
     z-index: 85;
-    background: rgba(17, 24, 39, 0.94);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: var(--navy-deep);
     border-top: 1px solid var(--border);
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -792,6 +853,18 @@ tr.sk-row .sk-text-block {
     justify-content: flex-start;
   }
   .condo-switcher select { flex: 1; max-width: none !important; }
+
+  /* Janelas (modais) também sem desfoque no celular — só escurece.
+     No desktop o blur continua, lá ele fica bonito e não pesa. */
+  .modal-backdrop {
+    background: rgba(0,0,0,0.78);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  /* Barra inferior some quando há modal aberto, pra não competir
+     com os botões de ação da janela. */
+  body:has(.modal-backdrop.show) .mobile-tabbar { display: none; }
 }
 
 /* Quando instalado na tela inicial (modo standalone), some com o que

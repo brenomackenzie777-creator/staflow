@@ -418,18 +418,29 @@
 
 .det-empty { text-align: center; padding: 28px 0; color: var(--white-muted); font-size: 13px; }
 
+/* ── Mobile: nada é escondido, só reorganizado ─────────────────
+   Antes o resumo (Presentes/Saíram/Ausentes) sumia abaixo de 820px
+   e as colunas Saída/Total/Status sumiam abaixo de 600px — ou seja,
+   no celular o síndico perdia informação. Agora o resumo vira uma
+   grade de 2 colunas e a tabela vira cartões (app.css), onde todos
+   os campos aparecem com rótulo. ─────────────────────────────── */
 @media (max-width: 820px) {
-  .ponto-summary { display: none; }
-  .ponto-acts { gap: 4px; }
-  .ponto-btn { padding: 5px 10px; font-size: 11px; }
+  .ponto-summary {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .ponto-summary .ps-item { min-width: 0; padding: 12px 14px 13px; }
+  .ponto-summary .ps-value { font-size: 22px; }
+  .ponto-acts { gap: 6px; }
+  .ponto-btn { padding: 8px 14px; font-size: 12px; min-height: 40px; }
 }
-@media (max-width: 600px) {
-  .tbl th:nth-child(3),
-  .tbl td:nth-child(3),
-  .tbl th:nth-child(4),
-  .tbl td:nth-child(4),
-  .tbl th:nth-child(5),
-  .tbl td:nth-child(5) { display: none; }
+
+/* Em modo cartão, as ações Entrada/Saída ganham a linha inteira —
+   alvo de toque confortável no polegar. */
+@media (max-width: 640px) {
+  .ponto-acts { width: 100%; }
+  .ponto-acts .ponto-btn { flex: 1; }
 }
 </style>
 </head>
@@ -809,7 +820,9 @@ function renderTable() {
   document.getElementById('sum-saiu').textContent      = saiu;
   document.getElementById('sum-ausentes').textContent  = ausentes;
   document.getElementById('sum-total').textContent     = rows.length;
-  document.getElementById('ponto-summary').style.display = 'flex';
+  // Limpa o display inline pra que o CSS decida o formato:
+  // flex no desktop, grade de 2 colunas no celular.
+  document.getElementById('ponto-summary').style.display = '';
 
   const selectedDate = document.getElementById('inp-date').value;
   const isToday = selectedDate === todayISO();

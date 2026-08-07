@@ -363,12 +363,61 @@ window.staflowApp = window.staflowApp || {};
         <button class="mab-menu" id="mab-menu" aria-label="Abrir menu">☰</button>
         <div class="mab-brand"><span class="sta">STA</span><span class="flow">FLOW</span></div>
         <div class="mab-spacer"></div>
-        <div class="mab-avatar" id="mab-avatar">—</div>
+        <button class="mab-avatar" id="mab-avatar" aria-label="Minha conta">—</button>
       `;
       document.body.insertBefore(appbar, document.body.firstChild);
     }
     const mabAvatar = document.getElementById('mab-avatar');
     if (mabAvatar) mabAvatar.textContent = iniciais(profile?.full_name);
+
+    // ── Menu da conta (mesmas ações do desktop, ao alcance do polegar) ──
+    let umenu = document.getElementById('mab-user-menu');
+    if (!umenu) {
+      umenu = document.createElement('div');
+      umenu.id = 'mab-user-menu';
+      umenu.className = 'mab-user-menu';
+      umenu.innerHTML = `
+        <div class="mum-head">
+          <div class="mum-name" id="mum-name">…</div>
+          <div class="mum-role" id="mum-role">…</div>
+        </div>
+        <a href="/configuracoes.html">⚙ Meu perfil</a>
+        <a href="/configuracoes.html#assinatura">◈ Plano e assinatura</a>
+        <a href="/faltas.html">⚠ Faltas</a>
+        <button type="button" id="mab-help">？ Ajuda</button>
+        <hr>
+        <button type="button" id="mab-logout" class="danger">⏻ Sair</button>
+      `;
+      document.body.appendChild(umenu);
+
+      // Abre/fecha no toque do avatar; fecha ao tocar fora
+      mabAvatar?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        umenu.classList.toggle('show');
+      });
+      document.addEventListener('click', (e) => {
+        if (!umenu.contains(e.target) && e.target !== mabAvatar) {
+          umenu.classList.remove('show');
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') umenu.classList.remove('show');
+      });
+
+      document.getElementById('mab-help')?.addEventListener('click', () => {
+        umenu.classList.remove('show');
+        toast('Central de ajuda em breve. Por enquanto: contato@staflow.com.br', 'info');
+      });
+      document.getElementById('mab-logout')?.addEventListener('click', async () => {
+        const res = await window.staflowAuth.signOut();
+        if (!res.ok) { toast(res.error, 'error'); return; }
+        location.replace('/auth/login.html');
+      });
+    }
+    const mumName = document.getElementById('mum-name');
+    const mumRole = document.getElementById('mum-role');
+    if (mumName) mumName.textContent = profile?.full_name || profile?.email || '—';
+    if (mumRole) mumRole.textContent = roleLabel(profile?.role);
 
     // ── Navegação inferior ──
     let tabbar = document.getElementById('mobile-tabbar');
