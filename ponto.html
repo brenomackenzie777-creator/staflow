@@ -637,6 +637,7 @@
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/route-guard.js"></script>
+<script src="js/ponto-calc.js"></script>
 <script src="js/app-shell.js"></script>
 
 <script>
@@ -665,33 +666,20 @@ function getCondoId() {
 }
 
 // ── Helpers de data/hora ───────────────────────────────────────────────────────
-function todayISO() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
+// Delegam pro motor único (js/ponto-calc.js) pra garantir que tela,
+// CSV, Excel e espelho legal falem exatamente os mesmos números.
+const PC = window.staflowPonto;
 
-function fmtHora(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-}
+function todayISO() { return PC.hojeLocal(); }
+function fmtHora(iso) { return PC.hhmm(iso); }
 
-function calcHoras(entrada, saida) {
-  if (!entrada || !saida) return '—';
-  const ms = new Date(saida) - new Date(entrada);
-  if (ms < 0) return '—';
-  const h = Math.floor(ms / 3600000);
-  const m = Math.floor((ms % 3600000) / 60000);
-  return `${h}h${String(m).padStart(2,'0')}m`;
-}
-
+/* ATENÇÃO: a janela do dia agora é LOCAL, não UTC.
+   Antes usava 'YYYY-MM-DDT00:00:00Z' — como o Brasil é UTC-3, toda
+   batida depois das 21:00 caía no dia seguinte e sumia do dia certo
+   (caso real: batida de 18/06 às 21:38 aparecia em 19/06). */
 function dayRange(dateStr) {
-  // dateStr = 'YYYY-MM-DD'
-  const start = dateStr + 'T00:00:00.000Z';
-  // safe: add 1 day
-  const d = new Date(dateStr + 'T12:00:00Z');
-  d.setUTCDate(d.getUTCDate() + 1);
-  const end = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}T00:00:00.000Z`;
-  return { start, end };
+  const { inicioISO, fimISO } = PC.limitesDoDia(dateStr);
+  return { start: inicioISO, end: fimISO };
 }
 
 function escapeHtml(s) {
@@ -700,35 +688,41 @@ function escapeHtml(s) {
 }
 
 // ── Merge funcionários + registros ─────────────────────────────────────────────
+// ★ Reescrito pra usar o motor único (js/ponto-calc.js).
+//   Antes: pegava a 1ª entrada e a ÚLTIMA saída e chamava calcHoras()
+//   entre as duas — em dia com almoço (4 batidas: entrada/saída/
+//   entrada/saída) isso somava o horário de almoço como "trabalhado",
+//   inflando o total. Agora pareia entrada→saída sequencialmente e
+//   soma só os pares — o almoço fica de fora, como deve ser.
 function buildRows() {
   const map = {};
   for (const f of allFuncs) {
-    map[f.id] = {
-      func:    f,
-      entrada: null,
-      saida:   null,
-    };
+    map[f.id] = { func: f, eventos: [] };
   }
-  // sort registros by time asc so we pick first entrada and last saida
-  const sorted = [...allRegistros].sort(
-    (a, b) => new Date(a.registrado_em) - new Date(b.registrado_em)
-  );
-  for (const r of sorted) {
+  for (const r of allRegistros) {
     const row = map[r.funcionario_id];
-    if (!row) continue;
-    if (r.tipo === 'entrada' && !row.entrada) {
-      row.entrada = r;
-    } else if (r.tipo === 'saida' && row.entrada) {
-      row.saida = r;
-    }
+    if (row) row.eventos.push(r);
   }
-  return Object.values(map);
+  return Object.values(map).map(row => {
+    const resumo = PC.resumoDoDia(row.eventos);
+    return {
+      func:    row.func,
+      eventos: row.eventos,
+      entrada: resumo.primeiraEntrada,
+      saida:   resumo.ultimaSaida,
+      resumo
+    };
+  });
 }
 
+// ★ Status agora olha o ÚLTIMO evento do dia, não "existe alguma saída".
+//   Antes: funcionário que saiu pro almoço e voltou (entrada, saída,
+//   entrada) aparecia como "Saiu" — errado, ele está trabalhando.
 function getStatus(row) {
-  if (row.entrada && row.saida)  return 'SAIU';
-  if (row.entrada && !row.saida) return 'PRESENTE';
-  return 'AUSENTE';
+  if (!row.eventos.length) return 'AUSENTE';
+  const ordenados = [...row.eventos].sort((a, b) => new Date(a.registrado_em) - new Date(b.registrado_em));
+  const ultimo = ordenados[ordenados.length - 1];
+  return ultimo.tipo === 'entrada' ? 'PRESENTE' : 'SAIU';
 }
 
 /* Pill antifraude / auditoria para uma batida individual */
@@ -833,13 +827,21 @@ function renderTable() {
     const initials = window.staflowApp.iniciais(f.nome);
     const horaEnt  = fmtHora(row.entrada?.registrado_em);
     const horaSai  = fmtHora(row.saida?.registrado_em);
-    const total    = calcHoras(row.entrada?.registrado_em, row.saida?.registrado_em);
+    // ★ Total real (pareado, sem contar o almoço) — não mais a conta
+    //   ingênua "última saída menos primeira entrada".
+    const total    = row.resumo.totalFmt;
 
     const hasEnt = !!row.entrada;
     const hasSai = !!row.saida;
 
-    const canEnt = isToday && !hasEnt;
-    const canSai = isToday && hasEnt && !hasSai;
+    // ★ Habilita os botões pelo STATUS (último evento do dia), não por
+    //   "já teve alguma entrada/saída". Antes, num dia com almoço
+    //   (entrada, saída, entrada de volta), os dois botões ficavam
+    //   travados pro resto do dia — Entrada porque já tinha entrada,
+    //   Saída porque já tinha saída — impedindo registrar a volta do
+    //   almoço e a saída final pela tela do síndico.
+    const canEnt = isToday && status !== 'PRESENTE';
+    const canSai = isToday && status === 'PRESENTE';
 
     let statusBadge;
     if (status === 'PRESENTE') statusBadge = '<span class="badge badge-green">Presente</span>';
@@ -1120,12 +1122,14 @@ async function gerarEImprimirEspelho(funcionarioId, mesStr) {
   const ultimoDia = new Date(ano, mes, 0).getDate();
   const fim    = `${ano}-${String(mes).padStart(2,'0')}-${String(ultimoDia).padStart(2,'0')}`;
 
-  // Busca dados em paralelo
+  // Busca dados em paralelo — janela LOCAL (motor único), pra não perder
+  // batida noturna do fim do mês no documento oficial MTE 671.
+  const { inicioISO: espInicioISO, fimISO: espFimISO } = PC.limitesDoMes(ano, mes);
   const [resFunc, resReg, resCondo] = await Promise.all([
     sb.from('funcionarios').select('*').eq('id', funcionarioId).single(),
     sb.from('registros_ponto').select('*').eq('funcionario_id', funcionarioId)
-      .gte('registrado_em', `${inicio}T00:00:00.000Z`)
-      .lt('registrado_em',  new Date(ano, mes, 1).toISOString())
+      .gte('registrado_em', espInicioISO)
+      .lt('registrado_em',  espFimISO)
       .order('registrado_em', { ascending: true }),
     sb.from('condominios').select('nome, endereco, cnpj, email_admin, logradouro, numero, bairro, cidade, estado, cep')
       .eq('id', getCondoId()).maybeSingle()
@@ -1345,11 +1349,9 @@ async function openDetail(funcId) {
     </div>
   `).join('');
 
-  // total se tiver entrada + saida
+  // Total real (pareado, sem almoço) — mesmo motor da tabela principal
   let totalHtml = '';
-  const ent = data.find(r => r.tipo === 'entrada');
-  const sai = data.slice().reverse().find(r => r.tipo === 'saida');
-  const tot = calcHoras(ent?.registrado_em, sai?.registrado_em);
+  const tot = PC.resumoDoDia(data).totalFmt;
   if (tot !== '—') {
     totalHtml = `
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;align-items:center;">
@@ -1372,6 +1374,7 @@ document.getElementById('btn-export').addEventListener('click', () => {
   const dateStr = document.getElementById('inp-date').value;
   const header  = ['Nome', 'Cargo', 'Entrada', 'Saída', 'Total Horas', 'Status'];
 
+  const STATUS_LBL = { PRESENTE: 'Presente', SAIU: 'Saiu', AUSENTE: 'Ausente' };
   const csvRows = rows.map(row => {
     const f      = row.func;
     const status = getStatus(row);
@@ -1380,8 +1383,8 @@ document.getElementById('btn-export').addEventListener('click', () => {
       CARGO_LBL[f.cargo] || f.cargo,
       fmtHora(row.entrada?.registrado_em),
       fmtHora(row.saida?.registrado_em),
-      calcHoras(row.entrada?.registrado_em, row.saida?.registrado_em),
-      status
+      row.resumo.totalFmt,
+      STATUS_LBL[status] || status
     ];
   });
 
@@ -1448,11 +1451,14 @@ function minutosNoturnos(entradaTs, saidaTs) {
 }
 
 async function calcularMetricasPeriodo(funcionarioId, dataInicio, dataFim) {
-  // dataInicio e dataFim em formato YYYY-MM-DD
-  const inicioISO = dataInicio + 'T00:00:00.000Z';
-  const fimDate   = new Date(dataFim + 'T12:00:00Z');
-  fimDate.setUTCDate(fimDate.getUTCDate() + 1);
-  const fimISO = `${fimDate.getUTCFullYear()}-${String(fimDate.getUTCMonth()+1).padStart(2,'0')}-${String(fimDate.getUTCDate()).padStart(2,'0')}T00:00:00.000Z`;
+  // ★ dataInicio/dataFim em 'YYYY-MM-DD' — janela agora é LOCAL, não UTC.
+  //   O jeito antigo (dataInicio + 'T00:00:00.000Z') abria a janela às
+  //   21:00 do dia anterior (local) e fechava às 21:00 do último dia —
+  //   ou seja, o Espelho legal e o Relatório Excel do mês podiam perder
+  //   batidas de porteiro noturno feitas depois das 21h no último dia
+  //   do período. Isso é exatamente o tipo de divergência que não pode
+  //   existir num documento de prestação de contas.
+  const { inicioISO, fimISO } = PC.limitesDoPeriodo(dataInicio, dataFim);
 
   const [resPontos, resFaltas] = await Promise.all([
     sb.from('registros_ponto')
@@ -1596,9 +1602,10 @@ document.getElementById('btn-espelho').addEventListener('click', async () => {
   btn.textContent = '⏳ Gerando…';
 
   try {
-    // Busca condomínio + todos os pontos + faltas do mês (paralelo)
-    const inicioISO = `${dataInicio}T00:00:00.000Z`;
-    const fimISO    = new Date(ano, mes, 1).toISOString();
+    // Busca condomínio + todos os pontos + faltas do mês (paralelo).
+    // Janela local (mesmo motor do resto) — evita perder batidas
+    // noturnas do último dia do mês por causa do fuso horário.
+    const { inicioISO, fimISO } = PC.limitesDoMes(ano, mes);
     const [resPontos, resFaltas, resCondo] = await Promise.all([
       sb.from('registros_ponto')
         .select('funcionario_id, tipo, registrado_em, audit_status, motivo_edicao, latitude, longitude')

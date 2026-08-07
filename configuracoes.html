@@ -335,6 +335,51 @@
       </div>
     </div>
 
+    <!-- ═══ ZONA DE RISCO — excluir condomínio (não exclui a conta) ═══ -->
+    <section class="card" id="card-zona-risco" style="margin-top:16px;border-color:var(--red);display:none;">
+      <div class="head">
+        <div>
+          <h2 style="color:var(--red);">Zona de risco</h2>
+          <p>Excluir só este condomínio — sua conta e seus outros condomínios (se houver) continuam intactos.</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:16px;background:var(--navy-deep);border:1px solid var(--border);border-radius:var(--radius);">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--white);" id="zr-condo-nome">—</div>
+          <div style="font-size:12px;color:var(--white-muted);margin-top:2px;">
+            Apaga funcionários, pontos, faltas, tarefas e documentos deste condomínio. Não pode ser desfeito.
+          </div>
+        </div>
+        <button id="btn-excluir-condo" class="btn" style="padding:10px 18px;background:transparent;color:var(--red);border:1.5px solid var(--red);font-weight:600;font-size:13px;border-radius:var(--radius);white-space:nowrap;">
+          🗑️ Excluir este condomínio
+        </button>
+      </div>
+    </section>
+
+    <!-- Modal confirmação de exclusão de condomínio -->
+    <div id="modal-del-condo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;">
+      <div style="background:var(--navy-mid);border:1px solid var(--red);border-radius:var(--radius);padding:32px;max-width:440px;width:90%;text-align:center;">
+        <div style="font-size:32px;margin-bottom:12px;">🗑️</div>
+        <h3 style="font-family:var(--font-display);font-size:20px;margin-bottom:10px;">Excluir <span id="zr-condo-nome-modal">este condomínio</span>?</h3>
+        <p style="color:var(--white-muted);font-size:14px;line-height:1.6;margin-bottom:16px;">
+          Isso apaga <strong>permanentemente</strong> funcionários, pontos, faltas, tarefas e documentos deste condomínio, e cancela a assinatura paga (se houver). Sua conta continua ativa.
+        </p>
+        <div class="field" style="text-align:left;margin-bottom:20px;">
+          <label for="del-condo-confirm-input">Digite <strong id="zr-condo-nome-label"></strong> para confirmar</label>
+          <input class="input" id="del-condo-confirm-input" type="text" autocomplete="off">
+        </div>
+        <div style="display:flex;gap:12px;justify-content:center;">
+          <button id="btn-del-condo-nao" class="btn" style="padding:11px 24px;background:transparent;border:1.5px solid var(--border-strong);color:var(--white);border-radius:var(--radius);">
+            Cancelar
+          </button>
+          <button id="btn-del-condo-sim" class="btn" disabled style="padding:11px 24px;background:var(--red);color:#fff;font-weight:700;border-radius:var(--radius);opacity:.5;">
+            <span class="spinner" id="spinner-del-condo"></span>
+            <span id="label-del-condo-sim">Sim, excluir permanentemente</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- ═══ PERFIL + SEGURANÇA (mantido em row inferior) ═══ -->
     <div class="grid-two" style="margin-top:16px;">
       <section class="card">
@@ -676,7 +721,83 @@ document.getElementById('btn-signout-here').addEventListener('click', async () =
 
   // Exibe card de assinatura se plano pago
   atualizarCardAssinatura();
+
+  // Exibe a zona de risco (excluir condomínio) se houver condomínio carregado
+  atualizarZonaRisco();
 })();
+
+/* ── Zona de risco — excluir condomínio (não exclui a conta) ─── */
+function atualizarZonaRisco() {
+  const card = document.getElementById('card-zona-risco');
+  if (!condo) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  document.getElementById('zr-condo-nome').textContent = condo.nome;
+  document.getElementById('zr-condo-nome-modal').textContent = `"${condo.nome}"`;
+  document.getElementById('zr-condo-nome-label').textContent = condo.nome;
+}
+
+document.getElementById('btn-excluir-condo').addEventListener('click', () => {
+  document.getElementById('del-condo-confirm-input').value = '';
+  document.getElementById('btn-del-condo-sim').disabled = true;
+  document.getElementById('btn-del-condo-sim').style.opacity = '.5';
+  document.getElementById('modal-del-condo').style.display = 'flex';
+});
+
+document.getElementById('btn-del-condo-nao').addEventListener('click', () => {
+  document.getElementById('modal-del-condo').style.display = 'none';
+});
+
+document.getElementById('del-condo-confirm-input').addEventListener('input', (e) => {
+  const btn = document.getElementById('btn-del-condo-sim');
+  const ok = condo && e.target.value.trim() === condo.nome.trim();
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '.5';
+});
+
+document.getElementById('btn-del-condo-sim').addEventListener('click', async () => {
+  if (!condo) return;
+  const btn     = document.getElementById('btn-del-condo-sim');
+  const spinner = document.getElementById('spinner-del-condo');
+  const label   = document.getElementById('label-del-condo-sim');
+
+  btn.disabled = true;
+  spinner.style.display = 'inline-block';
+  label.textContent = 'Excluindo…';
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) throw new Error('Sessão expirada. Faça login novamente.');
+
+    const resp = await fetch('https://wsxpskrrzqtdoodpoofx.supabase.co/functions/v1/excluir-condominio', {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey':        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzeHBza3JyenF0ZG9vZHBvb2Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDExNzksImV4cCI6MjA5NDQxNzE3OX0.GOJgWFpm9vIPuTCrhCK4TWriLrcjxXP9VGSMekI4Tfs',
+      },
+      body: JSON.stringify({ condominioId: getCondoId() }),
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || `Erro ${resp.status}`);
+
+    document.getElementById('modal-del-condo').style.display = 'none';
+    T(`✓ "${data.nomeExcluido}" foi excluído.`, 'success');
+
+    // Limpa a seleção persistida — na próxima carga o app escolhe outro
+    // condomínio (se houver) ou mostra o estado "sem condomínio".
+    try { localStorage.removeItem('staflow_condo_atual'); } catch(_) {}
+
+    setTimeout(() => { location.href = '/dashboard.html'; }, 1200);
+
+  } catch (err) {
+    console.error('excluir-condominio error:', err);
+    T(err.message || 'Erro ao excluir condomínio.', 'error');
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    label.textContent = 'Sim, excluir permanentemente';
+  }
+});
 
 /* ── Card "Minha assinatura" ───────────────────────── */
 function atualizarCardAssinatura() {

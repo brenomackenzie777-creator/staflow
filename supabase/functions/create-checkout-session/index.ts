@@ -11,6 +11,15 @@
 //    Política comercial: 2º+ condomínio SEMPRE exige plano pago.
 //
 // metadata.condominio_id é a CHAVE pro webhook.
+//
+// ★ FIX (07/08/2026): checkout abandonado deixava a linha 'pending'
+// visível no switcher do usuário até o Stripe disparar
+// checkout.session.expired (até 24h depois). meus_condominios() já
+// filtra 'pending' agora, mas isso ainda deixava lixo acumulando no
+// banco a cada tentativa abandonada (caso real: 2 linhas "beija flor"
+// pending criadas em 7 segundos de diferença). Antes de criar uma nova
+// linha, limpamos aqui mesmo as 'pending' antigas (>10min) do mesmo
+// síndico — não depende mais só do webhook lento do Stripe.
 // ============================================================
 
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
@@ -99,6 +108,21 @@ Deno.serve(async (req) => {
       // NOVO condomínio — exige nome
       if (!condominioNome || condominioNome.trim().length < 2) {
         return json({ error: "Informe o nome do condomínio." }, 400);
+      }
+
+      // ★ Limpa checkouts abandonados antigos (>10min) deste síndico antes
+      //   de criar mais um — evita acumular "condomínios fantasma".
+      const dezMinAtras = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const { data: fantasmas } = await supabaseAdmin
+        .from("condominios")
+        .select("id")
+        .eq("sindico_id", user.id)
+        .eq("status_assinatura", "pending")
+        .lt("created_at", dezMinAtras);
+      if (fantasmas && fantasmas.length > 0) {
+        const ids = fantasmas.map(f => f.id);
+        await supabaseAdmin.from("membros_condominio").delete().in("condominio_id", ids);
+        await supabaseAdmin.from("condominios").delete().in("id", ids);
       }
 
       const { data: novoCondo, error: condoErr } = await supabaseAdmin

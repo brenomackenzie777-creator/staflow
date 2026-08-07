@@ -357,6 +357,7 @@ textarea.input {
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/route-guard.js"></script>
+<script src="js/ponto-calc.js"></script>
 <script src="js/app-shell.js"></script>
 
 <script>
@@ -679,8 +680,11 @@ function openNew() {
   document.getElementById('m-title').textContent = 'Registrar falta';
   document.getElementById('form-falta').reset();
   document.getElementById('f-id').value = '';
-  // default data = hoje
-  const hoje = new Date().toISOString().slice(0, 10);
+  // default data = hoje (local — toISOString() erra o dia à noite no Brasil)
+  const hoje = window.staflowPonto ? window.staflowPonto.hojeLocal() : (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
   document.getElementById('f-data').value = hoje;
   document.getElementById('f-tipo-i').value = 'falta';
   document.getElementById('f-just').checked = false;

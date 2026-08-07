@@ -1118,6 +1118,7 @@
 <script src="/js/supabase-client.js"></script>
 <script src="/js/auth.js"></script>
 <script src="/js/validadores.js"></script>
+<script src="/js/ponto-calc.js"></script>
 
 <script>
 /* ════════════════════════════════════════════════════════════════
@@ -1915,11 +1916,14 @@ function mesAtualStr() {
 }
 
 async function loadHistorico() {
+  const PC = window.staflowPonto;
   const mesInput = document.getElementById('hist-mes');
   if (!mesInput.value) mesInput.value = mesAtualStr();
   const [ano, mes] = mesInput.value.split('-').map(Number);
-  const inicio = new Date(ano, mes - 1, 1);
-  const fim    = new Date(ano, mes, 1);
+  // ★ Mesmo motor único do painel do síndico (js/ponto-calc.js) — janela
+  // do mês sempre no fuso LOCAL, nunca em UTC (evita perder/duplicar
+  // batida perto da virada do dia).
+  const { inicioISO, fimISO } = PC.limitesDoMes(ano, mes);
 
   const list = document.getElementById('hist-list');
   list.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px 0;">Carregando…</div>';
@@ -1927,8 +1931,8 @@ async function loadHistorico() {
   const { data, error } = await sb.from('registros_ponto')
     .select('tipo, registrado_em, audit_status')
     .eq('funcionario_id', funcionario.id)
-    .gte('registrado_em', inicio.toISOString())
-    .lt('registrado_em', fim.toISOString())
+    .gte('registrado_em', inicioISO)
+    .lt('registrado_em', fimISO)
     .order('registrado_em', { ascending: true });
 
   if (error) {
@@ -1943,29 +1947,29 @@ async function loadHistorico() {
     return;
   }
 
-  // Agrupa por dia (mais recente primeiro)
-  const porDia = {};
-  historicoDoMes.forEach(r => {
-    const d = new Date(r.registrado_em);
-    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    (porDia[k] ||= []).push(r);
-  });
-
+  // Agrupa por dia local (motor único — mesma regra do painel do síndico)
+  const porDia = PC.agruparPorDia(historicoDoMes);
   const dias = Object.keys(porDia).sort().reverse();
   const TIPO_LBL = { entrada: 'Entrada', saida: 'Saída' };
 
   list.innerHTML = dias.map(dia => {
     const eventos = porDia[dia].slice().sort((a,b) => new Date(a.registrado_em) - new Date(b.registrado_em));
+    const resumo  = PC.resumoDoDia(eventos);
     const dt = new Date(dia + 'T12:00:00');
     const dataFmt = dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', weekday: 'short' });
     const linhas = eventos.map(e => {
-      const h = new Date(e.registrado_em);
-      const hhmm = `${String(h.getHours()).padStart(2,'0')}:${String(h.getMinutes()).padStart(2,'0')}`;
+      const hhmm = PC.hhmm(e.registrado_em);
       return `<span>${TIPO_LBL[e.tipo] || e.tipo} <strong>${hhmm}</strong></span>`;
     }).join(' &nbsp;·&nbsp; ');
+    const totalBadge = resumo.pendente
+      ? `<span style="color:var(--warn);">⏳ turno em aberto</span>`
+      : `<span style="color:var(--teal);">Total: <strong>${resumo.totalFmt}</strong></span>`;
     return `
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;">
-        <div style="font-size:11px;color:var(--text-muted);text-transform:capitalize;margin-bottom:4px;">${escapeHtml(dataFmt)}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <div style="font-size:11px;color:var(--text-muted);text-transform:capitalize;">${escapeHtml(dataFmt)}</div>
+          <div style="font-size:11px;">${totalBadge}</div>
+        </div>
         <div style="font-size:13px;color:var(--text);font-family:'DM Mono',monospace;">${linhas}</div>
       </div>
     `;
@@ -1977,11 +1981,25 @@ function baixarHistoricoCSV() {
     toast('Nada para baixar neste mês.', 'error');
     return;
   }
+  const PC = window.staflowPonto;
+  // ★ Mesmo padrão do relatório do síndico: uma linha por batida + coluna
+  // de total do dia (calculado pareando entrada→saída, excluindo o
+  // almoço) — os números aqui batem com o painel do síndico.
+  const porDia = PC.agruparPorDia(historicoDoMes);
   const TIPO_LBL = { entrada: 'Entrada', saida: 'Saída' };
-  const header = ['Data', 'Hora', 'Tipo'];
-  const rows = historicoDoMes.map(r => {
-    const d = new Date(r.registrado_em);
-    return [d.toLocaleDateString('pt-BR'), d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), TIPO_LBL[r.tipo] || r.tipo];
+  const header = ['Data', 'Hora', 'Tipo', 'Total do dia'];
+  const rows = [];
+  Object.keys(porDia).sort().forEach(dia => {
+    const eventos = porDia[dia].slice().sort((a,b) => new Date(a.registrado_em) - new Date(b.registrado_em));
+    const resumo  = PC.resumoDoDia(eventos);
+    eventos.forEach((e, i) => {
+      rows.push([
+        PC.ddmmaaaa(e.registrado_em),
+        PC.hhmm(e.registrado_em),
+        TIPO_LBL[e.tipo] || e.tipo,
+        i === 0 ? (resumo.pendente ? 'turno em aberto' : resumo.totalFmt) : ''
+      ]);
+    });
   });
   const csv = [header, ...rows]
     .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';'))
@@ -2104,36 +2122,51 @@ async function logout() {
 /* ════════════════════════════════════════════════════════════════
    TELA DE BLOQUEIO
    ════════════════════════════════════════════════════════════════ */
+let _pollClaimTimer = null;
+
 function mostrarBlock(email) {
   document.getElementById('phone-shell').style.display = 'none';
   document.getElementById('block-screen').classList.add('show');
   document.getElementById('block-email').textContent = email || '—';
   document.getElementById('btn-logout-block').addEventListener('click', logout);
 
-  // Botão "Verificar novamente" — chama claim_funcionario_by_email sem recarregar a página,
-  // e se o vínculo for criado faz reload para reidratar a sessão completa.
   const btnRetry = document.getElementById('btn-retry-claim');
-  if (btnRetry) {
-    btnRetry.addEventListener('click', async () => {
+
+  // Tenta o vínculo. `manual` = true quando veio de clique (mostra feedback
+  // de erro); false quando é a checagem automática de fundo (silenciosa).
+  // ★ CORREÇÃO: antes só tentava de novo se a pessoa clicasse "Verificar
+  // novamente" — se ela fechasse o app nesse meio tempo, nunca mais
+  // via que o síndico já tinha resolvido o cadastro. Agora tenta sozinho
+  // a cada 15s enquanto a tela de bloqueio estiver aberta.
+  async function tentarClaim(manual) {
+    if (manual) {
       btnRetry.disabled = true;
       btnRetry.innerHTML = '<span>⏳</span> Verificando…';
-      try {
-        const { data, error } = await sb.rpc('claim_funcionario_by_email').single();
-        if (!error && data?.funcionario_id) {
-          btnRetry.innerHTML = '<span>✓</span> Vínculo encontrado! Carregando…';
-          location.reload();
-        } else {
-          toast('Ainda aguardando. Peça ao síndico para te cadastrar em Funcionários.', 'info');
-          btnRetry.disabled = false;
-          btnRetry.innerHTML = '<span>🔄</span> Verificar novamente';
-        }
-      } catch (_) {
-        toast('Erro ao verificar. Tente novamente em instantes.', 'error');
-        btnRetry.disabled = false;
-        btnRetry.innerHTML = '<span>🔄</span> Verificar novamente';
+    }
+    try {
+      const { data, error } = await sb.rpc('claim_funcionario_by_email').single();
+      if (!error && data?.funcionario_id) {
+        if (_pollClaimTimer) clearInterval(_pollClaimTimer);
+        if (btnRetry) btnRetry.innerHTML = '<span>✓</span> Vínculo encontrado! Carregando…';
+        window.staflowGuard.limparPendingColabClaim();
+        location.reload();
+        return true;
       }
-    });
+    } catch (_) { /* checagem de fundo é silenciosa */ }
+
+    if (manual) {
+      toast('Ainda aguardando. Peça ao síndico para te cadastrar em Funcionários.', 'info');
+      btnRetry.disabled = false;
+      btnRetry.innerHTML = '<span>🔄</span> Verificar novamente';
+    }
+    return false;
   }
+
+  if (btnRetry) btnRetry.addEventListener('click', () => tentarClaim(true));
+
+  // Checagem automática de fundo a cada 15s (silenciosa)
+  if (_pollClaimTimer) clearInterval(_pollClaimTimer);
+  _pollClaimTimer = setInterval(() => tentarClaim(false), 15000);
 
   hideSplash();
 }

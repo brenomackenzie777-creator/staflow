@@ -10,7 +10,7 @@
      o app pode mostrar prompt "Recarregar para atualizar"
    ==================================================================== */
 
-const VERSION   = 'staflow-v2'; // v2: app.css no precache (BUG-009)
+const VERSION   = 'staflow-v3'; // v3: fix retry automático de vínculo + export ponto-calc.js
 const CACHE_NAME = 'staflow-' + VERSION;
 
 // Assets críticos pré-cacheados
