@@ -40,15 +40,21 @@ Meta-Agente de sexta — passou por 50% → 90% → 70% no mesmo dia, ver nota
 de bug abaixo).
 
 **Bug encontrado e corrigido em 08/08/2026 (log real analisado pelo Claude):**
-o Railway (`railway.json`) e o GitHub Actions (`.github/workflows/agentes.yml`)
-estavam com o MESMO horário de cron (11:00 UTC) rodando com a MESMA chave
-do Groq — ou seja, disputando a mesma cota diária sem se enxergar. Um log
-mostrou o Groq acusando 98.305/100.000 tokens usados no meio de UM loop só
-(marketing), enquanto o próprio script achava que tinha gasto 0 — sinal de
-consumo de outro processo simultâneo. Corrigido: o agendamento automático
-do GitHub Actions foi desligado; **Railway é agora o único agendador**. O
-workflow do GitHub continua disponível pra rodar manualmente (Actions →
-Run workflow) se o Railway cair.
+a causa real era MAIOR do que o agendamento duplicado do GitHub Actions
+(que também foi desligado — ver abaixo). O Breno tinha **DOIS projetos
+Railway diferentes conectados ao mesmo repositório GitHub** (um chamado
+"adequate-dream", outro "terrific-celebration"), os dois com cron nas
+11:00 UTC e os dois rodando o loop inteiro a cada `git push` — ou seja,
+todo commit do dia disparava o time de agentes DUAS VEZES em paralelo,
+os dois gastando da mesma chave/cota do Groq sem se enxergar. Foi assim
+que a cota de 100.000 tokens/dia sumia mesmo com o orçamento interno
+ainda achando que tinha gasto 0%. Resolvido pelo Breno: projeto
+"adequate-dream" **excluído**, "terrific-celebration" **renomeado para
+"staflow"** — esse é o único projeto Railway que resta rodando o time.
+Também foi desligado o agendamento automático do GitHub Actions (ver
+`.github/workflows/agentes.yml`); **Railway (projeto "staflow") é agora
+o único agendador**. O workflow do GitHub continua disponível pra rodar
+manualmente (Actions → Run workflow) se o Railway cair.
 
 A ordem das 4 áreas gira dia a dia (dia do ano % 4) pra nenhuma ficar
 sempre por último quando o orçamento aperta.
