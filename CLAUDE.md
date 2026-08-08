@@ -34,10 +34,24 @@
 ## Loops Especializados (Railway, roda TODO DIA às 08:00 BRT)
 **Atualizado em 08/08/2026, a pedido do Breno:** em vez de UM loop por dia
 útil, agora roda quantos loops de negócio couberem no dia — todo santo dia,
-inclusive fim de semana — até usar **50% da cota diária do Groq** (100 mil
-tokens/dia no free tier; os outros 50% ficam de reserva pra retries e pro
-Meta-Agente de sexta). A ordem das 4 áreas gira dia a dia (dia do ano % 4)
-pra nenhuma ficar sempre por último quando o orçamento aperta.
+inclusive fim de semana — até usar **70% da cota diária do Groq** (100 mil
+tokens/dia no free tier; os outros 30% ficam de reserva pra retries e pro
+Meta-Agente de sexta — passou por 50% → 90% → 70% no mesmo dia, ver nota
+de bug abaixo).
+
+**Bug encontrado e corrigido em 08/08/2026 (log real analisado pelo Claude):**
+o Railway (`railway.json`) e o GitHub Actions (`.github/workflows/agentes.yml`)
+estavam com o MESMO horário de cron (11:00 UTC) rodando com a MESMA chave
+do Groq — ou seja, disputando a mesma cota diária sem se enxergar. Um log
+mostrou o Groq acusando 98.305/100.000 tokens usados no meio de UM loop só
+(marketing), enquanto o próprio script achava que tinha gasto 0 — sinal de
+consumo de outro processo simultâneo. Corrigido: o agendamento automático
+do GitHub Actions foi desligado; **Railway é agora o único agendador**. O
+workflow do GitHub continua disponível pra rodar manualmente (Actions →
+Run workflow) se o Railway cair.
+
+A ordem das 4 áreas gira dia a dia (dia do ano % 4) pra nenhuma ficar
+sempre por último quando o orçamento aperta.
 
 | Loop | Foco |
 |------|------|
@@ -56,7 +70,7 @@ entre todos os loops (`scripts/crew/prompts/meta.json`) e lê o histórico de
 aprovações/rejeições de qualquer loop antes de propor uma mudança de prompt.
 
 Lógica de orçamento e rotação: `scripts/crew/main.py`. Ajustável por variável
-de ambiente no Railway: `FRACAO_ORCAMENTO_DIARIO` (padrão 0.5) e
+de ambiente no Railway: `FRACAO_ORCAMENTO_DIARIO` (padrão 0.9) e
 `COTA_DIARIA_TOKENS` (padrão 100000).
 
 **O Relator** é o último agente de cada ciclo e o único que fala com o Breno.

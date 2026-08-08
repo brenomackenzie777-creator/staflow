@@ -35,9 +35,13 @@ log = logging.getLogger("staflow")
 
 # ★ 08/08/2026 — a pedido do Breno: em vez de UM loop por dia útil, roda
 # quantos loops de negócio couberem por dia, TODOS OS DIAS (inclusive fim
-# de semana), até usar 50% da cota diária do Groq (100.000 tokens/dia no
-# free tier — ver scripts/crew/config.py). Os outros 50% ficam de reserva
+# de semana), até usar 70% da cota diária do Groq (100.000 tokens/dia no
+# free tier — ver scripts/crew/config.py). Os outros 30% ficam de reserva
 # pra retries, o Meta-Agente de sexta e qualquer chamada manual (LOOP=x).
+# (Histórico: começou em 50%, foi pra 90%, o log de 08/08 mostrou um loop
+# sozinho consumindo quase a cota inteira do dia — voltou pra 70% até
+# entendermos o motivo real do consumo alto. Ver nota sobre gatilho
+# duplicado logo abaixo.)
 #
 # Ordem de execução gira por dia (dia do ano % 4) pra nenhuma área ficar
 # sempre em último — se o orçamento acabar no meio, quem tomava o corte
@@ -45,7 +49,7 @@ log = logging.getLogger("staflow")
 LOOPS_DE_NEGOCIO = ["marketing", "produto", "financeiro", "suporte"]
 
 COTA_DIARIA_TOKENS   = int(os.environ.get("COTA_DIARIA_TOKENS", "100000"))
-FRACAO_ORCAMENTO     = float(os.environ.get("FRACAO_ORCAMENTO_DIARIO", "0.5"))
+FRACAO_ORCAMENTO     = float(os.environ.get("FRACAO_ORCAMENTO_DIARIO", "0.7"))
 ORCAMENTO_DIARIO     = int(COTA_DIARIA_TOKENS * FRACAO_ORCAMENTO)
 
 ORDEM_AGENTES = ["coletor", "pesquisador", "analista", "estrategista",

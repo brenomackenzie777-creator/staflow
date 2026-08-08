@@ -1,8 +1,15 @@
 # ============================================================
 # StaFlow — Loop Autoevolutivo (CrewAI + Groq)
 # ============================================================
-# ★ Backup do Railway (que já roda isto via cron nativo — ver railway.json).
-# Schedule: todo dia 11:00 UTC = 08:00 BRT
+# ★ 08/08/2026 — DESLIGADO o agendamento automático deste job. Ele e o
+# cron nativo do Railway (railway.json) estavam configurados pro MESMO
+# horário (11:00 UTC) e usam a MESMA chave do Groq — ou seja, rodavam
+# em paralelo disputando a mesma cota diária de 100.000 tokens sem se
+# enxergar. Um log real de 08/08 mostrou o Groq acusando 98.305/100.000
+# tokens usados enquanto o próprio script achava que tinha gasto 0 —
+# sinal de consumo vindo de outro processo simultâneo. Railway é agora
+# o ÚNICO agendador. Este workflow continua disponível via "Run workflow"
+# manual (Actions → Run workflow) se o Railway cair.
 # Trigger manual: Actions → Run workflow → escolhe agente
 #
 # Secrets necessários (Settings → Secrets → Actions):
@@ -22,9 +29,6 @@
 name: StaFlow — Loop Autoevolutivo
 
 on:
-  schedule:
-    - cron: '0 11 * * *'   # Todo dia 08:00 BRT
-
   push:
     branches: [main]       # Rafael roda a cada deploy seu
 
@@ -40,13 +44,11 @@ on:
           - rafael          # Só QA/smoke tests
 
 jobs:
-  # ─── LOOP COMPLETO (segunda-feira ou manual) ─────────────
+  # ─── LOOP COMPLETO (só manual — Railway é o agendador) ────
   loop-autoevolutivo:
     name: 'Loop Autoevolutivo — 7 Agentes'
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'schedule' ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.modo == 'loop-completo')
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.modo == 'loop-completo'
     timeout-minutes: 60
 
     steps:
