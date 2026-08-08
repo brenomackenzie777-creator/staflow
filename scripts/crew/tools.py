@@ -308,6 +308,69 @@ class GitHubPRTool(BaseTool):
             return f"Erro PR: {e}"
 
 
+# ─── Recados do Breno (canal único "empresa") ─────────────────────
+# Um só lugar onde o Breno deixa pedidos/comentários pro time inteiro
+# (tabela public.time_recados, escrita pela página interna equipe.html).
+# Todo Coletor lê os pendentes no início do ciclo; quem atender marca
+# o recado e escreve a resposta, pra virar uma conversa de verdade
+# (mesmo que assíncrona) em vez de um pedido que desaparece no vazio.
+
+class LerRecadosTool(BaseTool):
+    name: str = "ler_recados_breno"
+    description: str = (
+        "Lê os recados/pedidos que o Breno deixou pro time (pendentes ou em "
+        "andamento), mais recentes primeiro. Use SEMPRE no início do ciclo, "
+        "antes de decidir o que priorizar — um recado do Breno pesa mais que "
+        "qualquer prioridade que o agente decidiria sozinho. Parâmetro input: "
+        "passe string vazia."
+    )
+
+    def _run(self, input: str = "") -> str:
+        try:
+            sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+            recados = (
+                sb.table("time_recados")
+                .select("id,criado_em,mensagem,area_alvo,status")
+                .in_("status", ["pendente", "em_andamento"])
+                .order("criado_em", desc=True)
+                .limit(10)
+                .execute()
+            )
+            if not recados.data:
+                return "Nenhum recado pendente do Breno no momento."
+            return json.dumps(recados.data, ensure_ascii=False, indent=2)
+        except Exception as e:
+            return f"Erro ao ler recados: {e}"
+
+
+class ResponderRecadoTool(BaseTool):
+    name: str = "responder_recado_breno"
+    description: str = (
+        "Marca um recado do Breno como atendido (ou 'nao_prioridade' se não "
+        "for o foco deste ciclo) e registra a resposta, que ele vai ver na "
+        "página de recados. Parâmetros obrigatórios: recado_id (o id lido em "
+        "ler_recados_breno), status ('atendido' ou 'nao_prioridade'), "
+        "resposta (texto simples explicando o que foi feito ou por que não "
+        "agora), atendido_por (nome da área/agente, ex: 'marketing')."
+    )
+
+    def _run(self, recado_id: str, status: str, resposta: str,
+             atendido_por: str = "time") -> str:
+        if status not in ("atendido", "nao_prioridade", "em_andamento"):
+            return "status inválido — use 'atendido', 'em_andamento' ou 'nao_prioridade'."
+        try:
+            sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+            sb.table("time_recados").update({
+                "status":       status,
+                "resposta":     resposta,
+                "atendido_por": atendido_por,
+                "atendido_em":  datetime.datetime.utcnow().isoformat(),
+            }).eq("id", recado_id).execute()
+            return f"Recado {recado_id} marcado como {status}."
+        except Exception as e:
+            return f"Erro ao responder recado: {e}"
+
+
 # ─── Meta-Agente Evolutivo ────────────────────────────────────────
 
 class SupabaseFeedbackTool(BaseTool):

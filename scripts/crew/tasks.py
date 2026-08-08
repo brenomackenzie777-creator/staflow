@@ -19,15 +19,22 @@ def build_loop_tasks(loop_key: str, agents: dict) -> dict:
     tarefa_coletar = Task(
         description=(
             f"Ciclo de {nome}.\nFoco: {cfg['foco']}\n\n"
-            "1. Use read_memory para ler o histórico geral.\n"
-            f"2. Use supabase_metrics com loop='{loop_key}' para coletar "
+            "1. Use ler_recados_breno PRIMEIRO — são pedidos/comentários que "
+            "o próprio Breno deixou pro time. Se houver algum relevante para "
+            f"'{loop_key}' (no campo area_alvo, ou sem área definida), ele é "
+            "PRIORIDADE MÁXIMA deste ciclo — mais importante que qualquer "
+            "prioridade que o time escolheria sozinho. Inclua o id de cada "
+            "recado relevante no relatório, para o Decisor conseguir "
+            "respondê-lo depois.\n"
+            "2. Use read_memory para ler o histórico geral.\n"
+            f"3. Use supabase_metrics com loop='{loop_key}' para coletar "
             "dados relevantes a esta área.\n"
-            "3. Compare com o ciclo anterior desta mesma área: estamos "
+            "4. Compare com o ciclo anterior desta mesma área: estamos "
             "melhorando?"
         ),
         expected_output=(
-            "Relatório com contexto histórico desta área + métricas + "
-            "comparação com o ciclo anterior."
+            "Relatório com: recados do Breno relevantes (com id) + contexto "
+            "histórico desta área + métricas + comparação com o ciclo anterior."
         ),
         agent=agents["coletor"],
     )
@@ -71,14 +78,23 @@ def build_loop_tasks(loop_key: str, agents: dict) -> dict:
             "AUTO-EXECUTAR: esforço PEQUENO + risco BAIXO → vai para o Executor.\n"
             "APROVAR-BRENO: todo o resto → use notify_breno com subject "
             f"'StaFlow [{nome}]: propostas aguardando aprovação' e resumo HTML.\n"
-            "Máximo 2 itens AUTO-EXECUTAR por ciclo."
+            "Máximo 2 itens AUTO-EXECUTAR por ciclo.\n\n"
+            "Se o Coletor listou algum recado do Breno com id: para cada um, "
+            "use responder_recado_breno. Se o ciclo já resolveu ou tratou o "
+            "pedido, status='atendido' explicando o que foi feito. Se o "
+            "ciclo não deu conta agora, status='em_andamento' ou "
+            "'nao_prioridade', explicando por quê e quando será tratado. "
+            f"Sempre informe atendido_por='{loop_key}'. NUNCA deixe um "
+            "recado do Breno sem resposta quando ele foi listado pelo Coletor."
         ),
         expected_output=(
             "Lista AUTO-EXECUTAR com descrição de implementação + lista "
-            "APROVAR-BRENO com confirmação de notificação enviada."
+            "APROVAR-BRENO com confirmação de notificação enviada + "
+            "confirmação de que todo recado do Breno listado pelo Coletor "
+            "foi respondido."
         ),
         agent=agents["decisor"],
-        context=[tarefa_propor],
+        context=[tarefa_propor, tarefa_coletar],
     )
 
     tarefa_executar = Task(

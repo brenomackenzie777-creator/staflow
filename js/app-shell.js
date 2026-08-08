@@ -200,7 +200,7 @@ window.staflowApp = window.staflowApp || {};
 
     // Ajuda (placeholder)
     const btnHelp = document.getElementById('btn-help');
-    if (btnHelp) btnHelp.addEventListener('click', () => toast('Central de ajuda em breve. Por enquanto: contato@staflow.com.br', 'success'));
+    if (btnHelp) btnHelp.addEventListener('click', () => toast('Central de ajuda em breve. Por enquanto: contato@staflow.app.br', 'success'));
 
     // 7. Logout
     const btnLogout = document.getElementById('btn-logout');
@@ -416,7 +416,7 @@ window.staflowApp = window.staflowApp || {};
 
       document.getElementById('mab-help')?.addEventListener('click', () => {
         umenu.classList.remove('show');
-        toast('Central de ajuda em breve. Por enquanto: contato@staflow.com.br', 'info');
+        toast('Central de ajuda em breve. Por enquanto: contato@staflow.app.br', 'info');
       });
       document.getElementById('mab-logout')?.addEventListener('click', async () => {
         const res = await window.staflowAuth.signOut();
@@ -476,6 +476,7 @@ window.staflowApp = window.staflowApp || {};
       <a class="sb-link" data-route="funcionarios" href="/funcionarios.html"><span class="ico">◐</span> Funcionários</a>
 
       <div class="sb-section">Conta</div>
+      <a class="sb-link" data-route="agentes" href="/agentes.html"><span class="ico">🤖</span> Time de IA</a>
       <a class="sb-link" data-route="configuracoes" href="/configuracoes.html"><span class="ico">⚙</span> Configurações</a>
 
       <div class="sb-spacer"></div>

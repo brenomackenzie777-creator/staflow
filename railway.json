@@ -5,6 +5,6 @@
   },
   "deploy": {
     "startCommand": "python -m scripts.crew.main",
-    "cronSchedule": "0 11 * * 1-5"
+    "cronSchedule": "0 11 * * *"
   }
 }

@@ -660,6 +660,21 @@ let allRegistros = [];   // registros_ponto do dia selecionado
 let rows         = [];   // dados mesclados (um por funcionário)
 let toleranciaAtrasoMin = 10;  // Configurações → tolerância de atraso (min)
 
+// ★ Relatório Excel formatado é benefício pago (Pro+). Starter recebe
+// só um CSV básico do mês (mesmos dados, sem indicadores/cores).
+let planoAtual = 'starter';
+function aplicarRestricaoExportPlano() {
+  const btn = document.getElementById('btn-espelho');
+  if (!btn) return;
+  if (planoAtual === 'starter') {
+    btn.textContent = '⤓ Exportar mês (CSV)';
+    btn.title = 'Exportação básica em CSV. Relatório Excel formatado com indicadores é exclusivo dos planos pagos.';
+  } else {
+    btn.textContent = '📊 Relatório Excel';
+    btn.title = 'Relatório executivo do mês em Excel (todos os funcionários, dia a dia, com auditoria)';
+  }
+}
+
 // Condomínio ATIVO (switcher multi-CNPJ); fallback no vínculo do perfil.
 function getCondoId() {
   return window.staflowAuth.getCondominioAtualId() || profile.condominio_id;
@@ -1731,39 +1746,48 @@ document.getElementById('btn-espelho').addEventListener('click', async () => {
       return p.join(' — ') || c.endereco || '';
     };
 
-    window.staflowApp.exportXLS(
-      `relatorio_ponto_${ano}-${String(mes).padStart(2,'0')}.xls`,
-      {
-        titulo:     'Relatório Executivo de Ponto',
-        periodo:    `${mesNomes[mes-1]} / ${ano}`,
-        condominio: {
-          nome:     condo.nome,
-          cnpj:     fmtCnpj(condo.cnpj),
-          endereco: enderecoCompleto(condo)
-        },
-        resumo: [
-          { label: 'Funcionários',     value: allFuncs.length },
-          { label: 'Total de horas',   value: `${totH}h ${String(totM).padStart(2,'0')}m` },
-          { label: 'Batidas no mês',   value: totalBatidas },
-          { label: 'Faltas injust.',   value: totalFaltas },
-          { label: 'Alertas GPS',      value: totalAuditFraude }
-        ],
-        colunas: [
-          { label: 'Data',          key: 'data',    width: 95,  type: 'mono'   },
-          { label: 'Funcionário',   key: 'nome',    width: 180                  },
-          { label: 'Cargo',         key: 'cargo',   width: 110                  },
-          { label: 'Entrada',       key: 'entrada', width: 75,  type: 'mono'   },
-          { label: 'Saída',         key: 'saida',   width: 75,  type: 'mono'   },
-          { label: 'Horas',         key: 'horas',   width: 80,  type: 'mono'   },
-          { label: 'Status GPS',    key: 'status',  width: 130, type: 'status' },
-          { label: 'Justificativa', key: 'justif',  width: 240                  }
-        ],
-        statusKey:    'status',
-        statusColors: AUDIT_COLOR,
-        rows: rows
-      }
-    );
-    T(`✓ Relatório de ${mesNomes[mes-1]}/${ano} exportado (${rows.length} linhas).`, 'success');
+    if (planoAtual === 'starter') {
+      // ★ Starter: só CSV básico (mesmos dados, sem cores/indicadores —
+      // o relatório Excel formatado é benefício dos planos pagos).
+      const header = ['Data', 'Funcionário', 'Cargo', 'Entrada', 'Saída', 'Horas', 'Status', 'Justificativa'];
+      const csvRows = rows.map(r => [r.data, r.nome, r.cargo, r.entrada, r.saida, r.horas, r.status, r.justif]);
+      window.staflowApp.exportCSV(header, csvRows, `ponto_${ano}-${String(mes).padStart(2,'0')}.csv`);
+      T(`✓ Exportado (${rows.length} linhas). Relatório Excel formatado é exclusivo dos planos pagos.`, 'success');
+    } else {
+      window.staflowApp.exportXLS(
+        `relatorio_ponto_${ano}-${String(mes).padStart(2,'0')}.xls`,
+        {
+          titulo:     'Relatório Executivo de Ponto',
+          periodo:    `${mesNomes[mes-1]} / ${ano}`,
+          condominio: {
+            nome:     condo.nome,
+            cnpj:     fmtCnpj(condo.cnpj),
+            endereco: enderecoCompleto(condo)
+          },
+          resumo: [
+            { label: 'Funcionários',     value: allFuncs.length },
+            { label: 'Total de horas',   value: `${totH}h ${String(totM).padStart(2,'0')}m` },
+            { label: 'Batidas no mês',   value: totalBatidas },
+            { label: 'Faltas injust.',   value: totalFaltas },
+            { label: 'Alertas GPS',      value: totalAuditFraude }
+          ],
+          colunas: [
+            { label: 'Data',          key: 'data',    width: 95,  type: 'mono'   },
+            { label: 'Funcionário',   key: 'nome',    width: 180                  },
+            { label: 'Cargo',         key: 'cargo',   width: 110                  },
+            { label: 'Entrada',       key: 'entrada', width: 75,  type: 'mono'   },
+            { label: 'Saída',         key: 'saida',   width: 75,  type: 'mono'   },
+            { label: 'Horas',         key: 'horas',   width: 80,  type: 'mono'   },
+            { label: 'Status GPS',    key: 'status',  width: 130, type: 'status' },
+            { label: 'Justificativa', key: 'justif',  width: 240                  }
+          ],
+          statusKey:    'status',
+          statusColors: AUDIT_COLOR,
+          rows: rows
+        }
+      );
+      T(`✓ Relatório de ${mesNomes[mes-1]}/${ano} exportado (${rows.length} linhas).`, 'success');
+    }
   } catch (err) {
     T('Erro ao gerar relatório: ' + (err.message || 'tente novamente'), 'error');
   } finally {
@@ -1783,14 +1807,16 @@ document.getElementById('inp-date').addEventListener('change', loadData);
   profile = await window.staflowApp.bootstrapShell({ route: 'ponto' });
   if (!profile) return;
 
-  // Carrega tolerância de atraso configurada (Configurações → default 10min)
+  // Carrega tolerância de atraso e plano (Configurações → default 10min / starter)
   try {
     const { data } = await sb.from('condominios')
-      .select('tolerancia_atraso_min')
+      .select('tolerancia_atraso_min, plano')
       .eq('id', getCondoId())
       .maybeSingle();
     if (data?.tolerancia_atraso_min != null) toleranciaAtrasoMin = data.tolerancia_atraso_min;
-  } catch (_) { /* mantém default 10 */ }
+    if (data?.plano) planoAtual = data.plano;
+  } catch (_) { /* mantém defaults */ }
+  aplicarRestricaoExportPlano();
 
   // Define data padrão = hoje e carrega os dados
   document.getElementById('inp-date').value = todayISO();

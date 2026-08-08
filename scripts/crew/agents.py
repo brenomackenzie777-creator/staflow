@@ -15,6 +15,7 @@ from .tools import (
     TavilySearchTool, GitHubPRTool, UpdateMemoryTool, NotifyTool,
     ReadMemoryTool, SupabaseFeedbackTool, ReadPromptsTool,
     ListPromptsTool, ReadMarketContextTool,
+    LerRecadosTool, ResponderRecadoTool,
 )
 
 supabase_metrics  = SupabaseMetricsTool()
@@ -29,6 +30,8 @@ supabase_feedback = SupabaseFeedbackTool()
 read_prompts      = ReadPromptsTool()
 listar_agentes    = ListPromptsTool()
 market_context    = ReadMarketContextTool()
+ler_recados       = LerRecadosTool()
+responder_recado  = ResponderRecadoTool()
 
 # Log verboso do CrewAI estoura o limite de 500 linhas/seg do Railway.
 # Ligue com VERBOSE=1 só quando precisar depurar.
@@ -66,7 +69,7 @@ def build_loop_agents(loop_key: str) -> dict:
 
     # Contexto de mercado/concorrência só é relevante pra quem pensa em
     # posicionamento e preço — marketing e financeiro.
-    coletor_tools = [read_memory, supabase_metrics]
+    coletor_tools = [read_memory, supabase_metrics, ler_recados]
     if loop_key in ("marketing", "financeiro"):
         coletor_tools.append(market_context)
 
@@ -75,7 +78,7 @@ def build_loop_agents(loop_key: str) -> dict:
         "pesquisador":  _build_agent(prompts, "pesquisador", [tavily_search]),
         "analista":     _build_agent(prompts, "analista", []),
         "estrategista": _build_agent(prompts, "estrategista", []),
-        "decisor":      _build_agent(prompts, "decisor", [notify]),
+        "decisor":      _build_agent(prompts, "decisor", [notify, responder_recado]),
         "executor":     _build_agent(prompts, "executor", [github_pr, supabase_write]),
         "observador":   _build_agent(prompts, "observador", [supabase_metrics, update_memory]),
         "relator":      _build_agent(prompts, "relator", [notify]),

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<link rel="manifest" href="/manifest-admin.json">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StaFlow">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Time de IA — StaFlow</title>
+<link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="auth/auth.css">
+<link rel="stylesheet" href="app.css">
+<style>
+  .intro-agentes {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 16px 18px;
+    background: var(--teal-dim);
+    border: 1px solid var(--teal-border);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+  }
+  .intro-agentes .ico { font-size: 22px; line-height: 1; }
+  .intro-agentes p { font-size: 13px; color: var(--white-dim); line-height: 1.55; margin: 0; }
+  .intro-agentes strong { color: var(--white); }
+
+  .form-recado { display: flex; flex-direction: column; gap: 12px; }
+  .form-recado textarea.input {
+    resize: vertical; min-height: 90px; font-family: inherit;
+    padding: 12px 14px; line-height: 1.5;
+  }
+  .form-recado .row-baixo {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+  }
+  .form-recado select.input { max-width: 220px; }
+
+  .recado-lista { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+  .recado-item {
+    background: var(--navy-deep);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .recado-item .topo {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-bottom: 8px; flex-wrap: wrap;
+  }
+  .recado-item .data {
+    font-family: var(--font-mono); font-size: 11px; color: var(--white-muted);
+  }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+    padding: 3px 10px; border-radius: 20px;
+    text-transform: uppercase;
+  }
+  .badge.pendente     { background: rgba(251,191,36,.12); color: #FBBF24; border: 1px solid rgba(251,191,36,.3); }
+  .badge.em_andamento { background: rgba(59,130,246,.12); color: #3B82F6; border: 1px solid rgba(59,130,246,.3); }
+  .badge.atendido      { background: rgba(52,211,153,.12); color: #34D399; border: 1px solid rgba(52,211,153,.3); }
+  .badge.nao_prioridade{ background: rgba(148,163,184,.12); color: #94A3B8; border: 1px solid rgba(148,163,184,.3); }
+
+  .recado-item .msg { font-size: 14px; color: var(--white); line-height: 1.55; white-space: pre-wrap; }
+  .recado-item .area-tag {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px;
+    color: var(--white-muted); text-transform: uppercase;
+  }
+  .recado-item .resposta {
+    margin-top: 10px; padding: 10px 12px;
+    background: rgba(255,255,255,0.03);
+    border-left: 2px solid var(--teal);
+    border-radius: 4px;
+    font-size: 13px; color: var(--white-dim); line-height: 1.5;
+  }
+  .recado-item .resposta .quem {
+    font-size: 11px; color: var(--teal); font-weight: 600; margin-bottom: 4px;
+    text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .vazio-recados {
+    text-align: center; padding: 30px 20px; color: var(--white-muted); font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<div class="splash" id="splash"><div class="dot"></div></div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main">
+    <button class="menu-toggle" id="menu-toggle" aria-label="Menu">☰</button>
+
+    <div class="topbar">
+      <div>
+        <h1>Time de IA</h1>
+        <p class="sub">Seu time de agentes trabalha sozinho todo dia. Deixe um recado aqui quando quiser pedir, comentar ou mudar uma prioridade.</p>
+      </div>
+    </div>
+
+    <div class="intro-agentes">
+      <div class="ico">🤖</div>
+      <p>
+        <strong>Como funciona:</strong> o time (marketing, produto, financeiro e suporte) roda
+        sozinho todo santo dia. Não é um chat ao vivo — cada área lê os recados pendentes
+        no início do próximo ciclo dela (o próximo ciclo pode levar até um dia) e responde
+        aqui embaixo, dizendo o que fez ou por que não é prioridade agora.
+      </p>
+    </div>
+
+    <section class="card">
+      <div class="head">
+        <div>
+          <h2>Deixar um recado</h2>
+          <p>Pedido, comentário ou prioridade nova. Seja específico — o time não lê nas entrelinhas.</p>
+        </div>
+      </div>
+
+      <form id="form-recado" class="form-recado">
+        <textarea class="input" id="r-mensagem" maxlength="2000" placeholder="Ex: Quero que o time priorize reduzir o churn do plano Pro esse mês." required></textarea>
+        <div class="row-baixo">
+          <select class="input" id="r-area">
+            <option value="">Time inteiro decide quem trata</option>
+            <option value="marketing">Marketing / Crescimento</option>
+            <option value="produto">Produto / Desenvolvimento</option>
+            <option value="financeiro">Financeiro / Assinaturas</option>
+            <option value="suporte">Suporte / Sucesso do Cliente</option>
+          </select>
+          <button class="btn" id="btn-enviar-recado" type="submit" style="width:auto;padding:11px 22px;background:var(--teal);color:var(--navy-deep);font-weight:600;">
+            <span class="spinner"></span>
+            <span class="btn-label">Enviar recado</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <div class="head">
+        <div>
+          <h2>Histórico</h2>
+          <p>Seus recados e o que o time respondeu.</p>
+        </div>
+      </div>
+      <div class="recado-lista" id="recado-lista">
+        <div class="vazio-recados">Carregando…</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/route-guard.js"></script>
+<script src="js/app-shell.js"></script>
+
+<script>
+const sb = window.staflowSupabase;
+const T  = window.staflowApp.toast;
+
+let profile = null;
+
+const NOMES_AREA = {
+  marketing:  'Marketing / Crescimento',
+  produto:    'Produto / Desenvolvimento',
+  financeiro: 'Financeiro / Assinaturas',
+  suporte:    'Suporte / Sucesso do Cliente',
+};
+const NOMES_STATUS = {
+  pendente:      'Aguardando o próximo ciclo',
+  em_andamento:  'Em andamento',
+  atendido:      'Atendido',
+  nao_prioridade:'Não é prioridade agora',
+};
+
+function fmtData(iso) {
+  try {
+    return new Date(iso).toLocaleString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  } catch (_) { return iso; }
+}
+
+function renderRecados(lista) {
+  const el = document.getElementById('recado-lista');
+  if (!lista || lista.length === 0) {
+    el.innerHTML = '<div class="vazio-recados">Você ainda não deixou nenhum recado pro time.</div>';
+    return;
+  }
+  el.innerHTML = lista.map(r => `
+    <div class="recado-item">
+      <div class="topo">
+        <span class="data">${fmtData(r.criado_em)}${r.area_alvo ? ' · <span class="area-tag">' + (NOMES_AREA[r.area_alvo] || r.area_alvo) + '</span>' : ''}</span>
+        <span class="badge ${r.status}">${NOMES_STATUS[r.status] || r.status}</span>
+      </div>
+      <div class="msg">${(r.mensagem || '').replace(/</g,'&lt;')}</div>
+      ${r.resposta ? `
+        <div class="resposta">
+          <div class="quem">Resposta ${r.atendido_por ? '· ' + (NOMES_AREA[r.atendido_por] || r.atendido_por) : ''}</div>
+          ${(r.resposta || '').replace(/</g,'&lt;')}
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
+async function carregarRecados() {
+  const { data, error } = await sb
+    .from('time_recados')
+    .select('*')
+    .eq('autor_id', profile.id)
+    .order('criado_em', { ascending: false })
+    .limit(30);
+  if (error) { T(error.message, 'error'); return; }
+  renderRecados(data);
+}
+
+document.getElementById('form-recado').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const mensagem = document.getElementById('r-mensagem').value.trim();
+  if (mensagem.length < 5) { T('Escreva um pouco mais sobre o que você precisa.', 'error'); return; }
+  const area = document.getElementById('r-area').value || null;
+
+  const btn = document.getElementById('btn-enviar-recado');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  try {
+    const { error } = await sb.from('time_recados').insert({
+      autor_id: profile.id,
+      mensagem,
+      area_alvo: area,
+      status: 'pendente',
+    });
+    if (error) throw error;
+    document.getElementById('r-mensagem').value = '';
+    document.getElementById('r-area').value = '';
+    T('✓ Recado enviado. O time lê no próximo ciclo dele.', 'success');
+    await carregarRecados();
+  } catch (err) {
+    T(err.message || 'Erro ao enviar recado.', 'error');
+  } finally {
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+});
+
+(async () => {
+  window.staflowApp.renderSidebar('sidebar');
+  profile = await window.staflowApp.bootstrapShell({ route: 'agentes' });
+  if (!profile) return;
+  await carregarRecados();
+})();
+
+// ---- Menu toggle (mobile) ----
+{
+  const _mt = document.getElementById('menu-toggle');
+  const _sb = document.getElementById('sidebar');
+  const _bk = document.getElementById('sidebar-backdrop');
+  if (_mt && _sb) {
+    _mt.addEventListener('click', () => {
+      _sb.classList.toggle('open');
+      if (_bk) _bk.classList.toggle('show');
+    });
+    if (_bk) _bk.addEventListener('click', () => {
+      _sb.classList.remove('open');
+      _bk.classList.remove('show');
+    });
+  }
+}
+</script>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+</body>
+</html>
