@@ -13,9 +13,20 @@ alter table public.funcionarios
   add column if not exists horario_fim    time,
   add column if not exists horas_almoco_min int;
 
--- 2) claim_funcionario_by_email() — agora também garante o vínculo
---    em membros_condominio (bug antigo deixava funcionário sem RLS
---    funcionando nas próprias abas do app dele).
+-- 2) claim_funcionario_by_email() — garante o vínculo em
+--    membros_condominio (sem ele o funcionário ficava sem RLS nas
+--    próprias abas do app dele).
+--
+--    ⚠️ ARMADILHA JÁ PISADA DUAS VEZES (ver também 017_hotfix):
+--    esta função declara OUT params via RETURNS TABLE, incluindo
+--    `condominio_id`. Qualquer referência NÃO QUALIFICADA a
+--    condominio_id dentro do corpo — inclusive na cláusula de
+--    inferência de `on conflict (user_id, condominio_id)` — vira
+--    erro 42702 "column reference is ambiguous", a função aborta
+--    inteira e NENHUM funcionário consegue se vincular: todos ficam
+--    presos na tela "Aguardando ativação do Síndico".
+--    Por isso: `on conflict do nothing` (sem colunas) e todo SELECT/
+--    UPDATE com alias de tabela.
 create or replace function public.claim_funcionario_by_email()
  returns TABLE(funcionario_id uuid, condominio_id uuid, vinculado boolean)
  language plpgsql
@@ -34,7 +45,7 @@ begin
     return;
   end if;
 
-  select email into v_email from auth.users where id = v_user_id;
+  select u.email into v_email from auth.users u where u.id = v_user_id;
   if v_email is null then
     return query select null::uuid, null::uuid, false;
     return;
@@ -46,12 +57,10 @@ begin
    where f.auth_user_id = v_user_id
    limit 1;
 
-  if found then
-    -- Garante o vínculo em membros_condominio mesmo pra quem já foi
-    -- vinculado antes desta correção (idempotente).
+  if v_func_id is not null then
     insert into public.membros_condominio (user_id, condominio_id, role)
     values (v_user_id, v_condo_id, 'funcionario')
-    on conflict (user_id, condominio_id) do nothing;
+    on conflict do nothing;
 
     return query select v_func_id, v_condo_id, true;
     return;
@@ -65,23 +74,23 @@ begin
      and f.ativo = true
    limit 1;
 
-  if not found then
+  if v_func_id is null then
     return query select null::uuid, null::uuid, false;
     return;
   end if;
 
-  update public.funcionarios
+  update public.funcionarios f
      set auth_user_id = v_user_id
-   where id = v_func_id;
+   where f.id = v_func_id;
 
-  update public.profiles
+  update public.profiles p
      set role = 'funcionario',
          condominio_id = v_condo_id
-   where id = v_user_id;
+   where p.id = v_user_id;
 
   insert into public.membros_condominio (user_id, condominio_id, role)
   values (v_user_id, v_condo_id, 'funcionario')
-  on conflict (user_id, condominio_id) do nothing;
+  on conflict do nothing;
 
   return query select v_func_id, v_condo_id, true;
 end

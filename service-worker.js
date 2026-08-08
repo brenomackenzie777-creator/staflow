@@ -10,7 +10,13 @@
      o app pode mostrar prompt "Recarregar para atualizar"
    ==================================================================== */
 
-const VERSION   = 'staflow-v3'; // v3: fix retry automático de vínculo + export ponto-calc.js
+// ATENÇÃO: sempre suba este número ao mexer em qualquer arquivo do
+// PRECACHE (route-guard.js, auth.js, app.css...). Eles são servidos
+// cache-first: sem bumpar a versão, o navegador continua entregando o
+// arquivo ANTIGO para sempre e a correção nunca chega no usuário.
+// Foi exatamente isso que travou o Breno em 08/08/2026: a correção do
+// route-guard.js estava no ar, mas o cache v3 servia a versão velha.
+const VERSION   = 'staflow-v4'; // v4: fix flag pending_colab travando qualquer conta
 const CACHE_NAME = 'staflow-' + VERSION;
 
 // Assets críticos pré-cacheados
