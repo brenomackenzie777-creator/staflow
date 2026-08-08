@@ -55,9 +55,44 @@
   }
 
   // ─── Flag de cadastro pendente (do fluxo /auth/cadastro como colab) ─
+  //
+  // ★ BUG CRÍTICO CORRIGIDO (08/08/2026):
+  // Essa flag ficava gravada no navegador PARA SEMPRE. Ela só era
+  // apagada quando um vínculo de funcionário dava certo — nunca no
+  // logout, nunca por tempo. Resultado: bastava alguém iniciar UM
+  // cadastro de colaborador naquele navegador para que TODA conta que
+  // entrasse depois — inclusive síndico — fosse jogada para
+  // /colaborador e travasse na tela "Aguardando ativação do Síndico".
+  // O usuário ficava permanentemente trancado fora do próprio painel,
+  // sem nenhuma forma de sair disso pela interface.
+  //
+  // Duas travas agora:
+  //   1. A flag expira em 24h (TTL abaixo).
+  //   2. O papel vindo do servidor SEMPRE vence a flag local
+  //      (ver decideRota — síndico/admin ignora e limpa a flag).
+  const PENDING_KEY    = 'staflow_pending_colab_claim';
+  const PENDING_TS_KEY = 'staflow_pending_colab_claim_ts';
+  const PENDING_TTL    = 24 * 60 * 60 * 1000;   // 24h
+
   function temFlagPendingColab() {
-    try { return !!localStorage.getItem('staflow_pending_colab_claim'); }
-    catch (_) { return false; }
+    try {
+      if (!localStorage.getItem(PENDING_KEY)) return false;
+
+      const raw = localStorage.getItem(PENDING_TS_KEY);
+      const ts  = raw ? parseInt(raw, 10) : NaN;
+
+      // Flag antiga (gravada antes desta correção, sem carimbo de
+      // tempo): carimba agora para que ela expire em 24h.
+      if (Number.isNaN(ts)) {
+        localStorage.setItem(PENDING_TS_KEY, String(Date.now()));
+        return true;
+      }
+      if (Date.now() - ts > PENDING_TTL) {
+        limparPendingColabClaim();
+        return false;
+      }
+      return true;
+    } catch (_) { return false; }
   }
 
   // ─── DECISÃO PURA (testável sem DOM) ───────────────────────────────
@@ -76,7 +111,19 @@
     opts = opts || {};
     const path = normalizarPath(pathname);
     const kind = classificarPath(pathname);
-    const pendingColab = temFlagPendingColab();
+
+    // ★ A VERDADE DO SERVIDOR VENCE A FLAG LOCAL.
+    // Se o banco já diz que esta conta é síndico/admin, qualquer flag
+    // de "cadastro de colaborador pendente" guardada neste navegador é
+    // lixo de outro cadastro — apaga e ignora. Sem isso, um síndico
+    // fica preso na tela de espera do app do funcionário para sempre.
+    const ehAdmin = !!profile && (profile.role === 'sindico' || profile.role === 'admin');
+    let pendingColab = temFlagPendingColab();
+    if (pendingColab && ehAdmin) {
+      limparPendingColabClaim();
+      pendingColab = false;
+      console.warn('[guard] flag pending_colab descartada: perfil é ' + profile.role);
+    }
 
     // 1) Não autenticado
     if (!user) {
@@ -172,7 +219,7 @@
       if (arr.length >= RECON_THRESHOLD) {
         // Destrói token e força login
         sessionStorage.removeItem(RECON_KEY);
-        try { localStorage.removeItem('staflow_pending_colab_claim'); } catch(_) {}
+        limparPendingColabClaim();
         if (window.staflowSupabase?.auth?.signOut) {
           window.staflowSupabase.auth.signOut().finally(() => {
             location.replace('/auth/login.html?reason=suspicious_activity');
@@ -215,9 +262,13 @@
     return { allow: false, decision: dec };
   }
 
-  // Helper: limpa flag de pending claim (chamado quando o vínculo dá certo)
+  // Helper: limpa flag de pending claim (quando o vínculo dá certo, no
+  // logout, quando expira, ou quando o perfil prova ser síndico/admin)
   function limparPendingColabClaim() {
-    try { localStorage.removeItem('staflow_pending_colab_claim'); } catch (_) {}
+    try {
+      localStorage.removeItem(PENDING_KEY);
+      localStorage.removeItem(PENDING_TS_KEY);
+    } catch (_) {}
   }
 
   window.staflowGuard = {

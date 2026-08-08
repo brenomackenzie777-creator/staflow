@@ -77,6 +77,16 @@
 
   async function signOut() {
     try {
+      // ★ Limpa estado local que não pertence à próxima sessão.
+      // A flag de "cadastro de colaborador pendente" ficava para
+      // sempre e trancava a PRÓXIMA conta que entrasse neste
+      // navegador na tela "Aguardando ativação do Síndico".
+      try {
+        localStorage.removeItem('staflow_pending_colab_claim');
+        localStorage.removeItem('staflow_pending_colab_claim_ts');
+        localStorage.removeItem('staflow_condo_atual');
+      } catch (_) {}
+
       const { error } = await sb.auth.signOut();
       if (error) throw error;
       return { ok: true };

@@ -2191,6 +2191,16 @@ function mostrarBlock(email) {
 
   // 4. Sem vínculo → tela de bloqueio
   if (!funcId) {
+    // ★ REDE DE SEGURANÇA: se o banco diz que esta conta é síndico/admin,
+    // ela NUNCA deveria ver a tela de espera do app do funcionário.
+    // Isso acontecia por causa de uma flag velha guardada no navegador
+    // (staflow_pending_colab_claim) que trancava qualquer conta aqui.
+    // Em vez de prender a pessoa, limpa a flag e devolve ela pro painel.
+    if (profile && (profile.role === 'sindico' || profile.role === 'admin')) {
+      window.staflowGuard.limparPendingColabClaim();
+      location.replace('/dashboard.html');
+      return;
+    }
     mostrarBlock(user?.email);
     return;
   }

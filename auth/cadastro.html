@@ -637,6 +637,10 @@ document.getElementById('form-1').addEventListener('submit', async (e) => {
   // contextual. O claim em si roda incondicionalmente.
   try {
     localStorage.setItem('staflow_pending_colab_claim', state.email);
+    // Carimbo de tempo — a flag expira em 24h (ver js/route-guard.js).
+    // Sem isso ela ficava para sempre e trancava as próximas contas
+    // que entrassem neste navegador na tela de espera do colaborador.
+    localStorage.setItem('staflow_pending_colab_claim_ts', String(Date.now()));
   } catch(_) { /* storage bloqueado em incognito — ignora */ }
 
   document.getElementById('sent-email').textContent = state.email;
