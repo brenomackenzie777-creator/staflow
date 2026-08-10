@@ -126,8 +126,13 @@ def _registrar_execucao(loop_key: str, sucesso: bool, tokens: int,
             "created_at":     datetime.datetime.utcnow().isoformat(),
         }).execute()
     except Exception as e:
-        log.warning("Não consegui registrar a execução no Supabase: %s",
-                     str(e)[:200])
+        url_ok = isinstance(SUPABASE_URL, str) and SUPABASE_URL.startswith("http")
+        log.warning(
+            "Não consegui registrar a execução no Supabase: %s: %s | "
+            "SUPABASE_URL parece válida: %s (%d chars, começa com '%s')",
+            type(e).__name__, str(e)[:200], url_ok,
+            len(str(SUPABASE_URL)), str(SUPABASE_URL)[:12]
+        )
 
 
 def _ordem_do_dia() -> list:

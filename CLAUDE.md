@@ -154,5 +154,16 @@ Em aberto: o Breno ainda não recebeu nenhum relatório por email. O
 se é o Resend recusando o remetente, spam, ou o Relator nem chamando a
 ferramenta.
 
+**09/08/2026, mesmo dia — bug novo na correção nº 2 (orçamento no banco).**
+Um log mostrou `ler_gasto_do_dia`/`salvar_gasto_do_dia`/`_registrar_execucao`
+falhando com "Invalid URL" ao tentar falar com o Supabase, bem na hora de
+um loop bater na cota diária esgotada. Não deu pra confirmar a causa raiz
+ainda (a mensagem de erro vinha curta demais). O sistema não quebrou por
+causa disso — a estimativa de segurança (30.000 tokens) segurou o freio de
+orçamento mesmo sem conseguir salvar no banco — mas o valor não fica
+persistido pra próxima execução aproveitar. Log foi enriquecido (tipo do
+erro + diagnóstico da URL/chave configurada) pra próxima falha apontar a
+causa exata.
+
 ---
 *Última atualização: arquivo inicial — agentes ainda não rodaram*

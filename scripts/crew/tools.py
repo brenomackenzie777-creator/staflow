@@ -316,6 +316,17 @@ class GitHubPRTool(BaseTool):
 # enxerga o que as anteriores já gastaram.
 # Não são ferramentas de agente — são funções internas do orquestrador.
 
+def _diagnostico_config() -> str:
+    """String segura (sem vazar a chave) pra saber SE a config existe e
+    tem o formato esperado, quando um erro de conexão é confuso demais."""
+    url_ok = isinstance(SUPABASE_URL, str) and SUPABASE_URL.startswith("http")
+    key_len = len(SUPABASE_KEY) if isinstance(SUPABASE_KEY, str) else 0
+    return (f"SUPABASE_URL parece válida: {url_ok} "
+            f"(começa com '{str(SUPABASE_URL)[:12]}...', "
+            f"{len(str(SUPABASE_URL))} chars) | "
+            f"SUPABASE_KEY presente: {key_len > 20} ({key_len} chars)")
+
+
 def ler_gasto_do_dia(dia: str) -> int:
     """Quantos tokens o time já gastou hoje (0 se ainda não rodou)."""
     try:
@@ -328,7 +339,8 @@ def ler_gasto_do_dia(dia: str) -> int:
     except Exception as e:
         # Nunca travar o ciclo por causa do contador. Assumir 0 é o
         # comportamento antigo — no pior caso gasta um pouco a mais.
-        print(f"[orcamento] não consegui ler o gasto do dia: {e}")
+        print(f"[orcamento] não consegui ler o gasto do dia: "
+              f"{type(e).__name__}: {e} | {_diagnostico_config()}")
         return 0
 
 
@@ -342,7 +354,8 @@ def salvar_gasto_do_dia(dia: str, tokens: int) -> None:
             "atualizado_em": datetime.datetime.utcnow().isoformat(),
         }, on_conflict="dia").execute()
     except Exception as e:
-        print(f"[orcamento] não consegui salvar o gasto do dia: {e}")
+        print(f"[orcamento] não consegui salvar o gasto do dia: "
+              f"{type(e).__name__}: {e} | {_diagnostico_config()}")
 
 
 # ─── Recados do Breno (canal único "empresa") ─────────────────────
