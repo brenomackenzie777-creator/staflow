@@ -126,7 +126,33 @@ até 24h), o canal continua sendo esta conversa com o Claude/Cowork.
 
 ## Últimas Execuções
 <!-- Preenchido automaticamente pelos agentes -->
-(aguardando primeira execução automática)
+**09/08/2026 — primeiro ciclo que completou de verdade.** Loop `produto`
+rodou inteiro em 6min19s (11:04–11:11 UTC). Nos dias anteriores nenhum
+ciclo chegou ao fim: todos morriam de cota esgotada no meio.
+
+Três problemas encontrados analisando esse log e corrigidos no mesmo dia:
+
+1. **Contador de tokens inflado ~24x.** O `crew.usage_metrics` do CrewAI
+   reportou 631.320 tokens para um ciclo que, somando as chamadas reais
+   do log, gastou 26.336. Com isso o orçamento "estourava" (902%) logo
+   no primeiro loop e os outros três eram pulados todo dia. Agora a
+   medição vem de um callback do litellm (`scripts/crew/uso.py`), com o
+   teto físico por tempo (12 mil tokens/min do Groq) como segunda rede.
+2. **Orçamento diário zerava a cada execução.** O Railway sobe container
+   novo a cada cron E a cada deploy — no dia 09/08 rodou às 11:04, 15:05
+   e 00:00, cada execução se achando a primeira e liberando os 70 mil
+   tokens de novo. Agora o gasto fica em `public.agent_budget_diario`,
+   compartilhado entre execuções.
+3. **Nada era registrado no banco.** A tabela `agent_runs` não tinha a
+   coluna `loop_name` que o código usa, então toda gravação falhava em
+   silêncio — e o registro ainda dependia do Executor lembrar de chamar
+   a ferramenta. Coluna criada e o próprio orquestrador agora grava cada
+   ciclo (`_registrar_execucao`), dando certo ou não.
+
+Em aberto: o Breno ainda não recebeu nenhum relatório por email. O
+`NotifyTool` agora loga sucesso/falha do envio no Railway pra descobrir
+se é o Resend recusando o remetente, spam, ou o Relator nem chamando a
+ferramenta.
 
 ---
 *Última atualização: arquivo inicial — agentes ainda não rodaram*

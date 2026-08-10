@@ -308,6 +308,43 @@ class GitHubPRTool(BaseTool):
             return f"Erro PR: {e}"
 
 
+# ─── Orçamento diário compartilhado ───────────────────────────────
+# ★ 09/08/2026 — o gasto do dia vivia só na memória do processo. Como o
+# Railway sobe um container novo a cada cron E a cada deploy, o contador
+# voltava a zero toda vez e o time rodava tudo de novo achando que tinha
+# a cota inteira. Agora fica no banco, então qualquer execução do dia
+# enxerga o que as anteriores já gastaram.
+# Não são ferramentas de agente — são funções internas do orquestrador.
+
+def ler_gasto_do_dia(dia: str) -> int:
+    """Quantos tokens o time já gastou hoje (0 se ainda não rodou)."""
+    try:
+        sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+        r = (sb.table("agent_budget_diario")
+             .select("tokens_gastos").eq("dia", dia).limit(1).execute())
+        if r.data:
+            return int(r.data[0].get("tokens_gastos") or 0)
+        return 0
+    except Exception as e:
+        # Nunca travar o ciclo por causa do contador. Assumir 0 é o
+        # comportamento antigo — no pior caso gasta um pouco a mais.
+        print(f"[orcamento] não consegui ler o gasto do dia: {e}")
+        return 0
+
+
+def salvar_gasto_do_dia(dia: str, tokens: int) -> None:
+    """Grava o total gasto no dia (sobrescreve o valor anterior)."""
+    try:
+        sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+        sb.table("agent_budget_diario").upsert({
+            "dia":           dia,
+            "tokens_gastos": int(tokens),
+            "atualizado_em": datetime.datetime.utcnow().isoformat(),
+        }, on_conflict="dia").execute()
+    except Exception as e:
+        print(f"[orcamento] não consegui salvar o gasto do dia: {e}")
+
+
 # ─── Recados do Breno (canal único "empresa") ─────────────────────
 # Um só lugar onde o Breno deixa pedidos/comentários pro time inteiro
 # (tabela public.time_recados, escrita pela página interna equipe.html).
@@ -491,8 +528,17 @@ class NotifyTool(BaseTool):
                 timeout=15,
             )
             if r.status_code >= 400:
+                # ★ 09/08/2026 — antes essa falha só voltava como texto pro
+                # agente, que seguia em frente sem reclamar. Resultado: o
+                # Breno passou dias sem receber relatório nenhum e o log não
+                # mostrava nada de errado. Agora aparece no log do Railway.
+                print(f"[email] FALHA ao enviar (HTTP {r.status_code}) "
+                      f"de {RESEND_FROM} para {NOTIFY_EMAIL}: {r.text[:300]}")
                 return (f"FALHA ao enviar email (HTTP {r.status_code}): "
                         f"{r.text[:300]}")
+            print(f"[email] enviado de {RESEND_FROM} para {NOTIFY_EMAIL} "
+                  f"— assunto: {subject[:80]}")
             return f"Email enviado para {NOTIFY_EMAIL}"
         except Exception as e:
+            print(f"[email] ERRO ao enviar: {e}")
             return f"Erro email: {e}"
