@@ -15,7 +15,7 @@ from .tools import (
     TavilySearchTool, GitHubPRTool, UpdateMemoryTool, NotifyTool,
     ReadMemoryTool, SupabaseFeedbackTool, ReadPromptsTool,
     ListPromptsTool, ReadMarketContextTool,
-    LerRecadosTool, ResponderRecadoTool,
+    LerRecadosTool, ResponderRecadoTool, PanoramaNegocioTool,
 )
 
 supabase_metrics  = SupabaseMetricsTool()
@@ -32,6 +32,7 @@ listar_agentes    = ListPromptsTool()
 market_context    = ReadMarketContextTool()
 ler_recados       = LerRecadosTool()
 responder_recado  = ResponderRecadoTool()
+panorama          = PanoramaNegocioTool()
 
 # Log verboso do CrewAI estoura o limite de 500 linhas/seg do Railway.
 # Ligue com VERBOSE=1 só quando precisar depurar.
@@ -81,6 +82,28 @@ def build_loop_agents(loop_key: str) -> dict:
         "decisor":      _build_agent(prompts, "decisor", [notify, responder_recado]),
         "executor":     _build_agent(prompts, "executor", [github_pr, supabase_write]),
         "observador":   _build_agent(prompts, "observador", [supabase_metrics, update_memory]),
+        "relator":      _build_agent(prompts, "relator", [notify]),
+    }
+
+
+ORDEM_CEO = ["analista", "estrategista", "executor", "relator"]
+
+
+def build_ceo_agents() -> dict:
+    """★ 10/08/2026 — a pedido do Breno: UM loop só, que enxerga a operação
+    inteira e decide como CEO, em vez de 4 loops por área.
+
+    Além de ser o que ele pediu, é o que cabe na cota: 8 agentes custavam
+    ~26 mil tokens por ciclo e 4 ciclos (105 mil) nunca couberam nos 100 mil
+    diários do Groq. Com 4 agentes, um ciclo custa ~13 mil — sobra folga de
+    verdade pra erro, retry e execução manual."""
+    prompts = _load_prompts("ceo")
+    return {
+        "analista":     _build_agent(prompts, "analista",
+                                     [panorama, read_memory, market_context]),
+        "estrategista": _build_agent(prompts, "estrategista", [tavily_search]),
+        "executor":     _build_agent(prompts, "executor",
+                                     [github_pr, supabase_write, responder_recado, update_memory]),
         "relator":      _build_agent(prompts, "relator", [notify]),
     }
 

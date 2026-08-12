@@ -31,13 +31,42 @@
 - Texto: #F9FAFB
 - Fonte: Inter
 
-## Loops Especializados (Railway, roda TODO DIA às 08:00 BRT)
-**Atualizado em 08/08/2026, a pedido do Breno:** em vez de UM loop por dia
-útil, agora roda quantos loops de negócio couberem no dia — todo santo dia,
-inclusive fim de semana — até usar **70% da cota diária do Groq** (100 mil
-tokens/dia no free tier; os outros 30% ficam de reserva pra retries e pro
-Meta-Agente de sexta — passou por 50% → 90% → 70% no mesmo dia, ver nota
-de bug abaixo).
+## ★ Ciclo CEO — o único loop automático (Railway, todo dia 08:00 BRT)
+
+**Ordem do Breno em 10/08/2026:** um loop só, para a operação inteira,
+funcionando como CEO da empresa. Os 4 loops por área saíram do automático.
+
+**A conta que explica por que nada funcionava até aqui:** cada loop de 8
+agentes custava ~26 mil tokens. Quatro por dia = 105 mil, contra uma cota
+diária de 100 mil do Groq no plano gratuito. **Nunca coube — era impossível
+desde o primeiro dia**, e ninguém tinha feito essa conta antes de agendar.
+
+O ciclo CEO tem **4 agentes** e custa ~13 mil tokens (≈13% da cota),
+deixando folga de verdade para retry, erro e execução manual.
+
+| Etapa | Papel | O que faz |
+|-------|-------|-----------|
+| 1 | **Analista-Chefe** | Lê `panorama_negocio` + memória. Diz onde a empresa está hoje, com número real. |
+| 2 | **CEO (Estrategista)** | Escolhe **UMA** prioridade para o dia e justifica com dado. Recado do Breno vira prioridade automaticamente. |
+| 3 | **Executor** | Entrega o trabalho pronto, responde os recados, registra o ciclo e atualiza a memória. |
+| 4 | **Relator** | Escreve o e-mail do dia para o Breno, em português de gente. |
+
+Prompts em `scripts/crew/prompts/ceo.json`. Ferramenta principal:
+`panorama_negocio` (em `tools.py`) — retrato do funil inteiro, que
+**separa dado de teste de dado real** (contas `@staflow.test`, `+teste` e
+condomínio órfão são descartadas; só conta como receita quem tem assinatura
+confirmada no Stripe).
+
+Os 4 loops antigos por área continuam no código e podem ser rodados na mão:
+`LOOP=marketing python -m scripts.crew.main`. Não rodam mais sozinhos.
+
+---
+
+### Histórico dos 4 loops por área (arquivado)
+Mantido porque explica decisões e bugs antigos.
+
+Rodava quantos loops de negócio coubessem no dia, até usar **70% da cota
+diária do Groq** (a fração passou por 50% → 90% → 70% no mesmo dia).
 
 **Bug encontrado e corrigido em 08/08/2026 (log real analisado pelo Claude):**
 a causa real era MAIOR do que o agendamento duplicado do GitHub Actions
@@ -75,8 +104,8 @@ próprios em `scripts/crew/prompts/<loop>.json`. O Meta-Agente é compartilhado
 entre todos os loops (`scripts/crew/prompts/meta.json`) e lê o histórico de
 aprovações/rejeições de qualquer loop antes de propor uma mudança de prompt.
 
-Lógica de orçamento e rotação: `scripts/crew/main.py`. Ajustável por variável
-de ambiente no Railway: `FRACAO_ORCAMENTO_DIARIO` (padrão 0.9) e
+Lógica de orçamento: `scripts/crew/main.py`. Ajustável por variável de
+ambiente no Railway: `FRACAO_ORCAMENTO_DIARIO` (padrão 0.7) e
 `COTA_DIARIA_TOKENS` (padrão 100000).
 
 **O Relator** é o último agente de cada ciclo e o único que fala com o Breno.
@@ -98,18 +127,14 @@ Mecanismo (não é chat ao vivo — os loops só rodam 1x/dia):
 1. Página `/agentes.html` ("Time de IA" no menu) — o Breno escreve um
    recado (texto livre + área opcional) que grava em
    `public.time_recados` (status inicial `pendente`).
-2. O **Coletor** de cada loop lê os recados pendentes/em andamento no
-   início do ciclo (`ler_recados_breno`) — um recado relevante à área
-   dele vira PRIORIDADE MÁXIMA do ciclo, acima de qualquer prioridade
-   que o time escolheria sozinho.
-3. O **Decisor** responde cada recado que o Coletor sinalizou
-   (`responder_recado_breno`): marca `atendido` (com o que foi feito),
-   `em_andamento` ou `nao_prioridade` (sempre com o motivo). Nunca fica
-   sem resposta.
-4. O Breno vê a resposta na mesma página `/agentes.html`, no histórico.
-
-Se o recado não tiver área definida, qualquer um dos 4 loops pode
-pegá-lo — o primeiro a rodar decide se é dele ou não.
+2. O **Analista** do ciclo CEO lê os recados pendentes no início (vêm
+   dentro de `panorama_negocio`) e lista cada um COM O ID.
+3. O **CEO** trata recado do Breno como PRIORIDADE AUTOMÁTICA do dia —
+   acima de qualquer coisa que o time escolheria sozinho.
+4. O **Executor** responde cada recado (`responder_recado_breno`):
+   `atendido` (com o que foi feito) ou `nao_prioridade` (com o motivo).
+   Nunca fica sem resposta.
+5. O Breno vê a resposta na mesma página `/agentes.html`, no histórico.
 
 Para pedidos que precisam de resposta NA HORA (não no próximo ciclo de
 até 24h), o canal continua sendo esta conversa com o Claude/Cowork.

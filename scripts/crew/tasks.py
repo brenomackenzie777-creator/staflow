@@ -168,6 +168,126 @@ def build_loop_tasks(loop_key: str, agents: dict) -> dict:
     }
 
 
+def build_ceo_tasks(agents: dict) -> dict:
+    """★ 10/08/2026 — o ciclo único da operação inteira.
+
+    Quatro etapas: entender → decidir UMA coisa → fazer → contar pro Breno.
+    Cada tarefa recebe só o contexto que precisa, pra conversa não inchar e
+    estourar o limite de tokens por minuto do Groq."""
+
+    tarefa_entender = Task(
+        description=(
+            "Você está abrindo o ciclo diário da StaFlow. Sua função é dizer "
+            "onde a empresa está HOJE.\n\n"
+            "1. Use panorama_negocio (parâmetro vazio) — é sua fonte principal.\n"
+            "2. Use read_memory pra ver o que os ciclos anteriores decidiram.\n\n"
+            "Depois escreva um retrato curto e honesto cobrindo:\n"
+            "- CADASTRO: entrou gente nova? quantos nos últimos 7 dias?\n"
+            "- ATIVAÇÃO: quem cadastrou e nunca bateu ponto? (é o furo mais caro)\n"
+            "- RECEITA: quantos pagam DE VERDADE (com assinatura no Stripe)?\n"
+            "- VOZ DO CLIENTE: o que reclamaram?\n"
+            "- RECADOS DO BRENO: liste cada recado pendente COM O ID — o "
+            "Executor vai precisar do id pra responder.\n"
+            "- MUDOU O QUÊ desde o ciclo anterior?\n\n"
+            "Regra dura: número que não está no panorama, você não cita. "
+            "Se algo não dá pra saber, escreva 'não temos esse dado'. "
+            "Empresa nova tem número pequeno — isso não é problema, "
+            "interpretar errado é."
+        ),
+        expected_output=(
+            "Retrato da empresa em tópicos, com os números reais, os recados "
+            "pendentes do Breno com seus ids, e o que mudou desde o último ciclo."
+        ),
+        agent=agents["analista"],
+    )
+
+    tarefa_decidir = Task(
+        description=(
+            "Você é o CEO. Escolha A ÚNICA prioridade da empresa para hoje.\n\n"
+            "Como decidir:\n"
+            "- Se há recado do Breno pendente, ele É a prioridade. Ponto.\n"
+            "- Senão, olhe o funil inteiro (descobre → cadastra → ativa → paga "
+            "→ fica) e ataque onde está mais furado AGORA.\n"
+            "- Nesta fase (produto no ar, quase nenhum cliente pagando), "
+            "conseguir e ativar cliente vale mais que refinar produto. "
+            "Só fuja disso se o dado mostrar o contrário.\n"
+            "- Se precisar de contexto de fora, pode usar tavily_search uma vez. "
+            "Se não precisar, não use — economiza tempo e cota.\n\n"
+            "Entregue:\n"
+            "1. A PRIORIDADE em uma frase\n"
+            "2. POR QUE ela vem antes das outras (com o número que sustenta)\n"
+            "3. O QUE FAZER, concreto o bastante pro Executor executar hoje\n"
+            "4. COMO SABER SE DEU CERTO (qual número deve mexer, e até quando)\n\n"
+            "Uma prioridade. Não duas. Se você listar duas, você falhou na tarefa."
+        ),
+        expected_output=(
+            "A prioridade única do dia, a justificativa com dado, a ação "
+            "concreta e o sinal de sucesso."
+        ),
+        agent=agents["estrategista"],
+        context=[tarefa_entender],
+    )
+
+    tarefa_fazer = Task(
+        description=(
+            "Execute a prioridade que o CEO definiu. Entregue trabalho pronto, "
+            "não conselho.\n\n"
+            "- Se for conteúdo/copy: escreva o texto COMPLETO, pronto pra usar.\n"
+            "- Se for abordagem comercial: escreva a mensagem inteira.\n"
+            "- Se for mudança no produto: descreva exatamente o que muda e em "
+            "qual tela, em português comum. Se for arquivo crítico do site, "
+            "NÃO tente alterar — entregue a proposta escrita.\n\n"
+            "Depois, sem falta:\n"
+            "1. Para CADA recado do Breno que o Analista listou, chame "
+            "responder_recado_breno com o id, status ('atendido' se foi "
+            "tratado neste ciclo, 'nao_prioridade' com o motivo se não foi) "
+            "e atendido_por='ceo'.\n"
+            "2. Chame supabase_write_agent_run com loop_name='ceo', "
+            "agent_name='executor', output_summary= a prioridade do dia em "
+            "uma linha, e output_completo= o que você produziu.\n"
+            "3. Chame update_memory com um resumo curto começando por '[CEO]', "
+            "incluindo a prioridade de hoje e qual deve ser a de amanhã."
+        ),
+        expected_output=(
+            "O trabalho pronto (texto/proposta completa) + confirmação de que "
+            "os recados foram respondidos, o ciclo foi registrado e a memória "
+            "atualizada."
+        ),
+        agent=agents["executor"],
+        context=[tarefa_entender, tarefa_decidir],
+    )
+
+    tarefa_contar = Task(
+        description=(
+            "Escreva o e-mail do dia para o Breno. Ele é o dono, não é "
+            "programador, e vai ler no celular entre uma ligação e outra.\n\n"
+            "Estrutura, em HTML simples (h2, p, ul, li, strong):\n"
+            "1. <b>Em uma frase:</b> o que a empresa fez hoje\n"
+            "2. <b>Os números:</b> os 3 ou 4 que importam, comparados com o "
+            "ciclo anterior. Sem dado, diga 'ainda não temos'\n"
+            "3. <b>A prioridade de hoje e por quê</b>\n"
+            "4. <b>O que ficou pronto:</b> entregue o material aqui mesmo, "
+            "pra ele copiar direto do e-mail\n"
+            "5. <b>Preciso de você:</b> o que depende de decisão dele. "
+            "Se não depende nada, escreva 'nada hoje'\n"
+            "6. <b>Amanhã:</b> a próxima prioridade\n\n"
+            "Proibido: 'deploy', 'endpoint', 'query', 'bug', 'API', 'commit'. "
+            "Fale por efeito, não por mecanismo.\n"
+            "Se o ciclo rendeu pouco, diga que rendeu pouco e por quê — "
+            "relatório inflado destrói a confiança dele no time.\n\n"
+            "Envie com notify_breno, subject: 'StaFlow — o que fizemos hoje'."
+        ),
+        expected_output=(
+            "Confirmação do envio do e-mail e o texto completo do que foi enviado."
+        ),
+        agent=agents["relator"],
+        context=[tarefa_entender, tarefa_decidir, tarefa_fazer],
+    )
+
+    return {"entender": tarefa_entender, "decidir": tarefa_decidir,
+            "fazer": tarefa_fazer, "contar": tarefa_contar}
+
+
 def build_meta_task(meta_agente) -> Task:
     """Tarefa única do Meta-Agente — avalia todos os loops da semana."""
     return Task(

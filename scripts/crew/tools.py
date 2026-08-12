@@ -156,6 +156,120 @@ class SupabaseMetricsTool(BaseTool):
             return f"Erro Supabase: {e}"
 
 
+class PanoramaNegocioTool(BaseTool):
+    name: str = "panorama_negocio"
+    description: str = (
+        "Devolve o retrato completo do StaFlow AGORA: cadastros, ativação, "
+        "receita, uso real do produto, feedbacks, recados do Breno e o que os "
+        "ciclos anteriores decidiram. É a sua principal fonte de verdade — "
+        "leia antes de qualquer conclusão. Parâmetro input: string vazia."
+    )
+
+    def _run(self, input: str = "") -> str:
+        try:
+            sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+            agora  = datetime.datetime.utcnow()
+            d7     = (agora - datetime.timedelta(days=7)).isoformat()
+            d1     = (agora - datetime.timedelta(days=1)).isoformat()
+            d30    = (agora - datetime.timedelta(days=30)).isoformat()
+
+            # ── Base de dados crua ──
+            profiles = sb.table("profiles").select("id,email,created_at,role").execute().data or []
+            condos   = sb.table("condominios").select(
+                "id,nome,plano_ativo,status_assinatura,stripe_subscription_id,sindico_id,created_at"
+            ).execute().data or []
+            funcs    = sb.table("funcionarios").select("id,condominio_id,ativo").execute().data or []
+            pontos   = sb.table("registros_ponto").select(
+                "id,condominio_id,registrado_em").gte("registrado_em", d30).execute().data or []
+
+            # ── Separa teste de real ──
+            # Contas de teste poluem toda métrica. Um CEO que lê "6 assinaturas
+            # ativas" quando são todas de teste toma decisão errada.
+            emails = {p["id"]: (p.get("email") or "") for p in profiles}
+
+            def eh_teste(condo):
+                em = emails.get(condo.get("sindico_id"), "")
+                if not condo.get("sindico_id"):
+                    return True                       # órfão = lixo
+                if "@staflow.test" in em or ".test" in em:
+                    return True
+                if "+teste" in em or "+test" in em:
+                    return True
+                return False
+
+            condos_reais = [c for c in condos if not eh_teste(c)]
+            condos_teste = [c for c in condos if eh_teste(c)]
+
+            # Assinatura que existe DE VERDADE = tem id de assinatura no Stripe
+            pagantes = [c for c in condos_reais
+                        if c.get("stripe_subscription_id")
+                        and c.get("status_assinatura") == "active"]
+
+            # ── Ativação: cadastrou e chegou a usar? ──
+            condos_com_ponto = {p["condominio_id"] for p in pontos}
+            condos_com_func  = {f["condominio_id"] for f in funcs}
+            parados = [c["nome"] for c in condos_reais
+                       if c["id"] not in condos_com_ponto]
+
+            novos_7d  = [p for p in profiles if (p.get("created_at") or "") >= d7]
+            novos_24h = [p for p in profiles if (p.get("created_at") or "") >= d1]
+            pontos_7d = [p for p in pontos if (p.get("registrado_em") or "") >= d7]
+
+            # ── Sinais qualitativos ──
+            fb = (sb.table("feedback").select("mensagem,tipo,created_at")
+                  .order("created_at", desc=True).limit(5).execute().data or [])
+            recados = (sb.table("time_recados").select("id,mensagem,area_alvo,status,criado_em")
+                       .in_("status", ["pendente", "em_andamento"])
+                       .order("criado_em", desc=True).limit(5).execute().data or [])
+            ciclos = (sb.table("agent_runs").select("loop_name,status,output_summary,created_at")
+                      .order("created_at", desc=True).limit(5).execute().data or [])
+
+            receita = 0
+            precos = {"pro": 99, "advanced": 159, "scale": 279}
+            for c in pagantes:
+                receita += precos.get(c.get("plano_ativo") or "", 0)
+
+            retrato = {
+                "CADASTRO": {
+                    "usuarios_total": len(profiles),
+                    "novos_7_dias": len(novos_7d),
+                    "novos_24h": len(novos_24h),
+                },
+                "CONDOMINIOS": {
+                    "reais": len(condos_reais),
+                    "de_teste_ignorados": len(condos_teste),
+                    "com_funcionario_cadastrado": len(condos_com_func & {c["id"] for c in condos_reais}),
+                },
+                "RECEITA": {
+                    "condominios_pagando_de_verdade": len(pagantes),
+                    "mrr_estimado_reais": receita,
+                    "observacao": ("Só conta quem tem assinatura confirmada no Stripe. "
+                                   "Linhas marcadas 'active' no banco sem assinatura Stripe "
+                                   "são resquício de teste e NÃO são receita."),
+                },
+                "USO_REAL_DO_PRODUTO": {
+                    "batidas_de_ponto_7_dias": len(pontos_7d),
+                    "batidas_de_ponto_30_dias": len(pontos),
+                    "funcionarios_cadastrados": len(funcs),
+                    "condominios_que_nunca_bateram_ponto": parados[:10],
+                    "leitura": ("Condomínio cadastrado que nunca bateu ponto é cliente "
+                                "que não ativou. É o vazamento mais caro do funil."),
+                },
+                "VOZ_DO_CLIENTE": [{"tipo": f.get("tipo"),
+                                    "msg": (f.get("mensagem") or "")[:160]} for f in fb],
+                "RECADOS_DO_BRENO_PENDENTES": [
+                    {"id": r["id"], "msg": (r.get("mensagem") or "")[:200],
+                     "area": r.get("area_alvo"), "desde": (r.get("criado_em") or "")[:16]}
+                    for r in recados],
+                "CICLOS_ANTERIORES": [
+                    {"quando": (c.get("created_at") or "")[:16], "status": c.get("status"),
+                     "resumo": (c.get("output_summary") or "")[:160]} for c in ciclos],
+            }
+            return json.dumps(retrato, ensure_ascii=False, indent=2)
+        except Exception as e:
+            return f"Erro ao montar panorama: {type(e).__name__}: {e}"
+
+
 class SupabaseWriteTool(BaseTool):
     name: str = "supabase_write_agent_run"
     description: str = (

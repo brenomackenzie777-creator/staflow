@@ -1,8 +1,12 @@
 """
-StaFlow — Orquestrador principal: roteia por loop conforme o dia da semana
-Uso: python -m scripts.crew.main
-Override manual: LOOP=produto python -m scripts.crew.main
-Log detalhado (debug):  VERBOSE=1 python -m scripts.crew.main
+StaFlow — Orquestrador do ciclo diário
+
+Roda UM ciclo por dia: o time-CEO, que olha a operação inteira e escolhe
+a única prioridade do dia.
+
+Uso normal:            python -m scripts.crew.main
+Rodar loop antigo:     LOOP=marketing python -m scripts.crew.main
+Log detalhado (debug): VERBOSE=1 python -m scripts.crew.main
 """
 import sys
 import os
@@ -12,8 +16,10 @@ import datetime
 from crewai import Crew, Process
 
 from .config import MAX_RPM
-from .agents import build_loop_agents, build_meta_agent, build_meta_relator
-from .tasks import build_loop_tasks, build_meta_task, build_meta_relatorio_task
+from .agents import (build_loop_agents, build_ceo_agents, ORDEM_CEO,
+                     build_meta_agent, build_meta_relator)
+from .tasks import (build_loop_tasks, build_ceo_tasks,
+                    build_meta_task, build_meta_relatorio_task)
 from .tools import ler_gasto_do_dia, salvar_gasto_do_dia
 from . import uso
 
@@ -35,19 +41,15 @@ for _lib in ("httpx", "httpcore", "LiteLLM", "litellm", "openai", "urllib3"):
 
 log = logging.getLogger("staflow")
 
-# ★ 08/08/2026 — a pedido do Breno: em vez de UM loop por dia útil, roda
-# quantos loops de negócio couberem por dia, TODOS OS DIAS (inclusive fim
-# de semana), até usar 70% da cota diária do Groq (100.000 tokens/dia no
-# free tier — ver scripts/crew/config.py). Os outros 30% ficam de reserva
-# pra retries, o Meta-Agente de sexta e qualquer chamada manual (LOOP=x).
-# (Histórico: começou em 50%, foi pra 90%, o log de 08/08 mostrou um loop
-# sozinho consumindo quase a cota inteira do dia — voltou pra 70% até
-# entendermos o motivo real do consumo alto. Ver nota sobre gatilho
-# duplicado logo abaixo.)
+# ★ 10/08/2026 — ordem do Breno: UM ciclo pra operação inteira, funcionando
+# como CEO. Os 4 loops por área saíram do automático.
 #
-# Ordem de execução gira por dia (dia do ano % 4) pra nenhuma área ficar
-# sempre em último — se o orçamento acabar no meio, quem tomava o corte
-# antes era sempre "suporte"; agora o corte roda entre as 4 áreas.
+# A conta que ninguém tinha feito e que explica meses de falha: cada loop
+# de 8 agentes custava ~26 mil tokens. Quatro por dia = 105 mil, contra
+# cota diária de 100 mil do Groq. Nunca coube. O ciclo CEO tem 4 agentes
+# (~13 mil tokens) e usa ~13% da cota — sobra folga real pra retry e erro.
+#
+# Os loops por área seguem existindo pra rodar na mão: LOOP=marketing.
 LOOPS_DE_NEGOCIO = ["marketing", "produto", "financeiro", "suporte"]
 
 COTA_DIARIA_TOKENS   = int(os.environ.get("COTA_DIARIA_TOKENS", "100000"))
@@ -144,6 +146,16 @@ def _ordem_do_dia() -> list:
 
 
 def montar_crew(loop_key: str) -> Crew:
+    if loop_key == "ceo":
+        agents = build_ceo_agents()
+        tasks  = build_ceo_tasks(agents)
+        return Crew(
+            agents=[agents[k] for k in ORDEM_CEO],
+            tasks=[tasks[k] for k in ["entender", "decidir", "fazer", "contar"]],
+            process=Process.sequential, verbose=VERBOSE, memory=False,
+            max_rpm=MAX_RPM,
+        )
+
     if loop_key == "meta":
         meta_agente   = build_meta_agent()
         meta_relator  = build_meta_relator()
@@ -276,78 +288,56 @@ def _rodar_um_loop(loop_key: str):
 
 
 def executar_loop():
+    """★ 10/08/2026 — ordem do Breno: UM loop só, pra operação inteira,
+    trabalhando como CEO. Nada de 4 loops por área.
+
+    Por que isso também conserta o sistema, e não só simplifica:
+    os 4 loops de 8 agentes custavam ~26 mil tokens CADA. Quatro por dia
+    = 105 mil, contra uma cota diária de 100 mil do Groq. Nunca coube —
+    era matematicamente impossível desde o primeiro dia. O ciclo CEO tem
+    4 agentes (~13 mil tokens), roda uma vez por dia e usa ~13% da cota.
+    Sobra folga de verdade pra retry, erro e execução manual.
+
+    Os loops antigos por área continuam disponíveis pra rodar na mão
+    (LOOP=marketing python -m scripts.crew.main), mas não são mais o
+    comportamento automático.
+    """
     uso.registrar_callback()   # liga a medição real de tokens
 
-    # Override manual (LOOP=marketing python -m scripts.crew.main) — roda
-    # só esse loop, ignora rotação e orçamento diário.
-    loop_manual = os.environ.get("LOOP")
-    if loop_manual:
-        _rodar_um_loop(loop_manual)
-        return
+    hoje_iso = datetime.date.today().isoformat()
 
-    hoje     = datetime.date.today()
-    hoje_iso = hoje.isoformat()
-    eh_sexta = hoje.weekday() == 4   # 0=segunda ... 4=sexta
+    # Override manual: LOOP=marketing (ou produto/financeiro/suporte/meta)
+    loop_key = os.environ.get("LOOP", "").strip().lower() or "ceo"
 
-    ordem = _ordem_do_dia()
-
-    # ★ 09/08/2026 — o gasto do dia agora vem do banco, não da memória
-    # deste processo. O Railway sobe um container novo a cada cron E a
-    # cada deploy; antes, toda subida zerava o contador e o time rodava
-    # de novo achando que tinha a cota inteira disponível. Foi assim que
-    # os 100 mil tokens/dia sumiam sem aparecer em lugar nenhum: num
-    # mesmo dia teve execução às 11:04, às 15:05 e à meia-noite, cada
-    # uma se achando a primeira.
-    gasto = ler_gasto_do_dia(hoje_iso)
-    log.info("Orçamento de hoje: %d tokens (%.0f%% de %d/dia). "
-              "Já gastos hoje por execuções anteriores: %d. Ordem: %s",
-              ORCAMENTO_DIARIO, FRACAO_ORCAMENTO * 100, COTA_DIARIA_TOKENS,
-              gasto, " → ".join(ordem))
-
-    concluidos, pulados = [], []
-
-    for i, loop_key in enumerate(ordem):
-        if gasto >= ORCAMENTO_DIARIO:
-            restante = ordem[i:]
-            pulados.extend(restante)
-            log.info("Orçamento diário atingido (%d/%d tokens). Loops "
-                      "restantes de hoje (%s) ficam pra amanhã.",
-                      gasto, ORCAMENTO_DIARIO, ", ".join(restante))
-            break
-
-        sucesso, tokens, parar_o_dia = _rodar_um_loop(loop_key)
-        gasto += tokens
-        salvar_gasto_do_dia(hoje_iso, gasto)
-        (concluidos if sucesso else pulados).append(loop_key)
-
-        if parar_o_dia:
-            restante = ordem[i + 1:]
-            pulados.extend(restante)
-            if restante:
-                log.warning("Loops restantes de hoje (%s) ficam pra amanhã "
-                            "— cota diária esgotada.", ", ".join(restante))
-            break
-
-    # Sexta-feira: se ainda sobrar orçamento, fecha a semana com o
-    # Meta-Agente (avalia os 4 loops e propõe ajuste de prompt).
-    if eh_sexta:
-        if gasto < ORCAMENTO_DIARIO:
-            log.info("Sexta-feira — rodando o Meta-Agente (avaliação da semana).")
-            sucesso, tokens, _ = _rodar_um_loop("meta")
-            gasto += tokens
-            salvar_gasto_do_dia(hoje_iso, gasto)
-            (concluidos if sucesso else pulados).append("meta")
-        else:
-            log.warning("Sexta-feira, mas o orçamento diário já esgotou — "
-                        "o Meta-Agente fica pra próxima sexta.")
+    # ★ 09/08/2026 — o gasto do dia vem do banco, não da memória deste
+    # processo. O Railway sobe container novo a cada cron E a cada deploy;
+    # antes, toda subida zerava o contador e o time rodava de novo achando
+    # que tinha a cota inteira. Era assim que 100 mil tokens sumiam sem
+    # aparecer em lugar nenhum.
+    gasto_anterior = ler_gasto_do_dia(hoje_iso)
 
     log.info("=" * 50)
-    log.info("Dia concluído: %d loop(s) rodados (%s) · %d/%d tokens (%.0f%%)",
-              len(concluidos), ", ".join(concluidos) or "nenhum",
-              gasto, ORCAMENTO_DIARIO,
-              (gasto / ORCAMENTO_DIARIO * 100) if ORCAMENTO_DIARIO else 0)
-    if pulados:
-        log.info("Ficaram de fora hoje: %s", ", ".join(pulados))
+    log.info("StaFlow — ciclo do dia: %s", loop_key.upper())
+    log.info("Orçamento: %d tokens (%.0f%% de %d/dia). Já gastos hoje: %d.",
+             ORCAMENTO_DIARIO, FRACAO_ORCAMENTO * 100,
+             COTA_DIARIA_TOKENS, gasto_anterior)
+    log.info("=" * 50)
+
+    if gasto_anterior >= ORCAMENTO_DIARIO:
+        log.warning("Orçamento do dia já esgotado (%d/%d tokens) por uma "
+                    "execução anterior. Ciclo de hoje não roda.",
+                    gasto_anterior, ORCAMENTO_DIARIO)
+        return
+
+    sucesso, tokens, _ = _rodar_um_loop(loop_key)
+    gasto = gasto_anterior + tokens
+    salvar_gasto_do_dia(hoje_iso, gasto)
+
+    log.info("=" * 50)
+    log.info("Ciclo %s: %s · %d tokens neste ciclo · %d/%d no dia (%.0f%%)",
+             loop_key, "concluído" if sucesso else "INTERROMPIDO",
+             tokens, gasto, ORCAMENTO_DIARIO,
+             (gasto / ORCAMENTO_DIARIO * 100) if ORCAMENTO_DIARIO else 0)
     log.info("=" * 50)
 
 

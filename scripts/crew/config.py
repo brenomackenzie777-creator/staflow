@@ -35,9 +35,13 @@ GITHUB_TOKEN        = os.environ.get("GITHUB_TOKEN", "")
 GITHUB_REPO         = os.environ.get("GITHUB_REPOSITORY", "brenomackenzie777-creator/staflow")
 NOTIFY_EMAIL        = os.environ.get("NOTIFY_EMAIL", "brenomackenzie777@gmail.com")
 RESEND_API_KEY      = os.environ.get("RESEND_API_KEY", "")
-# onboarding@resend.dev funciona sem verificar domínio — troque para
-# agentes@staflow.app.br só depois de verificar o domínio no Resend.
-RESEND_FROM         = os.environ.get("RESEND_FROM", "onboarding@resend.dev")
+# ★ 09/08/2026 — o padrão era onboarding@resend.dev (endereço de teste do
+# Resend). Ele só entrega pro dono da conta e cai em spam com frequência —
+# foi por isso que o Breno nunca recebeu relatório nenhum. O domínio
+# staflow.app.br já está verificado no Resend (é de onde saem os emails do
+# produto), então os agentes agora mandam de lá.
+RESEND_FROM         = os.environ.get(
+    "RESEND_FROM", "StaFlow Agentes <agentes@staflow.app.br>")
 PRODUCTION_URL      = os.environ.get("PRODUCTION_URL", "https://staflow.app.br")
 
 # ─── Contexto do produto ─────────────────────────────────────────
