@@ -16,6 +16,7 @@ from .tools import (
     ReadMemoryTool, SupabaseFeedbackTool, ReadPromptsTool,
     ListPromptsTool, ReadMarketContextTool,
     LerRecadosTool, ResponderRecadoTool, PanoramaNegocioTool,
+    EvoluirPromptTool, HistoricoEvolucaoTool, ler_prompts_ativos,
 )
 
 supabase_metrics  = SupabaseMetricsTool()
@@ -33,6 +34,8 @@ market_context    = ReadMarketContextTool()
 ler_recados       = LerRecadosTool()
 responder_recado  = ResponderRecadoTool()
 panorama          = PanoramaNegocioTool()
+evoluir_prompt    = EvoluirPromptTool()
+historico_evol    = HistoricoEvolucaoTool()
 
 # Log verboso do CrewAI estoura o limite de 500 linhas/seg do Railway.
 # Ligue com VERBOSE=1 só quando precisar depurar.
@@ -89,6 +92,30 @@ def build_loop_agents(loop_key: str) -> dict:
 ORDEM_CEO = ["analista", "estrategista", "executor", "relator"]
 
 
+def _prompts_ceo() -> dict:
+    """Prompts do ciclo CEO, com o banco mandando e o arquivo como rede.
+
+    ★ 12/08/2026 — os prompts passaram a viver no Supabase pra o time
+    conseguir se autoevoluir: reescrever um arquivo não funcionaria, já
+    que o container do Railway é descartado a cada execução. Se o banco
+    estiver fora do ar, caímos no `ceo.json` — o ciclo nunca fica sem
+    prompt e nunca deixa de rodar por causa disso."""
+    do_arquivo = _load_prompts("ceo")
+    do_banco   = ler_prompts_ativos("ceo")
+    if not do_banco:
+        return do_arquivo
+
+    final = {}
+    for chave, base in do_arquivo.items():
+        vivo = do_banco.get(chave)
+        final[chave] = {
+            "role":      (vivo or {}).get("role")      or base["role"],
+            "goal":      (vivo or {}).get("goal")      or base["goal"],
+            "backstory": (vivo or {}).get("backstory") or base["backstory"],
+        }
+    return final
+
+
 def build_ceo_agents() -> dict:
     """★ 10/08/2026 — a pedido do Breno: UM loop só, que enxerga a operação
     inteira e decide como CEO, em vez de 4 loops por área.
@@ -97,13 +124,17 @@ def build_ceo_agents() -> dict:
     ~26 mil tokens por ciclo e 4 ciclos (105 mil) nunca couberam nos 100 mil
     diários do Groq. Com 4 agentes, um ciclo custa ~13 mil — sobra folga de
     verdade pra erro, retry e execução manual."""
-    prompts = _load_prompts("ceo")
+    prompts = _prompts_ceo()
     return {
         "analista":     _build_agent(prompts, "analista",
                                      [panorama, read_memory, market_context]),
         "estrategista": _build_agent(prompts, "estrategista", [tavily_search]),
+        # O Executor é quem fecha o ciclo — e também quem ajusta o time.
+        # Ferramentas de autoevolução ficam com ele porque é ele que viu o
+        # ciclo inteiro acontecer e sabe onde emperrou.
         "executor":     _build_agent(prompts, "executor",
-                                     [github_pr, supabase_write, responder_recado, update_memory]),
+                                     [github_pr, supabase_write, responder_recado,
+                                      update_memory, historico_evol, evoluir_prompt]),
         "relator":      _build_agent(prompts, "relator", [notify]),
     }
 

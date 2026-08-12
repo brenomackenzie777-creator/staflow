@@ -139,15 +139,44 @@ Mecanismo (não é chat ao vivo — os loops só rodam 1x/dia):
 Para pedidos que precisam de resposta NA HORA (não no próximo ciclo de
 até 24h), o canal continua sendo esta conversa com o Claude/Cowork.
 
+## ★ Autoevolução (ligada em 12/08/2026, a pedido do Breno)
+
+O time **se ajusta sozinho**, sem depender de aprovação. Os prompts vivem
+na tabela `public.agent_prompts` (não mais só no arquivo `ceo.json`) —
+porque o container do Railway é descartável: reescrever arquivo não
+persistiria, e fazer commit pra persistir dispararia um novo deploy, que
+dispararia outro ciclo, num loop infinito queimando a cota.
+
+No fim de cada ciclo o **Executor** avalia o próprio time. Se identificar
+um padrão de falha que já apareceu mais de uma vez, chama `evoluir_prompt`
+e reescreve o `goal` ou o `backstory` do agente responsável. Vale a partir
+do ciclo seguinte.
+
+**Travas (não são burocracia — são o que separa evoluir de oscilar):**
+- Só `goal` e `backstory`. O `role` é a identidade do agente e não muda.
+- Máximo **1 mudança por agente a cada 7 dias**.
+- Motivo obrigatório, com o padrão observado.
+- Toda versão anterior fica guardada — dá pra reverter a qualquer momento.
+
+**Como o Breno reverte:** na tabela `agent_prompts`, marcar `ativo=false`
+na versão nova e `ativo=true` na anterior. Ou pedir ao Claude.
+
 ## Regras de Ouro (todos os agentes devem seguir)
 1. Nunca inventar dados ou métricas — sempre ler do Supabase
 2. Preços são os da tabela acima — nunca outros valores
 3. Output sempre em Markdown estruturado
 4. Primeira linha do output = resumo de 1 linha (vai para o log)
 5. Se houver dúvida, registrar no output e sinalizar para o Breno
-6. **Nenhum agente se auto-modifica em produção.** O Meta-Agente só propõe
-   mudanças de prompt via Pull Request — elas só valem depois que o Breno
-   revisa e faz merge no GitHub.
+6. **O time evolui a si mesmo, mas não toca no produto.** O que os agentes
+   podem mudar sozinhos: os próprios prompts, a memória, o conteúdo que
+   produzem. O que continua exigindo o Breno, sem exceção:
+   - código do site, banco de dados, login, Stripe
+   - qualquer coisa que apague dado (**registro de ponto é documento de
+     valor legal do condomínio** — corromper isso é passivo jurídico do
+     cliente, não bug)
+   - preços
+   - mandar mensagem em nome da empresa para cliente
+   - gastar dinheiro
 
 ## Últimas Execuções
 <!-- Preenchido automaticamente pelos agentes -->

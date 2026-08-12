@@ -472,6 +472,157 @@ def salvar_gasto_do_dia(dia: str, tokens: int) -> None:
               f"{type(e).__name__}: {e} | {_diagnostico_config()}")
 
 
+# ─── Autoevolução: o time reescrevendo a si mesmo ─────────────────
+# ★ 12/08/2026 — ordem do Breno: autoevolução real, sem depender dele.
+#
+# O que o Meta-Agente PODE mudar sozinho: o goal e o backstory dos
+# agentes do próprio ciclo. É isso que muda como o time pensa, e é o que
+# de fato caracteriza um time que evolui.
+#
+# O que ele NÃO pode, e por quê:
+#   · `role` — é a identidade do agente. Trocar isso não é evoluir, é
+#     virar outro time sem ninguém perceber.
+#   · Código do site, banco, autenticação, Stripe — um erro ali derruba
+#     o produto de clientes reais. Registro de ponto é documento de valor
+#     legal pro condomínio; corromper isso não é bug, é passivo jurídico.
+#   · Preços — estão fixados na memória como definitivos pelo Breno.
+#
+# Travas: no máximo 1 mudança por agente a cada 7 dias, motivo
+# obrigatório, e toda versão anterior fica guardada pra reverter.
+
+CICLO_VALIDO   = "ceo"
+AGENTES_VALIDOS = ("analista", "estrategista", "executor", "relator")
+CAMPOS_EVOLUIVEIS = ("goal", "backstory")
+DIAS_ENTRE_MUDANCAS = 7
+
+
+def ler_prompts_ativos(ciclo: str = CICLO_VALIDO) -> dict:
+    """Lê do banco os prompts em vigor. Devolve {} se falhar — quem chama
+    cai de volta no arquivo JSON, então o time nunca fica sem prompt."""
+    try:
+        sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+        r = (sb.table("agent_prompts")
+             .select("agente,role,goal,backstory,versao")
+             .eq("ciclo", ciclo).eq("ativo", True).execute())
+        return {linha["agente"]: linha for linha in (r.data or [])}
+    except Exception as e:
+        print(f"[prompts] não consegui ler do banco ({type(e).__name__}: {e}). "
+              f"Usando os prompts do arquivo.")
+        return {}
+
+
+class EvoluirPromptTool(BaseTool):
+    name: str = "evoluir_prompt"
+    description: str = (
+        "Melhora PERMANENTEMENTE um agente do time, reescrevendo o objetivo "
+        "(goal) ou a mentalidade (backstory) dele. A mudança vale a partir do "
+        "próximo ciclo e fica guardada com histórico. "
+        "Parâmetros: agente (analista|estrategista|executor|relator), "
+        "campo (goal|backstory), novo_texto (o texto COMPLETO e final do "
+        "campo, não um trecho), motivo (que padrão você observou que "
+        "justifica a mudança). "
+        "Use no máximo UMA vez por ciclo, e só quando tiver evidência real "
+        "de um padrão repetido — não por achismo."
+    )
+
+    def _run(self, agente: str, campo: str, novo_texto: str,
+             motivo: str) -> str:
+        agente = (agente or "").strip().lower()
+        campo  = (campo or "").strip().lower()
+
+        if agente not in AGENTES_VALIDOS:
+            return (f"Agente '{agente}' não existe. Válidos: "
+                    f"{', '.join(AGENTES_VALIDOS)}.")
+        if campo not in CAMPOS_EVOLUIVEIS:
+            return (f"Campo '{campo}' não pode ser alterado. Só é permitido "
+                    f"mudar: {', '.join(CAMPOS_EVOLUIVEIS)}. O 'role' é a "
+                    "identidade do agente e não muda.")
+        if not novo_texto or len(novo_texto.strip()) < 120:
+            return ("Texto curto demais para ser um prompt completo "
+                    f"({len(novo_texto or '')} caracteres). Escreva o campo "
+                    "inteiro, não um trecho.")
+        if not motivo or len(motivo.strip()) < 30:
+            return ("Explique em pelo menos uma frase qual padrão você "
+                    "observou que justifica a mudança. Mudança sem motivo "
+                    "registrado não é evolução, é ruído.")
+
+        try:
+            sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+            atual = (sb.table("agent_prompts").select("*")
+                     .eq("ciclo", CICLO_VALIDO).eq("agente", agente)
+                     .eq("ativo", True).limit(1).execute())
+            if not atual.data:
+                return f"Não achei a versão ativa do agente '{agente}'."
+            atual = atual.data[0]
+
+            # Trava de ritmo: mudar todo dia é oscilar, não evoluir.
+            limite = (datetime.datetime.now(datetime.timezone.utc)
+                      - datetime.timedelta(days=DIAS_ENTRE_MUDANCAS))
+            recentes = (sb.table("agent_prompts").select("criado_em")
+                        .eq("ciclo", CICLO_VALIDO).eq("agente", agente)
+                        .eq("criado_por", "meta-agente")
+                        .gte("criado_em", limite.isoformat())
+                        .limit(1).execute())
+            if recentes.data:
+                return (f"O agente '{agente}' já foi ajustado nos últimos "
+                        f"{DIAS_ENTRE_MUDANCAS} dias. Deixe a mudança "
+                        "anterior render antes de mexer de novo — sem isso "
+                        "não dá pra saber o que funcionou.")
+
+            novo = {
+                "ciclo":      CICLO_VALIDO,
+                "agente":     agente,
+                "role":       atual["role"],           # identidade não muda
+                "goal":       atual["goal"],
+                "backstory":  atual["backstory"],
+                "versao":     int(atual.get("versao") or 1) + 1,
+                "ativo":      True,
+                "motivo":     motivo.strip()[:800],
+                "criado_por": "meta-agente",
+            }
+            novo[campo] = novo_texto.strip()
+
+            # Desativa a anterior antes de ativar a nova (índice único)
+            sb.table("agent_prompts").update({"ativo": False}) \
+              .eq("id", atual["id"]).execute()
+            sb.table("agent_prompts").insert(novo).execute()
+
+            return (f"Pronto: '{agente}' evoluiu para a versão "
+                    f"{novo['versao']} (campo {campo}). Vale a partir do "
+                    "próximo ciclo. A versão anterior ficou guardada.")
+        except Exception as e:
+            return f"Erro ao evoluir prompt: {type(e).__name__}: {e}"
+
+
+class HistoricoEvolucaoTool(BaseTool):
+    name: str = "historico_evolucao"
+    description: str = (
+        "Mostra como o time já se ajustou até hoje: quais agentes mudaram, "
+        "quando, por qual motivo, e qual a versão em vigor. Use ANTES de "
+        "propor qualquer evolução, pra não desfazer o que já foi decidido "
+        "nem repetir uma mudança que não deu certo. Parâmetro input: vazio."
+    )
+
+    def _run(self, input: str = "") -> str:
+        try:
+            sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+            r = (sb.table("agent_prompts")
+                 .select("agente,versao,ativo,motivo,criado_por,criado_em")
+                 .eq("ciclo", CICLO_VALIDO)
+                 .order("criado_em", desc=True).limit(20).execute())
+            if not r.data:
+                return "O time ainda não passou por nenhuma evolução."
+            return json.dumps([{
+                "agente": x["agente"], "versao": x["versao"],
+                "em_vigor": x["ativo"], "por": x["criado_por"],
+                "quando": (x.get("criado_em") or "")[:10],
+                "motivo": (x.get("motivo") or "")[:200],
+            } for x in r.data], ensure_ascii=False, indent=2)
+        except Exception as e:
+            return f"Erro ao ler histórico de evolução: {e}"
+
+
 # ─── Recados do Breno (canal único "empresa") ─────────────────────
 # Um só lugar onde o Breno deixa pedidos/comentários pro time inteiro
 # (tabela public.time_recados, escrita pela página interna equipe.html).
