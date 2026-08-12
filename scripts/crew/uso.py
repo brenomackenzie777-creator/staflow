@@ -21,12 +21,15 @@ log = logging.getLogger("staflow")
 _ACUMULADO = {"tokens": 0}
 _CALLBACK_REGISTRADO = {"ok": False}
 
-# Se por algum motivo a medição real não funcionar (mudança de versão
-# do litellm, por exemplo), assumimos este custo por ciclo em vez de
-# achar que gastou zero — zero faria o time rodar sem freio nenhum.
-# Base: 26.336 tokens medidos no ciclo de produto em 09/08/2026,
-# arredondado pra cima com folga.
-ESTIMATIVA_POR_LOOP = 30000
+# Se a medição real não funcionar (mudança de versão do litellm, por
+# exemplo), assumimos este custo por ciclo em vez de achar que gastou
+# zero — zero faria o time rodar sem freio nenhum.
+#
+# Medições reais somando as chamadas do log:
+#   09/08/2026 · loop 'produto' (8 agentes) ... 26.336 tokens
+#   12/08/2026 · ciclo 'ceo'    (4 agentes) ... 13.013 tokens
+# O valor abaixo é o do ciclo CEO com folga de ~15%.
+ESTIMATIVA_POR_LOOP = 15000
 
 
 def _extrair_total(response_obj) -> int:
@@ -50,17 +53,20 @@ def _callback(kwargs, response_obj, start_time, end_time):
 
 
 def registrar_callback() -> None:
-    """Liga a medição. Chamar uma vez, no início do programa.
-    Nunca derruba o processo: se o litellm mudar de API, a gente cai
-    na estimativa fixa e segue rodando."""
-    if _CALLBACK_REGISTRADO["ok"]:
-        return
+    """Liga a medição. Pode ser chamada várias vezes sem problema.
+
+    ★ 12/08/2026 — no primeiro ciclo CEO o callback não disparou e a
+    contagem caiu na estimativa. Provável causa: o CrewAI monta o objeto
+    LLM na importação e mexe nas listas de callback do litellm depois de
+    nós. Por isso agora registramos nas DUAS listas que o litellm usa e
+    reregistramos antes de cada ciclo, em vez de uma vez só no começo."""
     try:
         import litellm
-        atuais = list(getattr(litellm, "success_callback", []) or [])
-        if _callback not in atuais:
-            atuais.append(_callback)
-        litellm.success_callback = atuais
+        for atributo in ("success_callback", "callbacks"):
+            atuais = list(getattr(litellm, atributo, []) or [])
+            if _callback not in atuais:
+                atuais.append(_callback)
+                setattr(litellm, atributo, atuais)
         _CALLBACK_REGISTRADO["ok"] = True
     except Exception as e:
         log.warning("Não foi possível medir tokens com precisão (%s). "

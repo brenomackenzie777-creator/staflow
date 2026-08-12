@@ -183,7 +183,8 @@ def _rodar_um_loop(loop_key: str):
     parar_o_dia=True só quando a COTA DIÁRIA acabou — aí não adianta tentar
     os outros loops de hoje, todos vão bater na mesma parede."""
     inicio = time.time()
-    uso.zerar()          # começa a contar os tokens deste ciclo do zero
+    uso.registrar_callback()   # o CrewAI pode ter sobrescrito a lista
+    uso.zerar()                # começa a contar os tokens deste ciclo do zero
     log.info("=" * 50)
     log.info("StaFlow — Loop: %s", loop_key.upper())
     log.info("=" * 50)
