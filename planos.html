@@ -237,6 +237,9 @@
     letter-spacing: 0.3px;
   }
   .btn-ativar:hover { background: var(--teal-hover); }
+  .pagar-pix-link { text-align: center; margin-top: 8px; font-size: 12.5px; }
+  .pagar-pix-link a { color: var(--teal, #06D6A0); text-decoration: underline; cursor: pointer; }
+  .pagar-pix-link.hide { display: none; }
   .btn-ativar.featured-btn {
     background: var(--teal);
     color: #fff;
@@ -469,6 +472,7 @@
     </ul>
     <div class="spacer"></div>
     <button class="btn-ativar featured-btn" id="btn-pro">Assinar Pro</button>
+    <div class="pagar-pix-link" id="pix-pro"><a href="#" onclick="ativarPlanoAsaas('pro');return false;">ou pagar com Pix</a></div>
   </div>
 
   <!-- Advanced -->
@@ -491,6 +495,7 @@
     </ul>
     <div class="spacer"></div>
     <button class="btn-ativar" id="btn-advanced">Assinar Advanced</button>
+    <div class="pagar-pix-link" id="pix-advanced"><a href="#" onclick="ativarPlanoAsaas('advanced');return false;">ou pagar com Pix</a></div>
   </div>
 
   <!-- Scale -->
@@ -513,6 +518,7 @@
     </ul>
     <div class="spacer"></div>
     <button class="btn-ativar" id="btn-scale">Assinar Scale</button>
+    <div class="pagar-pix-link" id="pix-scale"><a href="#" onclick="ativarPlanoAsaas('scale');return false;">ou pagar com Pix</a></div>
   </div>
 
 </div>
@@ -593,10 +599,49 @@ function setBilling(period) {
     const val = precosConfig[period][p];
     document.getElementById('val-' + p).textContent = val.toLocaleString('pt-BR');
     document.getElementById('per-' + p).textContent = periodoLabel[period];
+    // ★ 18/08/2026 — Asaas por enquanto só cobre plano mensal (a
+    // integração de assinatura anual ainda não foi construída).
+    // Some o link "pagar com Pix" no anual pra não prometer o que
+    // ainda não faz.
+    const pixLink = document.getElementById('pix-' + p);
+    if (pixLink) pixLink.classList.toggle('hide', period === 'anual');
   });
 
   // Re-aplica desconto de cupom se houver
   if (cupomAtivo) aplicarDesconto(cupomAtivo.discount_percent);
+}
+
+// ---------- Asaas (Pix) — alternativa à Stripe, em paralelo ----------
+// ★ 18/08/2026 — a pedido do Breno. Só funciona pra condomínio que já
+// existe (precisa de condominioAtualId) e plano mensal — cadastro de
+// condomínio novo e plano anual continuam só na Stripe por enquanto.
+async function ativarPlanoAsaas(plan) {
+  if (ativando) return;
+  if (modoNovoCondo || !condominioAtualId) {
+    toast('Pagamento via Pix ainda não está disponível pro cadastro de um condomínio novo — finalize com cartão ou crie o condomínio primeiro.', 'error');
+    return;
+  }
+  ativando = true;
+  const btns = document.querySelectorAll('.btn-ativar');
+  btns.forEach(b => b.disabled = true);
+
+  try {
+    const { data, error } = await sb.functions.invoke('create-asaas-checkout', {
+      body: { condominio_id: condominioAtualId, plano: plan }
+    });
+
+    if (error) throw error;
+    if (data?.link) {
+      window.location.href = data.link;
+      return;
+    }
+    throw new Error(data?.error || 'Não foi possível gerar o link de pagamento via Pix.');
+  } catch (err) {
+    toast(err.message || 'Erro ao gerar pagamento via Pix. Tente novamente ou use cartão.', 'error');
+  } finally {
+    btns.forEach(b => b.disabled = false);
+    ativando = false;
+  }
 }
 
 // ---------- Cupom ----------
@@ -821,6 +866,11 @@ document.getElementById('btn-scale').addEventListener('click',    () => ativarPl
 
   const qs = new URLSearchParams(location.search);
   modoNovoCondo = qs.get('novo') === '1';
+
+  // Pix (Asaas) exige condomínio já existente — some os links em modoNovoCondo.
+  if (modoNovoCondo) {
+    document.querySelectorAll('.pagar-pix-link').forEach(el => el.classList.add('hide'));
+  }
 
   // 2. ★ TRONCO SUPERIOR DE ROTEAMENTO — autoritativo
   //    Se for funcionário, ejeta pra /colaborador. Se for sindico com

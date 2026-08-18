@@ -284,5 +284,42 @@ já que o time não pode mandar mensagem pro cliente sem autorização do
 Breno (Regra de Ouro), mas vale olhar se travou aí ou se está evoluindo
 o texto a cada dia.
 
+## ★ Gateway de pagamento Asaas (18/08/2026, em construção)
+
+A pedido do Breno, rodando em **paralelo à Stripe** (que continua ativa,
+nada foi desligado). Motivo: Asaas resolve Pix nativo e boleto que a
+Stripe não resolve bem no Brasil — ver `vendas/pagamentos-checklist.md`.
+
+**Detalhe importante:** a conta Asaas do Breno é **pessoa física**
+(ele desativou o MEI) — por isso **não emite nota fiscal automática**.
+Isso é uma limitação aceita por enquanto, não um bug a corrigir.
+
+O que existe:
+- `supabase/functions/create-asaas-checkout/` — cria um Checkout Asaas
+  (Pix + cartão, assinatura mensal recorrente) e devolve o link.
+  Detecta sandbox x produção sozinho pelo prefixo da API Key
+  (`$aact_hmlg_` = sandbox, `$aact_prod_` = produção).
+- `supabase/functions/asaas-webhook/` — recebe eventos de assinatura e
+  pagamento, atualiza `status_assinatura`/`plano`/`plano_ativo`/
+  `asaas_subscription_id`/`asaas_customer_id` no condomínio. Identifica
+  o condomínio pelo `externalReference` (`condominioId:plano`).
+- `condominios.asaas_customer_id` / `asaas_subscription_id` — colunas
+  novas, paralelas às `stripe_*`.
+- `planos.html` — cada plano pago (Pro/Advanced/Scale) ganhou um link
+  "ou pagar com Pix" abaixo do botão principal (Stripe continua sendo
+  o botão principal). Só aparece pra condomínio já existente e plano
+  mensal — cadastro de condomínio novo e plano anual ainda só na
+  Stripe (não implementado no Asaas ainda).
+
+**Pendente pro Breno (fora do alcance do Claude):**
+1. Secret `ASAAS_API_KEY` no Supabase (Edge Functions → Secrets) —
+   valor da chave sandbox já gerada.
+2. Criar o Webhook no painel Asaas (Integrações → Webhooks) apontando
+   pra `https://wsxpskrrzqtdoodpoofx.supabase.co/functions/v1/asaas-webhook`,
+   escolhendo um token de autenticação e cadastrando esse MESMO valor
+   como secret `ASAAS_WEBHOOK_TOKEN` no Supabase.
+3. Testar uma assinatura de teste no sandbox de ponta a ponta antes de
+   trocar pra chave de produção.
+
 ---
 *Última atualização: 18/08/2026*
