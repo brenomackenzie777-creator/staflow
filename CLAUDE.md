@@ -284,9 +284,31 @@ já que o time não pode mandar mensagem pro cliente sem autorização do
 Breno (Regra de Ouro), mas vale olhar se travou aí ou se está evoluindo
 o texto a cada dia.
 
-## ★ Gateway de pagamento Asaas (18/08/2026, em construção)
+## ★ Gateway de pagamento Asaas — REMOVIDO DO PRODUTO (18/08/2026)
 
-A pedido do Breno, rodando em **paralelo à Stripe** (que continua ativa,
+**Atualização no mesmo dia, horas depois:** o Breno pediu pra tirar o
+Asaas. O link "ou pagar com Pix" foi removido do `planos.html`
+(HTML, CSS e JS — função `ativarPlanoAsaas()` inteira) — hoje o único
+jeito de assinar é Stripe (cartão). Motivo do timing: no mesmo dia em
+que os primeiros e-mails de vendas saíram, o botão "Assinar Pro" (via
+Stripe) não abria o pagamento pra ninguém — bug real e não relacionado
+ao Asaas (Stripe recusava criar o checkout por falta de
+`payment_method_types` explícito, corrigido na `create-checkout-session`).
+No meio dessa apuração ficou claro que o Pix via Asaas ainda dependia de
+troca de chave sandbox→produção (pendência de dias antes) — o Breno
+optou por simplificar e cortar a segunda via de pagamento por ora, em
+vez de manter as duas rodando.
+
+As Edge Functions `create-asaas-checkout` e `asaas-webhook` **continuam
+deployadas mas não são mais chamadas por nenhuma tela** — ficaram como
+código morto, documentado abaixo, caso o Pix via Asaas volte a fazer
+sentido depois. Não foram deletadas do Supabase nem do repositório.
+As colunas `condominios.asaas_customer_id`/`asaas_subscription_id`
+também continuam existindo, sem uso.
+
+**Resumo histórico (como funcionava antes de ser removido):**
+
+A pedido do Breno, rodava em **paralelo à Stripe** (que continua ativa,
 nada foi desligado). Motivo: Asaas resolve Pix nativo e boleto que a
 Stripe não resolve bem no Brasil — ver `vendas/pagamentos-checklist.md`.
 
