@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>StaFlow — Kit Instagram (@staflow.br)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/* ══════════════════════════════════════════════════════════════
+   StaFlow — Identidade (a mesma do produto; não inventar variações)
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  --navy:#111827; --surface:#1F2937; --blue:#3B82F6; --blue-deep:#2563EB;
+  --white:#F9FAFB; --muted:rgba(249,250,251,.60); --red:#EF4444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0B0F17;color:var(--white);font-family:'Inter',system-ui,sans-serif;padding:30px 26px 90px}
+
+/* ── Interface (não entra na arte) ───────────────────────────── */
+.ui{max-width:1180px;margin:0 auto}
+.ui h1{font-size:24px;font-weight:800;letter-spacing:-.02em}
+.ui .sub{font-size:14px;color:var(--muted);margin-top:8px;line-height:1.65}
+.ui code{background:var(--surface);padding:2px 7px;border-radius:5px;font-size:12px}
+.acoes{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:22px 0 34px}
+.btn{background:var(--blue);color:var(--navy);border:0;border-radius:8px;
+  padding:11px 20px;font:800 13px 'Inter',sans-serif;cursor:pointer}
+.btn:hover{background:#60A5FA}
+.btn.fantasma{background:transparent;color:var(--blue);border:1.5px solid var(--blue)}
+.btn.fantasma:hover{background:rgba(59,130,246,.12)}
+
+.grupo{max-width:1180px;margin:0 auto 46px}
+.grupo .cab-g{display:flex;justify-content:space-between;align-items:center;gap:14px;
+  flex-wrap:wrap;padding-bottom:11px;margin-bottom:20px;border-bottom:1px solid rgba(249,250,251,.10)}
+.grupo h2{font-size:12px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--blue)}
+.grupo h2 small{display:block;margin-top:5px;font-size:12px;font-weight:500;
+  letter-spacing:0;text-transform:none;color:var(--muted)}
+.linha{display:flex;flex-wrap:wrap;gap:22px}
+.item{width:302px}
+.moldura{width:302px;overflow:hidden;border-radius:10px;
+  border:1px solid rgba(249,250,251,.13);background:var(--navy)}
+.moldura.p{height:378px}  .moldura.s{height:538px}  .moldura.q{height:302px}
+.escala{transform:scale(.2796);transform-origin:top left}
+.item .rot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px}
+.item .rot span{font-size:11px;color:var(--muted);line-height:1.4}
+.item .mini{background:transparent;color:var(--muted);border:1px solid rgba(249,250,251,.2);
+  border-radius:6px;padding:6px 11px;font:700 11px 'Inter',sans-serif;cursor:pointer;flex-shrink:0}
+.item .mini:hover{color:var(--blue);border-color:var(--blue)}
+
+/* área invisível onde a arte é montada em tamanho real pra virar PNG */
+#palco{position:fixed;top:0;left:0;z-index:9000}
+#capa-carregando{position:fixed;inset:0;z-index:9500;background:#0B0F17;
+  display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px}
+#capa-carregando .pt{font-size:16px;font-weight:700;color:var(--white)}
+#capa-carregando .pb{width:280px;height:5px;border-radius:3px;background:var(--surface);overflow:hidden}
+#capa-carregando .pb i{display:block;height:100%;width:0;background:var(--blue);transition:width .25s}
+
+/* ══════════════════════════════════════════════════════════════
+   TEMPLATE — regras idênticas em TODA arte
+   ══════════════════════════════════════════════════════════════ */
+.art{position:relative;background:var(--navy);color:var(--white);overflow:hidden;
+  display:flex;flex-direction:column;font-family:'Inter',sans-serif}
+.art.post{width:1080px;height:1350px;padding:92px 84px 78px}
+.art.story{width:1080px;height:1920px;padding:150px 92px 160px}
+.art.quad{width:1080px;height:1080px;padding:0}
+.art::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(rgba(249,250,251,.055) 1.6px,transparent 1.6px);
+  background-size:34px 34px}
+.art::after{content:'';position:absolute;top:0;left:0;right:0;height:10px;background:var(--blue)}
+.art>*{position:relative;z-index:2}
+
+.cab{display:flex;align-items:center;gap:14px;margin-bottom:auto}
+.cab svg{width:42px;height:42px;flex-shrink:0}
+.cab .wm{font-size:25px;font-weight:800;letter-spacing:-.02em}
+.cab .wm i{font-style:normal;color:var(--blue)}
+
+.rod{display:flex;justify-content:space-between;align-items:flex-end;
+  margin-top:auto;padding-top:40px;font-size:23px;font-weight:600}
+.rod .site{color:var(--white)} .rod .arroba{color:var(--muted)}
+
+.miolo{padding:56px 0 0}
+.olho{font-size:21px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--blue);margin-bottom:34px}
+h3.tit{font-size:82px;font-weight:800;line-height:1.0;letter-spacing:-.038em;margin-bottom:36px}
+h3.tit.menor{font-size:66px}
+h3.tit em{font-style:normal;color:var(--blue)}
+p.txt{font-size:31px;font-weight:400;line-height:1.46;color:var(--muted)}
+p.txt + p.txt{margin-top:22px}
+p.txt b{color:var(--white);font-weight:600}
+
+.caixa{margin-top:46px;background:var(--blue);color:var(--navy);border-radius:16px;
+  padding:32px 38px;font-size:35px;font-weight:800;line-height:1.22;letter-spacing:-.02em}
+.caixa.vazada{background:transparent;color:var(--white);border:3px solid var(--blue)}
+
+.precos{margin-top:44px;display:flex;flex-direction:column;gap:2px}
+.precos .l{display:flex;justify-content:space-between;align-items:center;
+  padding:26px 30px;background:var(--surface);font-size:29px;font-weight:600}
+.precos .l:first-child{border-radius:14px 14px 0 0}
+.precos .l:last-child{border-radius:0 0 14px 14px}
+.precos .l .v{font-weight:800;font-size:32px}
+.precos .l.free{background:rgba(59,130,246,.16);border:2px solid var(--blue)}
+.precos .l.free .v{color:var(--blue)}
+
+/* cor sólida de propósito: contorno de texto não exporta de forma confiável */
+.nro{position:absolute;top:150px;right:64px;z-index:1;font-size:300px;font-weight:900;
+  line-height:.8;letter-spacing:-.06em;color:rgba(59,130,246,.16)}
+.passos{display:flex;gap:9px;margin-top:34px}
+.passos i{height:6px;flex:1;border-radius:3px;background:rgba(249,250,251,.16)}
+.passos i.on{background:var(--blue)}
+.arrasta{margin-top:36px;font-size:25px;font-weight:700;color:var(--blue)}
+
+.passo-num{display:inline-flex;align-items:center;justify-content:center;width:78px;height:78px;
+  border-radius:50%;background:var(--blue);color:var(--navy);font-size:36px;font-weight:800;margin-bottom:34px}
+
+.art.capa{width:1080px;height:1920px;padding:0;align-items:center;justify-content:center}
+.art.capa .centro{display:flex;flex-direction:column;align-items:center;gap:44px}
+.art.capa svg{width:210px;height:210px}
+.art.capa .rotulo{font-size:38px;font-weight:800;letter-spacing:.2em;text-transform:uppercase}
+
+.art.quad .pf{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--navy)}
+.art.quad .pf svg{width:660px;height:660px}
+</style>
+</head>
+<body>
+
+<div class="ui">
+  <h1>StaFlow — Kit Instagram <span style="color:var(--blue)">@staflow.br</span></h1>
+  <p class="sub">
+    <b>Foco:</b> síndico profissional / administradora — todos os condomínios num painel só.<br>
+    Toda arte usa o <b>mesmo template</b>: faixa azul no topo, logo no mesmo canto,
+    <code>staflow.app.br</code> e <code>@staflow.br</code> no rodapé.<br>
+    Cada bloco abaixo tem um botão <b>Baixar .zip</b> que traz todas as imagens daquele
+    bloco já numeradas na ordem de publicação. As legendas estão em <code>plano-instagram.md</code>.
+  </p>
+  <div class="acoes">
+    <button class="btn" onclick="baixarTudo()">⤓ Baixar tudo (.zip com pastas)</button>
+    <span class="sub" style="margin:0">Gera em tamanho real: posts 1080×1350 · stories 1080×1920 · perfil 1080×1080</span>
+  </div>
+</div>
+
+<div id="saida"></div>
+<div id="palco"></div>
+<div id="capa-carregando">
+  <div class="pt" id="cc-texto">Gerando…</div>
+  <div class="pb"><i id="cc-barra"></i></div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   LOGO — mesmo símbolo do produto (assets/logo-mark.svg)
+   ══════════════════════════════════════════════════════════════ */
+let _g = 0;
+function logoSVG(){
+  const id = 'lg'+(++_g);
+  return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3B82F6"/><stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient></defs>
+    <path d="M32 2 L58 17 L58 47 L32 62 L6 47 L6 17 Z" fill="url(#${id})"/>
+    <path d="M42 22 C42 18,38 16,32 16 C24 16,20 19,20 24 C20 29,24 30,32 31
+             C40 32,44 33,44 39 C44 45,39 48,32 48 C25 48,22 45,22 41"
+          fill="none" stroke="#FFFFFF" stroke-width="4.5"
+          stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+const ICO = {
+  info:`<circle cx="32" cy="32" r="26"/><path d="M32 28v16"/><circle cx="32" cy="21" r="2.6" fill="#3B82F6" stroke="none"/>`,
+  predios:`<path d="M5 57V25l15-7v39"/><path d="M20 57V31l16-7v33"/><path d="M36 57V28l17 8v21"/><path d="M3 57h58"/><path d="M11 31v5M11 42v5M27 36v5M27 46v5M44 40v5"/>`,
+  tag:`<path d="M33 6H14a8 8 0 0 0-8 8v19a6 6 0 0 0 1.8 4.2l21 21a6 6 0 0 0 8.4 0l17-17a6 6 0 0 0 0-8.4l-21-21A6 6 0 0 0 33 6Z"/><circle cx="21" cy="21" r="4.5"/>`,
+  fone:`<rect x="18" y="5" width="28" height="54" rx="5"/><path d="M25 44l5 5 10-12"/>`,
+  lei:`<path d="M15 6h24l12 12v40a4 4 0 0 1-4 4H15a4 4 0 0 1-4-4V10a4 4 0 0 1 4-4Z"/><path d="M38 6v13h13"/><circle cx="31" cy="38" r="8"/><path d="M31 46v10"/>`,
+};
+const icoSVG = n => `<svg viewBox="0 0 64 64" fill="none" stroke="#3B82F6" stroke-width="3.4"
+  stroke-linecap="round" stroke-linejoin="round">${ICO[n]}</svg>`;
+
+const cabecalho = () => `<div class="cab">${logoSVG()}<div class="wm">Sta<i>Flow</i></div></div>`;
+const rodape    = () => `<div class="rod"><span class="site">staflow.app.br</span><span class="arroba">@staflow.br</span></div>`;
+
+/* ══════════════════════════════════════════════════════════════
+   CONTEÚDO — eixo: vários prédios, um painel só
+   ══════════════════════════════════════════════════════════════ */
+/* Post de apresentação — o primeiro do perfil, tom de fundador */
+const APRESENTACAO = [
+  { rotulo:'Apresentação', olho:'PRAZER, STAFLOW',
+    tit:'Fiz um controle de ponto <em>pra quem administra vários condomínios.</em>',
+    txt:['Não é ERP. Não é sistema de ponto genérico adaptado. É uma coisa só, feita pra um problema só: porteiro, zelador e faxineira de <b>vários prédios</b> — num painel só.',
+         'Cada condomínio com o CNPJ dele, a equipe dele e o relatório dele. Você troca de prédio num clique.'],
+    caixa:'Prédio até 3 funcionários é grátis. Começa hoje.' },
+];
+
+const FIXADOS = [
+  { rotulo:'A dor de quem tem vários', olho:'SÍNDICO PROFISSIONAL',
+    tit:'Seis prédios. <em>Seis planilhas de ponto.</em>',
+    txt:['Cada condomínio com um caderno, uma planilha, um jeito diferente. No fim do mês você abre tudo de novo, um por um, pra fechar a folha.',
+         'Não é desorganização sua. É falta de ferramenta feita pra quem administra mais de um.'],
+    caixa:'No StaFlow, todos os seus condomínios ficam num login só.' },
+  { rotulo:'O painel único', olho:'UM PAINEL SÓ',
+    tit:'Troca de condomínio <em>sem trocar de sistema.</em>',
+    txt:['Cada prédio guarda seu CNPJ, sua equipe, seus horários e seu relatório — separados como o contador precisa.',
+         'Mas tudo no mesmo login. Você troca de prédio num clique, igual trocar de aba.'],
+    caixa:'Fecha o mês de todos os prédios sem abrir seis arquivos.' },
+  { rotulo:'A oferta', olho:'COMECE HOJE',
+    tit:'Prédio pequeno <em>não paga nada.</em>',
+    txt:['O plano é por condomínio, pelo tamanho da equipe dele. Prédio com até 3 funcionários é gratuito — e continua gratuito.',
+         'Sem cartão pra começar. Sem instalação. Sem comprar relógio de ponto.'],
+    precos:[['Starter · até 3 funcionários','R$ 0',true],['Pro · até 15 funcionários','R$ 99'],
+            ['Advanced · até 35 funcionários','R$ 159'],['Scale · até 100 funcionários','R$ 279']] },
+];
+
+const CARROSSEL = [
+  { capa:true, olho:'SÍNDICO PROFISSIONAL',
+    tit:'Do 1º ao 10º condomínio: <em>o que quebra no meio do caminho</em>' },
+  { n:'01', tit:'Cada prédio de um jeito', titMenor:true,
+    txt:['Um usa caderno na portaria. Outro usa planilha. Outro manda foto no grupo do WhatsApp. Você virou o tradutor entre seis sistemas diferentes.'],
+    certo:'O certo: um padrão só, igual em todos os prédios.' },
+  { n:'02', tit:'O fechamento vira a semana inteira', titMenor:true,
+    txt:['Se fechar um condomínio leva 40 minutos, seis levam meio dia. Todo mês, sempre nos mesmos dias corridos.'],
+    certo:'O certo: o relatório do mês já sair pronto.' },
+  { n:'03', tit:'Você descobre a falta quando reclamam', titMenor:true,
+    txt:['O morador avisa que a portaria ficou vazia. Você liga pro zelador. O zelador diz que avisou alguém. Ninguém tem registro de nada.'],
+    certo:'O certo: ver a falta no dia, não no fim do mês.' },
+  { n:'04', tit:'Cada CNPJ com seu contador', titMenor:true,
+    txt:['Cada condomínio tem CNPJ próprio e muitas vezes contador próprio. O relatório precisa sair separado, por prédio — não tudo misturado num arquivo só.'],
+    certo:'O certo: exportação individual por condomínio.' },
+  { n:'05', tit:'O risco não é de um prédio. É seu.', titMenor:true,
+    txt:['Você não responde por um condomínio: responde por todos que administra. Basta um sem registro de jornada pra virar problema seu — e do seu nome no mercado.'],
+    certo:'O certo: registro em todos, sem exceção.' },
+  { fim:true, olho:'RESOLVE HOJE',
+    tit:'Todos os seus condomínios, <em>um painel só.</em>',
+    txt:['Cadastra os prédios, cadastra as equipes, e cada funcionário bate o ponto pelo próprio celular. Você acompanha tudo de um lugar.'],
+    caixa:'Prédio até 3 funcionários é grátis · staflow.app.br' },
+];
+
+const CAPAS = [
+  {ico:'info',    rotulo:'Sobre'},
+  {ico:'predios', rotulo:'Vários prédios'},
+  {ico:'tag',     rotulo:'Planos'},
+  {ico:'fone',    rotulo:'Como usa'},
+  {ico:'lei',     rotulo:'Legal'},
+];
+
+const DESTAQUES = [
+ { nome:'Sobre', slug:'destaque-1-sobre', slides:[
+   {olho:'SOBRE', tit:'O que é o StaFlow', titMenor:true,
+    txt:['É o controle de ponto dos funcionários do condomínio — porteiro, zelador, faxineira, jardineiro.',
+         'Eles batem o ponto pelo celular. Você vê tudo pronto no painel: quem chegou, quem atrasou, quem fez hora extra.']},
+   {olho:'SOBRE', tit:'Feito pro síndico profissional', titMenor:true,
+    txt:['Quem cuida de <b>um</b> prédio se vira com planilha. Quem cuida de <b>cinco</b>, não.',
+         'O StaFlow foi desenhado pra quem tem vários CNPJs, várias equipes e um fechamento de mês só pra dar conta de todos.']},
+   {olho:'SOBRE', tit:'O que muda no seu mês', titMenor:true,
+    txt:['Some a planilha de cada prédio. Some a conferência manual. Some a discussão sobre quem chegou que horas.'],
+    caixa:'O relatório de cada condomínio sai pronto pro contador dele.'},
+ ]},
+ { nome:'Vários prédios', slug:'destaque-2-varios-predios', slides:[
+   {olho:'VÁRIOS PRÉDIOS', tit:'Um login, todos os prédios', titMenor:true,
+    txt:['Você entra uma vez e vê a lista dos condomínios que administra.',
+         'Troca de um pro outro dentro do próprio painel — sem sair, sem entrar de novo, sem decorar seis senhas.']},
+   {olho:'VÁRIOS PRÉDIOS', tit:'Separado como tem que ser', titMenor:true,
+    txt:['Cada condomínio guarda os próprios funcionários, horários, registros e relatórios. Nada se mistura entre prédios.',
+         'Cada um sai com o CNPJ dele no cabeçalho do relatório.']},
+   {olho:'VÁRIOS PRÉDIOS', tit:'Pegou prédio novo? Adiciona.', titMenor:true,
+    txt:['Contrato novo, cadastra no mesmo login. Perdeu um contrato, remove só aquele — os outros continuam intactos.'],
+    caixa:'O plano é por prédio, pelo tamanho da equipe dele.'},
+ ]},
+ { nome:'Planos', slug:'destaque-3-planos', slides:[
+   {olho:'PLANOS', tit:'O preço é por condomínio', titMenor:true,
+    txt:['Cada prédio tem o plano dele, escolhido pelo tamanho da equipe.',
+         'Prédio pequeno seu não puxa o preço do prédio grande pra cima.']},
+   {olho:'PLANOS', tit:'A tabela',
+    precos:[['Starter · até 3','R$ 0',true],['Pro · até 15','R$ 99'],
+            ['Advanced · até 35','R$ 159'],['Scale · até 100','R$ 279']]},
+   {olho:'PLANOS', tit:'Sem pegadinha',
+    txt:['Até 3 funcionários é grátis pra sempre — não é teste de 7 dias.',
+         'Muda de plano quando a equipe daquele prédio crescer.',
+         'Cancela um condomínio sem mexer nos outros.']},
+ ]},
+ { nome:'Como usa', slug:'destaque-4-como-usa', slides:[
+   {passo:'1', olho:'COMO USA', tit:'Cadastre o primeiro prédio', titMenor:true,
+    txt:['Nome, CNPJ e endereço. Leva 2 minutos e é o que vai sair no cabeçalho dos relatórios desse condomínio.']},
+   {passo:'2', olho:'COMO USA', tit:'Cadastre a equipe dele', titMenor:true,
+    txt:['Nome, função e horário de trabalho. É esse horário que o sistema usa pra saber o que é atraso e o que é hora extra.']},
+   {passo:'3', olho:'COMO USA', tit:'Repita nos outros prédios', titMenor:true,
+    txt:['Mesmo login, mesmo painel. Cada condomínio novo entra na sua lista.'],
+    caixa:'Os funcionários batem ponto pelo celular deles.'},
+ ]},
+ { nome:'Legal', slug:'destaque-5-legal', slides:[
+   {olho:'LEGAL', tit:'CLT, Art. 74',
+    txt:['Acima de 20 funcionários, o registro de entrada e saída é obrigatório por lei.',
+         'Abaixo disso não é obrigatório — mas, se houver processo, provar a jornada continua sendo responsabilidade do empregador. E você responde por todos os prédios que administra.']},
+   {olho:'LEGAL', tit:'Portaria 671',
+    txt:['É a norma que organiza o ponto eletrônico no Brasil hoje, incluindo o registro feito por aplicativo.',
+         'O StaFlow foi construído seguindo esse formato de registro.']},
+   {olho:'LEGAL', tit:'LGPD',
+    txt:['Dado de funcionário é dado pessoal e tem regra de tratamento.',
+         'Os registros ficam guardados de forma controlada, com acesso só de quem administra aquele condomínio.']},
+ ]},
+];
+
+/* ══════════════════════════════════════════════════════════════
+   Montagem do HTML de cada arte
+   ══════════════════════════════════════════════════════════════ */
+function blocoTexto(d){
+  let h='';
+  if(d.passo) h+=`<div class="passo-num">${d.passo}</div>`;
+  if(d.olho)  h+=`<div class="olho">${d.olho}</div>`;
+  if(d.tit)   h+=`<h3 class="tit${d.titMenor?' menor':''}">${d.tit}</h3>`;
+  if(d.txt)   h+=d.txt.map(t=>`<p class="txt">${t}</p>`).join('');
+  if(d.precos)h+='<div class="precos">'+d.precos.map(p=>
+      `<div class="l${p[2]?' free':''}"><span>${p[0]}</span><span class="v">${p[1]}</span></div>`).join('')+'</div>';
+  if(d.caixa) h+=`<div class="caixa">${d.caixa}</div>`;
+  if(d.certo) h+=`<div class="caixa vazada">${d.certo}</div>`;
+  return h;
+}
+const artePost  = d => `<div class="art post">${cabecalho()}<div class="miolo">${blocoTexto(d)}</div>${rodape()}</div>`;
+const arteStory = d => `<div class="art story">${cabecalho()}<div class="miolo">${blocoTexto(d)}</div>${rodape()}</div>`;
+const arteCapa  = d => `<div class="art capa"><div class="centro">${icoSVG(d.ico)}<div class="rotulo">${d.rotulo}</div></div></div>`;
+const artePerfil= () => `<div class="art quad"><div class="pf">${logoSVG()}</div></div>`;
+function arteSlide(d,i,total){
+  const passos=Array.from({length:total},(_,k)=>`<i class="${k<=i?'on':''}"></i>`).join('');
+  return `<div class="art post">${d.n?`<div class="nro">${d.n}</div>`:''}${cabecalho()}
+    <div class="miolo">${blocoTexto(d)}${d.capa?'<div class="arrasta">Arraste para o lado →</div>':''}</div>
+    <div style="margin-top:auto"><div class="passos">${passos}</div>${rodape()}</div></div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Grupos (cada um vira um .zip)
+   ══════════════════════════════════════════════════════════════ */
+const slugify = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'')
+  .replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').toLowerCase();
+
+const GRUPOS = [];
+function grupo(titulo, nota, slug){ const g={titulo,nota,slug,itens:[]}; GRUPOS.push(g); return g; }
+function add(g, html, nome, molde){
+  const dim = molde==='p' ? [1080,1350] : molde==='s' ? [1080,1920] : [1080,1080];
+  g.itens.push({nome, slug:slugify(nome), html, molde, w:dim[0], h:dim[1]});
+}
+
+let g;
+g = grupo('Foto de perfil','Sobe como foto do perfil.','perfil');
+add(g, artePerfil(), 'Foto de perfil', 'q');
+
+g = grupo('Post de apresentação','O primeiro post do perfil. Publique antes de começar a prospectar.','apresentacao');
+APRESENTACAO.forEach(d=>add(g, artePost(d), 'Apresentacao', 'p'));
+
+g = grupo('Posts fixados','Publique nesta ordem e fixe os 3. O grid lê da esquerda pra direita: dor → painel → oferta.','posts-fixados');
+FIXADOS.forEach((d,i)=>add(g, artePost(d), `Fixado ${i+1} - ${d.rotulo}`, 'p'));
+
+g = grupo('Carrossel — Do 1º ao 10º condomínio','7 slides. Suba todos de uma vez, na ordem numerada do zip.','carrossel');
+CARROSSEL.forEach((d,i)=>add(g, arteSlide(d,i,CARROSSEL.length), `Slide ${String(i+1).padStart(2,'0')}`, 'p'));
+
+g = grupo('Capas dos destaques','Sobe como story, depois escolhe como capa do destaque correspondente.','capas-destaques');
+CAPAS.forEach((d,i)=>add(g, arteCapa(d), `Capa ${i+1} - ${d.rotulo}`, 's'));
+
+DESTAQUES.forEach((dst,di)=>{
+  const gg = grupo('Destaque '+(di+1)+' — '+dst.nome,'3 stories. Suba na ordem, depois agrupe no destaque "'+dst.nome+'".',dst.slug);
+  dst.slides.forEach((s,i)=>add(gg, arteStory(s), `${slugify(dst.nome)} story ${i+1}`, 's'));
+});
+
+/* ══════════════════════════════════════════════════════════════
+   Interface
+   ══════════════════════════════════════════════════════════════ */
+const saida = document.getElementById('saida');
+GRUPOS.forEach((gr,gi)=>{
+  const el = document.createElement('div');
+  el.className='grupo';
+  el.innerHTML = `<div class="cab-g">
+      <h2>${gr.titulo}<small>${gr.nota}</small></h2>
+      <button class="btn fantasma" data-grupo="${gi}">⤓ Baixar .zip (${gr.itens.length})</button>
+    </div><div class="linha"></div>`;
+  const linha = el.querySelector('.linha');
+  gr.itens.forEach((it,ii)=>{
+    const d=document.createElement('div');
+    d.className='item';
+    d.innerHTML = `<div class="moldura ${it.molde}"><div class="escala">${it.html}</div></div>
+      <div class="rot"><span>${it.nome}</span>
+      <button class="mini" data-g="${gi}" data-i="${ii}">PNG</button></div>`;
+    linha.appendChild(d);
+  });
+  saida.appendChild(el);
+});
+
+/* ══════════════════════════════════════════════════════════════
+   Geração do PNG
+   ------------------------------------------------------------
+   ★ A miniatura da página usa transform:scale() — e o html2canvas
+   não entende esse transform: era por isso que o PNG saía com a
+   arte pequenininha num canto e o resto preenchido de cor. Por
+   isso a arte é remontada aqui em TAMANHO REAL num palco à parte,
+   sem nenhum transform, e só então vira imagem.
+   ══════════════════════════════════════════════════════════════ */
+const palco = document.getElementById('palco');
+const capa  = document.getElementById('capa-carregando');
+const ccTxt = document.getElementById('cc-texto');
+const ccBar = document.getElementById('cc-barra');
+
+function abrirCapa(t){ ccTxt.textContent=t; ccBar.style.width='0%'; capa.style.display='flex'; }
+function progresso(t,p){ ccTxt.textContent=t; ccBar.style.width=(p*100).toFixed(0)+'%'; }
+function fecharCapa(){ capa.style.display='none'; palco.innerHTML=''; }
+
+async function gerarCanvas(item){
+  palco.innerHTML = item.html;
+  const el = palco.firstElementChild;
+  try{ await document.fonts.ready; }catch(_){}
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  const canvas = await html2canvas(el,{
+    backgroundColor:'#111827', scale:1, useCORS:true, logging:false,
+    width:item.w, height:item.h, windowWidth:item.w, windowHeight:item.h,
+    scrollX:0, scrollY:0, x:0, y:0
+  });
+  palco.innerHTML='';
+  return canvas;
+}
+function baixarBlob(blob, nome){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=nome; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+
+async function baixarItem(gi,ii){
+  const it = GRUPOS[gi].itens[ii];
+  abrirCapa('Gerando '+it.nome+'…');
+  try{
+    const c = await gerarCanvas(it);
+    c.toBlob(b=>baixarBlob(b,'staflow-'+it.slug+'.png'),'image/png');
+  }catch(e){ alert('Falhou: '+e.message); }
+  setTimeout(fecharCapa,300);
+}
+
+async function baixarGrupo(gi){
+  const gr = GRUPOS[gi];
+  abrirCapa(gr.titulo+' — preparando…');
+  try{
+    const zip = new JSZip();
+    for(let i=0;i<gr.itens.length;i++){
+      const it = gr.itens[i];
+      progresso(`${gr.titulo} — ${i+1} de ${gr.itens.length}`, i/gr.itens.length);
+      const c = await gerarCanvas(it);
+      zip.file(String(i+1).padStart(2,'0')+'-'+it.slug+'.png',
+               c.toDataURL('image/png').split(',')[1], {base64:true});
+    }
+    progresso('Compactando…', 1);
+    const blob = await zip.generateAsync({type:'blob'});
+    baixarBlob(blob, 'staflow-'+gr.slug+'.zip');
+  }catch(e){ alert('Falhou: '+e.message); }
+  setTimeout(fecharCapa,300);
+}
+
+async function baixarTudo(){
+  abrirCapa('Preparando…');
+  try{
+    const zip = new JSZip();
+    const total = GRUPOS.reduce((a,g)=>a+g.itens.length,0);
+    let feitos = 0;
+    for(const gr of GRUPOS){
+      const pasta = zip.folder(gr.slug);
+      for(let i=0;i<gr.itens.length;i++){
+        const it = gr.itens[i];
+        progresso(`${gr.titulo} — ${i+1} de ${gr.itens.length}`, feitos/total);
+        const c = await gerarCanvas(it);
+        pasta.file(String(i+1).padStart(2,'0')+'-'+it.slug+'.png',
+                   c.toDataURL('image/png').split(',')[1], {base64:true});
+        feitos++;
+      }
+    }
+    progresso('Compactando…', 1);
+    const blob = await zip.generateAsync({type:'blob'});
+    baixarBlob(blob, 'staflow-instagram-completo.zip');
+  }catch(e){ alert('Falhou: '+e.message); }
+  setTimeout(fecharCapa,300);
+}
+
+document.addEventListener('click', e=>{
+  const b = e.target.closest('button');
+  if(!b) return;
+  if(b.dataset.grupo!==undefined) baixarGrupo(+b.dataset.grupo);
+  else if(b.dataset.g!==undefined) baixarItem(+b.dataset.g, +b.dataset.i);
+});
+</script>
+</body>
+</html>

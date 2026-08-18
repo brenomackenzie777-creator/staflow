@@ -15,7 +15,29 @@ from .config import (
     SUPABASE_URL, SUPABASE_KEY, TAVILY_API_KEY,
     GITHUB_TOKEN, GITHUB_REPO, PRODUCTION_URL,
     RESEND_API_KEY, NOTIFY_EMAIL, RESEND_FROM,
+    TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID,
 )
+
+
+# ─── Telegram ────────────────────────────────────────────────────
+# ★ 18/08/2026 — a pedido do Breno: um canal onde ele fala com o time e
+# recebe resposta sem precisar abrir /agentes.html ou esperar o email do
+# dia. Best-effort de propósito — se o Telegram falhar, o ciclo NÃO pode
+# quebrar por causa disso (o recado já foi salvo no Supabase de qualquer
+# jeito, o Telegram é só um aviso a mais).
+def _enviar_telegram(texto: str) -> bool:
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        return False
+    try:
+        r = httpx.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            json={"chat_id": TELEGRAM_CHAT_ID, "text": texto[:4000]},
+            timeout=10,
+        )
+        return r.status_code == 200
+    except Exception as e:
+        print(f"[telegram] falha ao enviar: {e}")
+        return False
 
 
 # ─── Memória ─────────────────────────────────────────────────────
@@ -188,12 +210,24 @@ class PanoramaNegocioTool(BaseTool):
             emails = {p["id"]: (p.get("email") or "") for p in profiles}
 
             def eh_teste(condo):
-                em = emails.get(condo.get("sindico_id"), "")
+                em = (emails.get(condo.get("sindico_id"), "") or "").lower()
+                nome = (condo.get("nome") or "").lower()
                 if not condo.get("sindico_id"):
                     return True                       # órfão = lixo
                 if "@staflow.test" in em or ".test" in em:
                     return True
                 if "+teste" in em or "+test" in em:
+                    return True
+                # ★ 18/08/2026 — achado real: "Ed. Teste StaFlow", cadastrado
+                # com o e-mail pessoal do próprio Breno (NOTIFY_EMAIL), tinha
+                # stripe_subscription_id de verdade e passava batido por todos
+                # os filtros acima, sendo contado como cliente pagante real
+                # (chegou a aparecer como "1 condomínio pagando, R$99 MRR" num
+                # relatório). E-mail do fundador e nome com "teste"/"demo"
+                # também marcam como teste agora — não é só o padrão de e-mail.
+                if NOTIFY_EMAIL and em == NOTIFY_EMAIL.lower():
+                    return True
+                if "teste" in nome or "test" in nome or "demonstra" in nome:
                     return True
                 return False
 
@@ -681,6 +715,11 @@ class ResponderRecadoTool(BaseTool):
                 "atendido_por": atendido_por,
                 "atendido_em":  datetime.datetime.utcnow().isoformat(),
             }).eq("id", recado_id).execute()
+
+            rotulo = {"atendido": "✅ Atendido", "nao_prioridade": "⏸️ Não é prioridade agora",
+                      "em_andamento": "🔄 Em andamento"}.get(status, status)
+            _enviar_telegram(f"{rotulo}\n\n{resposta}")
+
             return f"Recado {recado_id} marcado como {status}."
         except Exception as e:
             return f"Erro ao responder recado: {e}"
@@ -816,6 +855,7 @@ class NotifyTool(BaseTool):
                         f"{r.text[:300]}")
             print(f"[email] enviado de {RESEND_FROM} para {NOTIFY_EMAIL} "
                   f"— assunto: {subject[:80]}")
+            _enviar_telegram(f"📬 Relatório do dia no seu email: {subject}")
             return f"Email enviado para {NOTIFY_EMAIL}"
         except Exception as e:
             print(f"[email] ERRO ao enviar: {e}")

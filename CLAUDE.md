@@ -124,20 +124,53 @@ momento por UM canal só, em vez de precisar saber qual dos 4 loops (ou
 qual dos 3 agentes antigos Camila/Marcos/Rafael) procurar.
 
 Mecanismo (não é chat ao vivo — os loops só rodam 1x/dia):
-1. Página `/agentes.html` ("Time de IA" no menu) — o Breno escreve um
-   recado (texto livre + área opcional) que grava em
-   `public.time_recados` (status inicial `pendente`).
+1. Página `/agentes.html` ("Time de IA" no menu) **ou o Telegram** (ver
+   seção seguinte) — o Breno escreve um recado (texto livre + área
+   opcional) que grava em `public.time_recados` (status inicial
+   `pendente`). As duas portas caem na mesma tabela — é o mesmo canal.
 2. O **Analista** do ciclo CEO lê os recados pendentes no início (vêm
    dentro de `panorama_negocio`) e lista cada um COM O ID.
 3. O **CEO** trata recado do Breno como PRIORIDADE AUTOMÁTICA do dia —
    acima de qualquer coisa que o time escolheria sozinho.
 4. O **Executor** responde cada recado (`responder_recado_breno`):
    `atendido` (com o que foi feito) ou `nao_prioridade` (com o motivo).
-   Nunca fica sem resposta.
-5. O Breno vê a resposta na mesma página `/agentes.html`, no histórico.
+   Nunca fica sem resposta. Isso também dispara mensagem no Telegram.
+5. O Breno vê a resposta na página `/agentes.html`, no histórico, e
+   também recebe no Telegram na hora que o Executor responde.
 
 Para pedidos que precisam de resposta NA HORA (não no próximo ciclo de
 até 24h), o canal continua sendo esta conversa com o Claude/Cowork.
+
+## ★ Canal Telegram (18/08/2026, a pedido do Breno)
+
+Ele pediu pra conversar com o time em vez de só deixar recado numa
+página e esperar. Sem VPS nem servidor sempre ligado (ainda não faz
+sentido pro estágio da empresa — ver decisão abaixo), a solução ficou
+toda na infra que já existe:
+
+- **Bot do Telegram** (`@BotFather`) → webhook aponta pra uma Edge
+  Function nova, `supabase/functions/telegram-webhook/`.
+- O Breno manda mensagem no Telegram a qualquer hora → a function grava
+  em `time_recados` (autor_id = o dele, via secret `BRENO_USER_ID`) e
+  responde na hora "recebido, trato no próximo ciclo".
+- Segurança: a function só aceita mensagem de `TELEGRAM_CHAT_ID` — vem
+  de outro chat, ignora silenciosamente. O bot não vira caixa pública.
+- Quando o Executor do ciclo do dia seguinte responde o recado
+  (`responder_recado_breno`), a resposta de verdade chega no Telegram
+  também — não só na página. O Relator também manda um aviso curto no
+  Telegram quando o email do dia sai ("📬 relatório no seu email").
+
+Secrets necessários (Supabase Edge Functions **e** Railway, são dois
+lugares diferentes que precisam do mesmo token):
+`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, e só na Edge Function
+`BRENO_USER_ID` (`41c002e3-c256-43c1-9e31-a938fc31e15a`).
+
+**Decisão consciente de não ir mais longe agora:** dá pra ter servidor
+sempre ligado, múltiplos provedores de LLM, VPS — isso existe em
+referências de mercado que o Breno trouxe (ver conversa de 18/08). Não
+foi escolhido pré-receita: custo e manutenção que não se pagam ainda
+com a empresa nesse estágio. Isso é revisitável depois que houver
+receita de verdade sustentando.
 
 ## ★ Autoevolução (ligada em 12/08/2026, a pedido do Breno)
 
@@ -219,5 +252,37 @@ persistido pra próxima execução aproveitar. Log foi enriquecido (tipo do
 erro + diagnóstico da URL/chave configurada) pra próxima falha apontar a
 causa exata.
 
+**18/08/2026 — conferência de 4 dias de ciclo real (13 a 16/08) + bug de dado sério encontrado.**
+Ciclo rodou de ponta a ponta em 13, 14, 15 e 16/08 (registro completo no
+`agent_runs`, com o orquestrador confirmando sucesso nos três últimos). A
+autoevolução JÁ disparou de verdade uma vez: no dia 13, logo após entregar
+a "chapa" pedida pelo Breno, o time reescreveu o próprio prompt do
+Executor (`agent_prompts`, versão 2, motivo registrado). Recado da
+"chapa" foi lido e respondido nesse mesmo ciclo.
+
+Dois problemas achados nessa conferência:
+
+1. **17 e 18/08: gasto de token sem nenhum registro.** `agent_budget_diario`
+   mostra 12.200 tokens gastos nos dois dias, mas `agent_runs` não tem
+   nenhuma linha nesse intervalo — nem sucesso, nem a falha de segurança
+   do orquestrador. Falha silenciosa nova, causa ainda não identificada
+   (precisa do log do Railway desses dois dias).
+2. **MRR e "cliente pagante" estavam errados.** O `panorama_negocio`
+   reportou "1 condomínio pagando, R$99 MRR" — mas esse condomínio
+   ("Ed. Teste StaFlow") é um teste do próprio Breno, cadastrado com o
+   e-mail dele mesmo, que tinha assinatura Stripe de verdade e passava
+   batido pelo filtro de teste (que só olhava padrão de e-mail tipo
+   `+teste`/`@staflow.test`). Número real de cliente pagante era ZERO.
+   Corrigido em `tools.py`: `eh_teste()` agora também exclui o e-mail do
+   fundador (`NOTIFY_EMAIL`) e qualquer condomínio com "teste"/"demo" no
+   nome. Lição: filtro de teste por padrão de e-mail sozinho não basta.
+
+Também notado (não é bug, é ponto de atenção): 3 dos 4 ciclos bateram na
+mesma prioridade — reativar condomínios cadastrados que nunca usaram o
+produto — sem entregar mais que a recomendação em texto. Faz sentido,
+já que o time não pode mandar mensagem pro cliente sem autorização do
+Breno (Regra de Ouro), mas vale olhar se travou aí ou se está evoluindo
+o texto a cada dia.
+
 ---
-*Última atualização: arquivo inicial — agentes ainda não rodaram*
+*Última atualização: 18/08/2026*

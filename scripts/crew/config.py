@@ -85,6 +85,13 @@ RESEND_API_KEY      = _env("RESEND_API_KEY")
 RESEND_FROM         = _env("RESEND_FROM", "StaFlow Agentes <agentes@staflow.app.br>")
 PRODUCTION_URL      = _env("PRODUCTION_URL", "https://staflow.app.br")
 
+# ★ 18/08/2026 — canal Telegram: o Breno pediu pra conversar com o time em
+# vez de só deixar recado assíncrono em /agentes.html. TELEGRAM_CHAT_ID
+# identifica SÓ a conversa dele — sem isso o bot fica mudo (não manda nada
+# pra ninguém, por segurança).
+TELEGRAM_BOT_TOKEN  = _env("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID    = _env("TELEGRAM_CHAT_ID")
+
 # ── Aviso alto e claro se algo essencial estiver malformado ──
 if not SUPABASE_URL.startswith("https://"):
     log.error("SUPABASE_URL não começa com https:// (valor tem %d chars, "
