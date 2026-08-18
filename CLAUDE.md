@@ -402,5 +402,65 @@ só alguém efetivamente pagar o Pix no sandbox pra confirmar que
 `PAYMENT_CONFIRMED` também vira `status_assinatura='active'` (mesma
 lógica já usada pelo webhook da Stripe, não é código novo).
 
+## ★ Fix urgente: Stripe não abria pagamento pra ninguém (18/08/2026)
+
+No mesmo dia em que saíram os primeiros e-mails de venda, o Breno
+avisou que clicar em "Assinar" em qualquer plano não abria a tela de
+pagamento. Causa: `stripe.checkout.sessions.create()` em
+`create-checkout-session` não especificava `payment_method_types`, e
+o modo automático da Stripe não estava resolvendo nenhum método
+válido pra BRL — a Stripe recusava a sessão com 500 ("No valid
+payment method types..."). Corrigido fixando `payment_method_types:
+["card"]` explicitamente. Deployado direto via Supabase MCP (não
+depende de git push) e confirmado ao vivo — clique real em "Assinar
+Pro" e "Assinar Scale" abrindo o Stripe Checkout normalmente.
+
+## ★ Analytics + atribuição de marketing (18/08/2026)
+
+A pedido do Breno, depois do disparo dos e-mails: ele queria saber
+quantas pessoas abriram/clicaram/viraram cadastro, e não tinha nada
+disso — nem Google Analytics, nem rastreio de e-mail, nem UTM. Como
+os e-mails saíram pelo Gmail pessoal dele (de propósito, pra não
+queimar a reputação do domínio — ver seção de vendas), não dá pra
+saber quem ABRIU aqueles 29 e-mails especificamente (isso exigiria
+ferramenta de disparo em massa, que foi o que a gente evitou). Dá pra
+medir tudo a partir de agora, então montei dois níveis:
+
+**1. Google Analytics 4** — `js/analytics.js` carrega o gtag.js só se
+`window.STAFLOW_GA4_MEASUREMENT_ID` estiver preenchido em
+`js/analytics-config.js` (fica `null` até o Breno colar o ID —
+instruções de como pegar estão no próprio arquivo, é rápido). Incluído
+em `staflow-landing.html`, `planos.html`, `auth/cadastro.html`,
+`auth/login.html`. Eventos de conversão já disparando via
+`window.staflowTrack()`: `sign_up` (cadastro concluído, com
+`tipo: sindico|colaborador`), `checkout_iniciado` (clicou em plano
+pago, antes do redirect pro Stripe), `plano_ativado` (Starter ou
+cupom 100%, sem passar pelo Stripe).
+
+**2. Atribuição gravada no banco (mais importante — liga campanha a
+receita real, não só a visita)** — `js/attribution.js` roda em toda
+página pública e, na primeira visita, guarda `utm_source`/
+`utm_medium`/`utm_campaign`/`referrer` no localStorage por 90 dias
+(first-touch: não sobrescreve se a pessoa já tem atribuição salva).
+No cadastro, isso vai junto no `signUp()` como metadata, e
+`ensure_condominio()` (ver `sql/029_atribuicao_marketing.sql`) grava
+em `condominios.utm_source/utm_medium/utm_campaign/signup_referrer`.
+Migration já aplicada em produção via Supabase MCP.
+
+`panorama_negocio` (tools.py, lido todo dia pelo ciclo CEO) agora tem
+uma seção `ORIGEM_CADASTROS` com cadastros e MRR por origem — mesma
+fonte de dado que já separa teste de real, então liga campanha a
+receita de verdade, não a "quantos cliques".
+
+**Como usar num link de campanha:**
+`https://staflow.app.br/?utm_source=email&utm_campaign=leads-agosto-2026`
+
+**Pendente pro Breno:** criar a propriedade no Google Analytics
+(analytics.google.com → Admin → Criar propriedade → Fluxo de dados
+Web → copiar o "G-XXXXXXXXXX") e colar em
+`window.STAFLOW_GA4_MEASUREMENT_ID` em `js/analytics-config.js`. Sem
+isso, o GA4 simplesmente não carrega — o resto (atribuição no banco,
+eventos) já funciona independente disso assim que for pro ar.
+
 ---
 *Última atualização: 18/08/2026*

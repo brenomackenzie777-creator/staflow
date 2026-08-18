@@ -546,6 +546,10 @@
 
 <div class="toast" id="toast"><span class="ico"></span><span class="msg"></span></div>
 
+<!-- Analytics + atribuição de marketing (ver js/analytics-config.js) -->
+<script src="/js/analytics-config.js"></script>
+<script src="/js/analytics.js"></script>
+<script src="/js/attribution.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/supabase-client.js"></script>
 <script src="/js/auth.js"></script>
@@ -783,6 +787,8 @@ async function ativarPlano(plan) {
           .eq('code', cupomAtivo.code);
       }
 
+      if (window.staflowTrack) window.staflowTrack('plano_ativado', { plano: planoParaGravar, gratuito: true, cupom: cupomAtivo?.code || null });
+
       toast(`Plano ${plan.charAt(0).toUpperCase()+plan.slice(1)} ativado! Bem-vindo ao StaFlow.`, 'success');
       setTimeout(() => location.replace('/dashboard.html'), 1200);
       return;
@@ -816,6 +822,7 @@ async function ativarPlano(plan) {
     if (error) throw error;
 
     if (data?.url) {
+      if (window.staflowTrack) window.staflowTrack('checkout_iniciado', { plano: plan });
       // Redireciona para o Stripe Checkout hospedado
       window.location.href = data.url;
       return;

@@ -357,6 +357,10 @@
 <footer class="auth-footer">© 2026 STAFLOW · UMA JORNADA MAIS PRÁTICA</footer>
 <div class="toast" id="toast"><span class="ico"></span><span class="msg"></span></div>
 
+<!-- Analytics + atribuição de marketing (ver js/analytics-config.js) -->
+<script src="../js/analytics-config.js"></script>
+<script src="../js/analytics.js"></script>
+<script src="../js/attribution.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/supabase-client.js"></script>
 <script src="../js/auth.js"></script>
@@ -372,6 +376,21 @@ const state = {
   condo:'', cnpj:'', scpf:'', end:'', fone:'',
   role: 'sindico'   // 'sindico' | 'colaborador' (escolhido no toggle)
 };
+
+// ★ 18/08/2026 — atribuição de marketing (de onde veio o cadastro).
+// Lida do primeiro toque salvo por js/attribution.js e enviada junto
+// no signUp() — ensure_condominio() grava em condominios (ver
+// sql/029_atribuicao_marketing.sql). Objeto vazio se não tiver nada
+// salvo (ex: alguém digitou a URL direto) — nunca quebra o cadastro.
+function metaAtribuicao() {
+  const a = (window.staflowAttribution && window.staflowAttribution.get()) || {};
+  return {
+    utm_source:      a.utm_source      || null,
+    utm_medium:      a.utm_medium      || null,
+    utm_campaign:    a.utm_campaign    || null,
+    signup_referrer: a.referrer        || null,
+  };
+}
 
 // Banner persistente de erro (etapa 2)
 function showErrorBanner(ttl, msg) {
@@ -609,10 +628,13 @@ document.getElementById('form-1').addEventListener('submit', async (e) => {
     // role enviado como hint (o trigger do banco ainda cria como 'sindico'
     // por padrão — o claim_funcionario_by_email() rebaixa depois)
     role: 'funcionario',
-    intencao_colaborador: true
+    intencao_colaborador: true,
+    ...metaAtribuicao()
   });
 
   btn.classList.remove('loading'); btn.disabled = false;
+
+  if (res.ok && window.staflowTrack) window.staflowTrack('sign_up', { tipo: 'colaborador' });
 
   // BUG-006 fix: se o email já existe, mandar magic link em vez de mostrar só erro
   if (!res.ok) {
@@ -729,12 +751,14 @@ document.getElementById('form-2').addEventListener('submit', async (e) => {
     bairro:              bairro || null,
     cidade:              cidade || null,
     estado:              uf || null,
-    cep:                 cepDigits || null
+    cep:                 cepDigits || null,
+    ...metaAtribuicao()
   });
 
   btn.classList.remove('loading'); btn.disabled = false;
 
   if (!res.ok) { toast(res.error, 'error'); return; }
+  if (window.staflowTrack) window.staflowTrack('sign_up', { tipo: 'sindico' });
   document.getElementById('sent-email').textContent = state.email;
   irPara(3);
   iniciarReenvio();

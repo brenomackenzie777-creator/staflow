@@ -198,7 +198,8 @@ class PanoramaNegocioTool(BaseTool):
             # ── Base de dados crua ──
             profiles = sb.table("profiles").select("id,email,created_at,role").execute().data or []
             condos   = sb.table("condominios").select(
-                "id,nome,plano_ativo,status_assinatura,stripe_subscription_id,sindico_id,created_at"
+                "id,nome,plano_ativo,status_assinatura,stripe_subscription_id,sindico_id,created_at,"
+                "utm_source,utm_medium,utm_campaign"
             ).execute().data or []
             funcs    = sb.table("funcionarios").select("id,condominio_id,ativo").execute().data or []
             pontos   = sb.table("registros_ponto").select(
@@ -263,6 +264,27 @@ class PanoramaNegocioTool(BaseTool):
             for c in pagantes:
                 receita += precos.get(c.get("plano_ativo") or "", 0)
 
+            # ── Origem dos cadastros (marketing) ──
+            # ★ 18/08/2026 — a pedido do Breno: ligar campanha a receita real,
+            # não só "quantos cadastros". utm_source só existe pra quem se
+            # cadastrou depois da atribuição entrar no ar (sql/029) — cadastro
+            # mais antigo aparece como "direto/desconhecido", não é bug.
+            def origem_de(condo):
+                src = condo.get("utm_source")
+                camp = condo.get("utm_campaign")
+                if not src:
+                    return "direto/desconhecido"
+                return f"{src}" + (f" ({camp})" if camp else "")
+
+            origem_counts = {}
+            origem_receita = {}
+            for c in condos_reais:
+                o = origem_de(c)
+                origem_counts[o] = origem_counts.get(o, 0) + 1
+            for c in pagantes:
+                o = origem_de(c)
+                origem_receita[o] = origem_receita.get(o, 0) + precos.get(c.get("plano_ativo") or "", 0)
+
             retrato = {
                 "CADASTRO": {
                     "usuarios_total": len(profiles),
@@ -280,6 +302,13 @@ class PanoramaNegocioTool(BaseTool):
                     "observacao": ("Só conta quem tem assinatura confirmada no Stripe. "
                                    "Linhas marcadas 'active' no banco sem assinatura Stripe "
                                    "são resquício de teste e NÃO são receita."),
+                },
+                "ORIGEM_CADASTROS": {
+                    "cadastros_por_origem": origem_counts,
+                    "mrr_por_origem_reais": origem_receita,
+                    "leitura": ("'direto/desconhecido' inclui todo cadastro de antes de "
+                                "18/08/2026 (atribuição só passou a ser gravada a partir "
+                                "dessa data) — não é um canal real, é falta de dado antigo."),
                 },
                 "USO_REAL_DO_PRODUTO": {
                     "batidas_de_ponto_7_dias": len(pontos_7d),
