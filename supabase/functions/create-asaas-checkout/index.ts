@@ -3,19 +3,45 @@
 // ------------------------------------------------------------
 // ★ 18/08/2026 — a pedido do Breno: gateway de pagamento novo
 // (Asaas), rodando em PARALELO à Stripe (que continua ativa).
-// Espelha create-checkout-session (Stripe): recebe o plano e o
-// condomínio, cria um Checkout hospedado pela Asaas (Pix ou
-// cartão, cobrança recorrente mensal) e devolve o link pra
+// Cria uma ASSINATURA recorrente na Asaas cobrada via Pix e
+// devolve o link da fatura (QR code + copia-e-cola) pra
 // redirecionar o síndico.
+//
+// ★ 18/08/2026, mesmo dia — DOIS bugs achados testando ao vivo
+// (toast "Failed to send a request to the Edge Function"):
+//
+// 1. CORS: o front manda um header custom "x-condominio-id" em
+//    TODA chamada de function (ver js/supabase-client.js, usado
+//    pro contexto multi-CNPJ — create-checkout-session já
+//    liberava esse header no Access-Control-Allow-Headers, esta
+//    function não). Sem ele na lista, o navegador aceita o
+//    preflight OPTIONS (200) mas recusa mandar o POST de
+//    verdade — daí o erro genérico do client, sem nem chegar
+//    no log da function. Corrigido adicionando x-condominio-id
+//    aqui também.
+//
+// 2. Depois de resolver o CORS, a Asaas ainda recusava (502) a
+//    primeira versão, que usava /v3/checkouts com
+//    billingTypes:["PIX","CREDIT_CARD"] + chargeTypes:["RECURRENT"]:
+//    "O tipo de cobrança DETACHED é obrigatório para PIX" / "só
+//    CREDIT_CARD pode ser RECURRENT". O Checkout NÃO permite Pix
+//    recorrente misturado com cartão. Corrigido usando o endpoint
+//    de ASSINATURA direto (/v3/subscriptions), que aceita
+//    billingType:"PIX" recorrente nativamente. O botão "ou pagar
+//    com Pix" agora é só Pix (cartão continua no botão principal
+//    via Stripe).
+//
+// Pré-requisito descoberto no mesmo teste: a Asaas EXIGE cpfCnpj
+// no cadastro do cliente pagador. Se o condomínio não tiver CNPJ
+// cadastrado, a function recusa com mensagem clara em vez do
+// erro genérico.
 //
 // A conta Asaas do Breno é PESSOA FÍSICA (ele desativou o MEI) —
 // por isso não emite nota fiscal automaticamente. Isso é uma
 // limitação conhecida e aceita por enquanto, não um bug.
 //
 // Detecta sandbox x produção sozinho pelo prefixo da API Key
-// ($aact_hmlg_ = sandbox/homologação, $aact_prod_ = produção) —
-// mesma lição do bug do SUPABASE_URL: variável errada não pode
-// depender de humano lembrar de trocar em dois lugares.
+// ($aact_hmlg_ = sandbox/homologação, $aact_prod_ = produção).
 //
 // Requer secrets: ASAAS_API_KEY (Project Settings → Edge
 // Functions → Secrets).
@@ -33,8 +59,6 @@ const ASAAS_BASE_URL = ASAAS_API_KEY.startsWith("$aact_hmlg")
   ? "https://api-sandbox.asaas.com"
   : "https://api.asaas.com";
 
-const PRODUCTION_URL = Deno.env.get("PRODUCTION_URL") || "https://staflow.app.br";
-
 const PRECOS: Record<string, number> = {
   pro: 99,
   advanced: 159,
@@ -47,21 +71,30 @@ const NOMES: Record<string, string> = {
   scale: "StaFlow - Plano Scale",
 };
 
-// PNG transparente 1x1 — a Asaas exige imageBase64 no item, mas não
-// faz sentido gastar tempo com arte disso agora.
-const PIXEL_TRANSPARENTE =
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
-
 function amanha(diasAFrente = 0): string {
   const d = new Date();
   d.setDate(d.getDate() + diasAFrente);
   return d.toISOString().slice(0, 10);
 }
 
+async function asaasFetch(path: string, init: RequestInit) {
+  const resp = await fetch(`${ASAAS_BASE_URL}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      "access_token": ASAAS_API_KEY,
+      "User-Agent": "StaFlow/1.0.0",
+      ...(init.headers || {}),
+    },
+  });
+  const dados = await resp.json().catch(() => ({}));
+  return { ok: resp.ok, status: resp.status, dados };
+}
+
 Deno.serve(async (req) => {
   const cors = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-condominio-id",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 
@@ -88,8 +121,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Busca dados do condomínio + e-mail do síndico (fallback se não
-    // tiver email_admin cadastrado).
     const { data: condo, error: condoErr } = await supabase
       .from("condominios")
       .select("id, nome, cnpj, email_admin, sindico_id")
@@ -103,6 +134,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    const cpfCnpj = (condo.cnpj || "").replace(/\D/g, "");
+    if (!cpfCnpj) {
+      return new Response(JSON.stringify({
+        error: "Cadastre o CNPJ (ou CPF) do condomínio em Configurações antes de pagar com Pix. A assinatura por cartão continua disponível normalmente.",
+      }), {
+        status: 400, headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+
     let email = condo.email_admin;
     if (!email && condo.sindico_id) {
       const { data: auth } = await supabase.auth.admin.getUserById(condo.sindico_id);
@@ -111,57 +151,75 @@ Deno.serve(async (req) => {
 
     const valor = PRECOS[plano];
 
-    const corpoCheckout = {
-      billingTypes: ["PIX", "CREDIT_CARD"],
-      chargeTypes: ["RECURRENT"],
-      minutesToExpire: 120,
-      externalReference: `${condominio_id}:${plano}`,
-      callback: {
-        successUrl: `${PRODUCTION_URL}/configuracoes.html?asaas=sucesso`,
-        cancelUrl: `${PRODUCTION_URL}/configuracoes.html?asaas=cancelado`,
-      },
-      items: [
-        {
-          name: NOMES[plano],
-          description: `Assinatura mensal StaFlow — ${condo.nome}`,
-          quantity: 1,
-          value: valor,
-          imageBase64: PIXEL_TRANSPARENTE,
-        },
-      ],
-      customerData: {
-        name: condo.nome,
-        cpfCnpj: (condo.cnpj || "").replace(/\D/g, "") || undefined,
-        email: email || undefined,
-      },
-      subscription: {
-        cycle: "MONTHLY",
-        nextDueDate: amanha(1),
-      },
-    };
+    // ── 1. Acha ou cria o cliente na Asaas (pelo externalReference) ──
+    const busca = await asaasFetch(
+      `/v3/customers?externalReference=${encodeURIComponent(condominio_id)}`,
+      { method: "GET" },
+    );
 
-    const resp = await fetch(`${ASAAS_BASE_URL}/v3/checkouts`, {
+    let customerId: string | undefined = busca.ok && busca.dados?.data?.[0]?.id;
+
+    if (!customerId) {
+      const criacao = await asaasFetch("/v3/customers", {
+        method: "POST",
+        body: JSON.stringify({
+          name: condo.nome,
+          cpfCnpj,
+          email: email || undefined,
+          externalReference: condominio_id,
+        }),
+      });
+      if (!criacao.ok) {
+        console.error("[create-asaas-checkout] falha ao criar cliente:", criacao.status, JSON.stringify(criacao.dados));
+        return new Response(JSON.stringify({ error: "Não foi possível cadastrar o pagador na Asaas", detalhe: criacao.dados }), {
+          status: 502, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+      customerId = criacao.dados.id;
+    }
+
+    // ── 2. Cria a assinatura recorrente cobrada via Pix ──
+    const assinatura = await asaasFetch("/v3/subscriptions", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "access_token": ASAAS_API_KEY,
-        "User-Agent": "StaFlow/1.0.0",
-      },
-      body: JSON.stringify(corpoCheckout),
+      body: JSON.stringify({
+        customer: customerId,
+        billingType: "PIX",
+        cycle: "MONTHLY",
+        value: valor,
+        nextDueDate: amanha(1),
+        description: `${NOMES[plano]} — ${condo.nome}`,
+        externalReference: `${condominio_id}:${plano}`,
+      }),
     });
 
-    const dados = await resp.json();
-
-    if (!resp.ok) {
-      console.error("[create-asaas-checkout] Asaas recusou:", resp.status, JSON.stringify(dados));
-      return new Response(JSON.stringify({ error: "Falha ao criar checkout", detalhe: dados }), {
+    if (!assinatura.ok) {
+      console.error("[create-asaas-checkout] Asaas recusou assinatura:", assinatura.status, JSON.stringify(assinatura.dados));
+      return new Response(JSON.stringify({ error: "Falha ao criar assinatura Pix", detalhe: assinatura.dados }), {
         status: 502, headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`[create-asaas-checkout] checkout criado para ${condo.nome} (${plano}): ${dados.id}`);
+    const subscriptionId = assinatura.dados.id;
 
-    return new Response(JSON.stringify({ link: dados.link, id: dados.id }), {
+    // ── 3. Pega a primeira cobrança gerada, pra mandar o síndico
+    //      direto pra página de pagamento (QR Pix + copia-e-cola) ──
+    const cobrancas = await asaasFetch(
+      `/v3/payments?subscription=${encodeURIComponent(subscriptionId)}`,
+      { method: "GET" },
+    );
+
+    const primeiraCobranca = cobrancas.ok ? cobrancas.dados?.data?.[0] : null;
+
+    if (!primeiraCobranca?.invoiceUrl) {
+      console.error("[create-asaas-checkout] assinatura criada mas sem cobrança/invoiceUrl:", JSON.stringify(cobrancas.dados));
+      return new Response(JSON.stringify({ error: "Assinatura criada, mas não achamos o link de pagamento. Tente novamente em instantes." }), {
+        status: 502, headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log(`[create-asaas-checkout] assinatura Pix criada para ${condo.nome} (${plano}): ${subscriptionId}`);
+
+    return new Response(JSON.stringify({ link: primeiraCobranca.invoiceUrl, id: subscriptionId }), {
       status: 200, headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (err) {

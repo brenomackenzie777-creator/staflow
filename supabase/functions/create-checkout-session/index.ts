@@ -165,6 +165,16 @@ Deno.serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: stripeCustomerId,
+      // ★ 18/08/2026, URGENTE — sem isso, a Stripe retornava 500:
+      // "No valid payment method types for this Checkout Session...
+      // activate payment methods compatible with your chosen currency
+      // ... or specify payment_method_types." O toggle de "métodos de
+      // pagamento automáticos" do Dashboard não estava resolvendo nada
+      // válido pra BRL, e isso derrubava TODO clique em "Assinar" —
+      // ninguém conseguia pagar. Fixando explicitamente em cartão (Pix
+      // já é coberto à parte pela Asaas) resolve sem depender de mexer
+      // em configuração no Dashboard da Stripe.
+      payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: successUrl,
       cancel_url:  cancelUrl,

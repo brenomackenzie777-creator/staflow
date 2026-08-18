@@ -545,6 +545,20 @@ async function loadCondominio() {
   if (error) { T(error.message, 'error'); return; }
   condo = data;
 
+  // ★ 18/08/2026 — cancel_at_period_end mora em `subscriptions`, não em
+  //   `condominios` (o webhook do Stripe não espelha essa coluna aqui).
+  //   Sem isso, um síndico que agenda o cancelamento e recarrega a página
+  //   voltava a ver "✓ Ativa" e o botão "Cancelar plano" disponível de
+  //   novo — a UI mentia sobre o estado real da assinatura. Busca à parte
+  //   pra não depender de alterar o webhook/schema.
+  try {
+    const { data: sub } = await sb.from('subscriptions')
+      .select('cancel_at_period_end')
+      .eq('condominio_id', condominioId)
+      .maybeSingle();
+    condo.cancel_at_period_end = !!sub?.cancel_at_period_end;
+  } catch (_) { /* não bloqueia o resto da página se falhar */ }
+
   // Informações gerais
   document.getElementById('c-nome').value         = data.nome          || '';
   document.getElementById('c-cnpj').value         = data.cnpj ? V.formatarCNPJ(data.cnpj) : '';
@@ -819,6 +833,13 @@ function atualizarCardAssinatura() {
     condo.cancel_at_period_end ? '⏳ Cancelamento agendado' :
     status === 'active'        ? '✓ Ativa' :
     status === 'past_due'      ? '⚠ Pagamento pendente' : status;
+
+  // ★ 18/08/2026 — some o botão "Cancelar plano" quando já há
+  // cancelamento agendado (evita cliente clicar de novo achando que
+  // não tinha funcionado, e mantém a UI e o estado real batendo mesmo
+  // depois de um F5).
+  const btnCancelar = document.getElementById('btn-cancelar-plano');
+  if (btnCancelar) btnCancelar.style.display = condo.cancel_at_period_end ? 'none' : '';
 }
 
 /* ── Cancelamento ──────────────────────────────────── */

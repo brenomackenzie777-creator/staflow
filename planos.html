@@ -237,9 +237,6 @@
     letter-spacing: 0.3px;
   }
   .btn-ativar:hover { background: var(--teal-hover); }
-  .pagar-pix-link { text-align: center; margin-top: 8px; font-size: 12.5px; }
-  .pagar-pix-link a { color: var(--teal, #06D6A0); text-decoration: underline; cursor: pointer; }
-  .pagar-pix-link.hide { display: none; }
   .btn-ativar.featured-btn {
     background: var(--teal);
     color: #fff;
@@ -309,7 +306,6 @@
     background: rgba(255,255,255,0.06);
     color: var(--white);
   }
-  .payment-methods .method.pix { background: #32BCAD; color: #fff; }
   .payment-methods .method.visa { background: #1A1F71; color: #fff; }
   .payment-methods .method.master { background: #EB001B; color: #fff; }
   .payment-methods .method.elo { background: #00A4E0; color: #fff; }
@@ -472,7 +468,6 @@
     </ul>
     <div class="spacer"></div>
     <button class="btn-ativar featured-btn" id="btn-pro">Assinar Pro</button>
-    <div class="pagar-pix-link" id="pix-pro"><a href="#" onclick="ativarPlanoAsaas('pro');return false;">ou pagar com Pix</a></div>
   </div>
 
   <!-- Advanced -->
@@ -495,7 +490,6 @@
     </ul>
     <div class="spacer"></div>
     <button class="btn-ativar" id="btn-advanced">Assinar Advanced</button>
-    <div class="pagar-pix-link" id="pix-advanced"><a href="#" onclick="ativarPlanoAsaas('advanced');return false;">ou pagar com Pix</a></div>
   </div>
 
   <!-- Scale -->
@@ -518,7 +512,6 @@
     </ul>
     <div class="spacer"></div>
     <button class="btn-ativar" id="btn-scale">Assinar Scale</button>
-    <div class="pagar-pix-link" id="pix-scale"><a href="#" onclick="ativarPlanoAsaas('scale');return false;">ou pagar com Pix</a></div>
   </div>
 
 </div>
@@ -538,7 +531,6 @@
   </div>
   <div class="security-row">
     <div class="payment-methods" title="Métodos de pagamento aceitos">
-      <span class="method pix">PIX</span>
       <span class="method visa">VISA</span>
       <span class="method master">MASTER</span>
       <span class="method elo">ELO</span>
@@ -599,64 +591,42 @@ function setBilling(period) {
     const val = precosConfig[period][p];
     document.getElementById('val-' + p).textContent = val.toLocaleString('pt-BR');
     document.getElementById('per-' + p).textContent = periodoLabel[period];
-    // ★ 18/08/2026 — Asaas por enquanto só cobre plano mensal (a
-    // integração de assinatura anual ainda não foi construída).
-    // Some o link "pagar com Pix" no anual pra não prometer o que
-    // ainda não faz.
-    const pixLink = document.getElementById('pix-' + p);
-    if (pixLink) pixLink.classList.toggle('hide', period === 'anual');
   });
 
   // Re-aplica desconto de cupom se houver
   if (cupomAtivo) aplicarDesconto(cupomAtivo.discount_percent);
 }
 
-// ---------- Asaas (Pix) — alternativa à Stripe, em paralelo ----------
-// ★ 18/08/2026 — a pedido do Breno. Só funciona pra condomínio que já
-// existe (precisa de condominioAtualId) e plano mensal — cadastro de
-// condomínio novo e plano anual continuam só na Stripe por enquanto.
-async function ativarPlanoAsaas(plan) {
-  if (ativando) return;
-  if (modoNovoCondo || !condominioAtualId) {
-    toast('Pagamento via Pix ainda não está disponível pro cadastro de um condomínio novo — finalize com cartão ou crie o condomínio primeiro.', 'error');
-    return;
-  }
-  ativando = true;
-  const btns = document.querySelectorAll('.btn-ativar');
-  btns.forEach(b => b.disabled = true);
+// ---------- Cupom ----------
+const precos = { starter: 0, pro: 99, advanced: 159, scale: 279 }; // base mensal (legado — mantido pra não quebrar quem lê `precos` fora daqui)
 
-  try {
-    const { data, error } = await sb.functions.invoke('create-asaas-checkout', {
-      body: { condominio_id: condominioAtualId, plano: plan }
-    });
-
-    if (error) throw error;
-    if (data?.link) {
-      window.location.href = data.link;
-      return;
-    }
-    throw new Error(data?.error || 'Não foi possível gerar o link de pagamento via Pix.');
-  } catch (err) {
-    toast(err.message || 'Erro ao gerar pagamento via Pix. Tente novamente ou use cartão.', 'error');
-  } finally {
-    btns.forEach(b => b.disabled = false);
-    ativando = false;
-  }
+// ★ 18/08/2026 — resolve o preço-base certo pra qualquer chave de plano,
+// incluindo as variantes anuais ('pro_annual' etc). Antes, tanto
+// aplicarDesconto() quanto ativarPlano() usavam sempre `precos[plan]`
+// (base MENSAL), então: (1) um cupom aplicado com o toggle em "Anual"
+// mostrava o desconto calculado em cima do preço mensal, errado na tela;
+// e (2) se um dia existir cupom de 100% e o cliente estiver no anual,
+// `precos['pro_annual']` é undefined → NaN → o caminho "grátis" nem
+// disparava e a pessoa ia pro Stripe pagar o valor cheio do plano anual
+// mesmo com cupom de 100%. Corrigido centralizando a resolução aqui.
+function precoBase(planKey) {
+  if (planKey === 'starter') return 0;
+  const anual = planKey.endsWith('_annual');
+  const base  = anual ? planKey.replace('_annual', '') : planKey;
+  return precosConfig[anual ? 'anual' : 'mensal'][base] ?? 0;
 }
 
-// ---------- Cupom ----------
-const precos = { starter: 0, pro: 99, advanced: 159, scale: 279 };
-
 function aplicarDesconto(discount) {
+  const periodoTxt = periodoLabel[billingPeriod];
   ['starter','pro','advanced','scale'].forEach(plan => {
     const preco  = document.getElementById('preco-' + plan);
     const orig   = document.getElementById('orig-' + plan);
     const valDiv = preco.querySelector('.valor');
-    const base   = precos[plan];
+    const base   = plan === 'starter' ? 0 : precoBase(plan); // starter não varia por período
     const novo   = Math.round(base * (1 - discount / 100));
 
     if (discount > 0 && base > 0) {
-      orig.innerHTML = `R$ ${base}<span class="periodo">/mês</span>`;
+      orig.innerHTML = `R$ ${base.toLocaleString('pt-BR')}<span class="periodo">${periodoTxt}</span>`;
       orig.classList.add('show');
       preco.classList.add('desconto');
     } else {
@@ -664,8 +634,8 @@ function aplicarDesconto(discount) {
       preco.classList.remove('desconto');
     }
     valDiv.innerHTML = novo === 0
-      ? `<span class="moeda">R$</span> 0<span class="periodo">/mês</span>`
-      : `<span class="moeda">R$</span> ${novo}<span class="periodo">/mês</span>`;
+      ? `<span class="moeda">R$</span> 0<span class="periodo">${periodoTxt}</span>`
+      : `<span class="moeda">R$</span> ${novo.toLocaleString('pt-BR')}<span class="periodo">${periodoTxt}</span>`;
 
     const btn = document.getElementById('btn-' + plan);
     if (novo === 0) {
@@ -766,7 +736,7 @@ async function ativarPlano(plan) {
     if (!user) { location.replace('/auth/login.html'); return; }
 
     const discount = cupomAtivo?.discount_percent ?? (plan === 'starter' ? 100 : 0);
-    const precoFinal = Math.round(precos[plan] * (1 - discount / 100));
+    const precoFinal = Math.round(precoBase(plan) * (1 - discount / 100));
     const ehGratuito = precoFinal === 0;
 
     // ──────────────────────────────────────────────────────────
@@ -775,10 +745,19 @@ async function ativarPlano(plan) {
     // Não disponível em modoNovoCondo (bloqueado acima).
     // ──────────────────────────────────────────────────────────
     if (ehGratuito) {
+      // ★ Normaliza 'pro_annual' → 'pro' antes de gravar. `plan` (variável
+      // já usada no resto da função) precisa manter o sufixo pra resolver
+      // preço/priceId corretamente, mas o valor persistido no banco tem
+      // que ser um dos 4 planos reais (starter/pro/advanced/scale) — o
+      // resto do app (limite de funcionários em funcionarios.html, etc.)
+      // não reconhece 'pro_annual' e cairia no limite do Starter (3) por
+      // engano. Só afeta o caso raro de cupom 100% combinado com anual.
+      const planoParaGravar = plan.endsWith('_annual') ? plan.replace('_annual', '') : plan;
+
       const { error: subErr } = await sb.from('subscriptions').upsert({
         profile_id:           user.id,
         condominio_id:        condominioAtualId,
-        plan,
+        plan:                 planoParaGravar,
         status:               'active',
         coupon_used:          cupomAtivo?.code || null,
         discount_percent:     discount,
@@ -791,8 +770,8 @@ async function ativarPlano(plan) {
       // ★ Espelha plano e status no condominios (mesmo caminho que o webhook faz no pago)
       if (condominioAtualId) {
         await sb.from('condominios').update({
-          plano:             plan,
-          plano_ativo:       plan,
+          plano:             planoParaGravar,
+          plano_ativo:       planoParaGravar,
           status_assinatura: 'active',
         }).eq('id', condominioAtualId);
       }
@@ -866,11 +845,6 @@ document.getElementById('btn-scale').addEventListener('click',    () => ativarPl
 
   const qs = new URLSearchParams(location.search);
   modoNovoCondo = qs.get('novo') === '1';
-
-  // Pix (Asaas) exige condomínio já existente — some os links em modoNovoCondo.
-  if (modoNovoCondo) {
-    document.querySelectorAll('.pagar-pix-link').forEach(el => el.classList.add('hide'));
-  }
 
   // 2. ★ TRONCO SUPERIOR DE ROTEAMENTO — autoritativo
   //    Se for funcionário, ejeta pra /colaborador. Se for sindico com

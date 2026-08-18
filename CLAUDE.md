@@ -311,15 +311,74 @@ O que existe:
   mensal — cadastro de condomínio novo e plano anual ainda só na
   Stripe (não implementado no Asaas ainda).
 
+**18/08/2026, mesmo dia — Pix escondido antes da campanha de vendas.**
+Breno ia mandar e-mail de venda pros leads e perguntou se estava tudo
+pronto. Sinalizei que a chave `ASAAS_API_KEY` ativa ainda é a de
+**sandbox** — se um lead real clicasse em "ou pagar com Pix", cairia
+num ambiente de teste que não processa pagamento de verdade. Ele
+escolheu esconder o botão até trocar pra chave de produção (o cartão
+via Stripe continua funcionando normal, não foi afetado). Escondido
+via CSS em `planos.html` (`.pagar-pix-link { display:none }`, com
+comentário explicando como reativar). **Pendente pro Breno**: gerar a
+chave de API de produção na Asaas (`$aact_prod_...`, precisa de SMS,
+mesmo processo da sandbox) + criar o Webhook de produção no painel
+Asaas (separado do de sandbox) apontando pra
+`asaas-webhook` com um token novo. Quando tiver os dois, troco os
+secrets `ASAAS_API_KEY`/`ASAAS_WEBHOOK_TOKEN` e reativo o botão.
+
 **Pendente pro Breno (fora do alcance do Claude):**
 1. Secret `ASAAS_API_KEY` no Supabase (Edge Functions → Secrets) —
-   valor da chave sandbox já gerada.
+   valor da chave sandbox já gerada. ✅ feito em 18/08.
 2. Criar o Webhook no painel Asaas (Integrações → Webhooks) apontando
    pra `https://wsxpskrrzqtdoodpoofx.supabase.co/functions/v1/asaas-webhook`,
    escolhendo um token de autenticação e cadastrando esse MESMO valor
-   como secret `ASAAS_WEBHOOK_TOKEN` no Supabase.
+   como secret `ASAAS_WEBHOOK_TOKEN` no Supabase. ✅ feito em 18/08.
 3. Testar uma assinatura de teste no sandbox de ponta a ponta antes de
-   trocar pra chave de produção.
+   trocar pra chave de produção. ⚠️ parcialmente feito — ver abaixo.
+
+**18/08/2026, mesmo dia — teste ao vivo do botão "ou pagar com Pix"
+achou e corrigiu 2 bugs reais antes de qualquer cliente usar:**
+
+1. **CORS bloqueava a chamada de verdade.** `js/supabase-client.js`
+   manda um header custom `x-condominio-id` em toda chamada de
+   function (usado pro contexto multi-CNPJ). `create-checkout-session`
+   (Stripe) já liberava esse header; `create-asaas-checkout` não. O
+   navegador aceitava o preflight OPTIONS (200) mas recusava mandar o
+   POST de verdade — aparecia só como "Failed to send a request to the
+   Edge Function" no toast, sem chegar no log da function nem no painel
+   do Supabase. Achado testando fetch direto no console do navegador
+   (via Claude in Chrome), comparando com o `x-condominio-id` já
+   liberado em `create-checkout-session`. Corrigido.
+2. **A Asaas recusa Pix recorrente misturado com cartão.** A primeira
+   versão usava o endpoint `/v3/checkouts` com
+   `billingTypes:["PIX","CREDIT_CARD"]` + `chargeTypes:["RECURRENT"]`.
+   A Asaas retornava 502: "PIX exige tipo de cobrança DETACHED" / "só
+   CREDIT_CARD pode ser RECURRENT". Corrigido trocando pro endpoint de
+   Assinatura direto (`/v3/subscriptions`), que aceita
+   `billingType:"PIX"` recorrente nativamente. O botão "ou pagar com
+   Pix" agora cria cliente Asaas (por `externalReference` =
+   condominio_id) + assinatura mensal Pix + devolve o link da primeira
+   fatura (QR code/copia-e-cola).
+
+**Achado no mesmo teste:** a Asaas exige CPF/CNPJ do pagador pra
+cadastrar o cliente. A function agora recusa com mensagem clara
+("Cadastre o CNPJ... antes de pagar com Pix") em vez do erro genérico —
+isso significa que **nenhum condomínio sem CNPJ cadastrado consegue
+pagar via Pix**. Fluxo por cartão (Stripe) não é afetado.
+
+**Caminho feliz confirmado no mesmo dia, com autorização do Breno:**
+CNPJ de teste (válido, dígito verificador correto) colocado
+temporariamente no condomínio "sola" só pra fechar o teste — revertido
+pra `null` logo depois. Resultado: `create-asaas-checkout` criou
+cliente na Asaas, criou a assinatura mensal Pix, devolveu o link da
+fatura (`sandbox.asaas.com/i/...`), e o `asaas-webhook` gravou sozinho
+`asaas_subscription_id`, `asaas_customer_id`, `plano` e `plano_ativo`
+no condomínio via `SUBSCRIPTION_CREATED` — sem eu precisar tocar no
+banco de novo. `status_assinatura` ficou `inactive` (correto: a
+cobrança Pix ainda não foi paga). Fluxo ponta a ponta validado — falta
+só alguém efetivamente pagar o Pix no sandbox pra confirmar que
+`PAYMENT_CONFIRMED` também vira `status_assinatura='active'` (mesma
+lógica já usada pelo webhook da Stripe, não é código novo).
 
 ---
 *Última atualização: 18/08/2026*
