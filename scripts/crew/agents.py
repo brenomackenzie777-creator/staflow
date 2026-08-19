@@ -128,7 +128,13 @@ def build_ceo_agents() -> dict:
     return {
         "analista":     _build_agent(prompts, "analista",
                                      [panorama, read_memory, market_context]),
-        "estrategista": _build_agent(prompts, "estrategista", [tavily_search]),
+        # ★ 19/08/2026 — o CEO ganhou market_context. Antes ele decidia
+        # estratégia de aquisição com pesquisa solta na web, sem enxergar
+        # quem são os concorrentes nem onde a StaFlow ganha deles. Sem
+        # esse contexto, a tendência é propor marketing genérico de SaaS
+        # em vez de usar a vantagem real (ponto feito pra condomínio).
+        "estrategista": _build_agent(prompts, "estrategista",
+                                     [tavily_search, market_context]),
         # O Executor é quem fecha o ciclo — e também quem ajusta o time.
         # Ferramentas de autoevolução ficam com ele porque é ele que viu o
         # ciclo inteiro acontecer e sabe onde emperrou.

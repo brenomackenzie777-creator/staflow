@@ -52,13 +52,17 @@ log = logging.getLogger("staflow")
 # Os loops por área seguem existindo pra rodar na mão: LOOP=marketing.
 LOOPS_DE_NEGOCIO = ["marketing", "produto", "financeiro", "suporte"]
 
-COTA_DIARIA_TOKENS   = int(os.environ.get("COTA_DIARIA_TOKENS", "100000"))
+# ★ 19/08/2026 — números atualizados junto com a troca de modelo
+# (llama-3.3-70b desativado pela Groq em 16/08 — ver config.py).
+# Free tier do openai/gpt-oss-120b: 8.000 tokens/min · 200.000/dia.
+COTA_DIARIA_TOKENS   = int(os.environ.get("COTA_DIARIA_TOKENS", "200000"))
 FRACAO_ORCAMENTO     = float(os.environ.get("FRACAO_ORCAMENTO_DIARIO", "0.7"))
 ORCAMENTO_DIARIO     = int(COTA_DIARIA_TOKENS * FRACAO_ORCAMENTO)
 
-# Limite de tokens POR MINUTO do free tier do Groq (llama-3.3-70b).
+# Limite de tokens POR MINUTO do free tier do Groq (openai/gpt-oss-120b).
 # Usado como teto de sanidade do contador — ver _tokens_do_crew().
-TPM_GROQ = int(os.environ.get("TPM_GROQ", "12000"))
+# Apertou em relação ao modelo antigo (era 12.000 no llama-3.3-70b).
+TPM_GROQ = int(os.environ.get("TPM_GROQ", "8000"))
 
 ORDEM_AGENTES = ["coletor", "pesquisador", "analista", "estrategista",
                   "decisor", "executor", "observador", "relator"]
@@ -85,7 +89,8 @@ def _tokens_do_crew(crew: Crew, segundos: float = 0) -> int:
     não 631.320. O teto físico por tempo fica como segunda rede."""
     medido = uso.consumir()
 
-    # Teto físico: 12.000 tokens/min é o limite do free tier do Groq.
+    # Teto físico: TPM_GROQ tokens/min é o limite do free tier do Groq
+    # (8.000 no openai/gpt-oss-120b desde 19/08/2026).
     # Nenhum ciclo pode ter gasto mais do que o relógio permitia.
     if segundos > 0:
         teto = int((segundos / 60.0) * TPM_GROQ) + TPM_GROQ  # +1min de folga
@@ -109,9 +114,13 @@ def _registrar_execucao(loop_key: str, sucesso: bool, tokens: int,
     chamou: a tabela agent_runs ficou vazia e o trabalho evaporou sem
     deixar rastro. Registro de execução não pode depender do modelo
     lembrar — agora o próprio orquestrador grava."""
+    # ★ 19/08/2026 — importado FORA do try. Antes ficava dentro, e o
+    # próprio except tentava ler SUPABASE_URL pra montar o diagnóstico:
+    # se o import falhasse, o handler de erro estourava um NameError em
+    # cima do erro original e escondia os dois.
+    from .config import SUPABASE_URL, SUPABASE_KEY
     try:
         from supabase import create_client
-        from .config import SUPABASE_URL, SUPABASE_KEY
         sb = create_client(SUPABASE_URL, SUPABASE_KEY)
         resumo = (
             f"Ciclo de {loop_key} "
@@ -189,8 +198,7 @@ def _rodar_um_loop(loop_key: str):
     log.info("StaFlow — Loop: %s", loop_key.upper())
     log.info("=" * 50)
 
-    crew = montar_crew(loop_key)
-    wait = BASE_WAIT
+    crew = None
 
     def _falhou(detalhe: str, parar_o_dia: bool = False):
         """Fecha o loop como falha: mede, registra no Supabase e devolve
@@ -199,6 +207,20 @@ def _rodar_um_loop(loop_key: str):
         tokens = _tokens_do_crew(crew, dur)
         _registrar_execucao(loop_key, False, tokens, dur, detalhe)
         return False, tokens, parar_o_dia
+
+    # ★ 19/08/2026 — montar_crew() ficava FORA de qualquer try. Se ela
+    # falhasse (prompt quebrado no banco, modelo inválido, credencial
+    # faltando), a exceção subia direto e o ciclo morria sem registrar
+    # nada em agent_runs. Agora até a montagem do time vira falha
+    # registrada, não sumiço.
+    try:
+        crew = montar_crew(loop_key)
+    except Exception as e:
+        log.error("Não consegui nem montar o time do loop %s: %s: %s",
+                  loop_key, type(e).__name__, str(e)[:300])
+        return _falhou(f"Falha ao montar o time: {type(e).__name__}: {str(e)[:120]}")
+
+    wait = BASE_WAIT
 
     for tentativa in range(1, MAX_RETRIES + 1):
         try:

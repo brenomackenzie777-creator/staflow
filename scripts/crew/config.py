@@ -47,14 +47,29 @@ def _env_email(nome: str, padrao: str = "") -> str:
     return valor
 
 # ─── LLM ─────────────────────────────────────────────────────────
-# Limites do free tier do Groq (docs oficiais):
-#   llama-3.1-8b-instant     ->  6.000 tokens/min | 500.000/dia
-#   llama-3.3-70b-versatile  -> 12.000 tokens/min | 100.000/dia
-# O gargalo real é o limite POR MINUTO: o CrewAI reenvia toda a conversa a
-# cada chamada de ferramenta, então uma única requisição passa de 6k fácil.
-# O 70b dobra essa folga e ainda raciocina melhor.
+# ★ 19/08/2026 — TROCA DE MODELO OBRIGATÓRIA (o time ficou 3 dias morto).
+#
+# A Groq DESATIVOU `llama-3.3-70b-versatile` em 16/08/2026 (anunciado por
+# e-mail em 17/06, junto com o `llama-3.1-8b-instant`). A partir do dia 17
+# toda chamada passou a voltar erro, o ciclo morria em ~1 segundo e o time
+# não entregava mais nada. Isso não apareceu em lugar nenhum porque a
+# tabela agent_runs recusava status='failed' (ver sql/030) — ou seja, dois
+# bugs empilhados: o ciclo quebrava e a quebra era invisível.
+#
+# Substituto recomendado pela própria Groq: openai/gpt-oss-120b.
+# O prefixo duplo é proposital e NÃO é erro de digitação: o primeiro
+# "openai/" é o litellm entendendo "endpoint compatível com OpenAI"; o
+# resto ("openai/gpt-oss-120b") é o nome do modelo dentro da Groq.
+#
+# Limites do free tier do Groq (docs oficiais, conferidos em 19/08/2026):
+#   openai/gpt-oss-120b  ->  8.000 tokens/min | 200.000/dia | 30 req/min
+#   (o antigo 70b tinha 12.000/min e 100.000/dia)
+#
+# Repare na troca: o teto POR MINUTO apertou (12k -> 8k), mas a cota do
+# DIA dobrou (100k -> 200k). O gargalo continua sendo o por-minuto, porque
+# o CrewAI reenvia a conversa inteira a cada chamada de ferramenta.
 haiku = LLM(
-    model="openai/llama-3.3-70b-versatile",
+    model="openai/openai/gpt-oss-120b",
     api_key=_env("GROQ_API_KEY"),
     base_url="https://api.groq.com/openai/v1",
     max_tokens=1200,

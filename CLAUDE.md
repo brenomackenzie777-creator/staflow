@@ -463,4 +463,117 @@ isso, o GA4 simplesmente não carrega — o resto (atribuição no banco,
 eventos) já funciona independente disso assim que for pro ar.
 
 ---
-*Última atualização: 18/08/2026*
+## ★★ 19/08/2026 — o time estava MORTO há 3 dias. Dois bugs empilhados.
+
+Auditoria pedida pelo Breno ("preciso que meus agentes autoevolutivos
+estejam funcionando corretamente"). O time não rodava desde 16/08 e
+**ninguém tinha como saber** — essa é a parte grave.
+
+### Bug 1 (causa) — a Groq desativou o modelo que o time usava
+
+`llama-3.3-70b-versatile` foi **desligado pela Groq em 16/08/2026**
+(anunciado por e-mail em 17/06, junto com o `llama-3.1-8b-instant`).
+A partir do dia 17, toda chamada voltava erro e o ciclo morria em
+~1 segundo.
+
+A assinatura no banco é inconfundível:
+
+| Dia | tokens gastos | linhas em `agent_runs` |
+|-----|---------------|------------------------|
+| 13–16/08 | 15.000/dia | ciclo completo, 4–5 linhas |
+| 17, 18, 19/08 | 12.200/dia | **nenhuma** |
+
+Os 12.200 não são gasto real: são o teto físico calculado pra um ciclo
+de ~1 segundo (`int(1/60 × 12000) + 12000`). Ou seja, o ciclo nem
+chegava a chamar a IA — o orçamento estava cobrando um fantasma.
+
+**Corrigido:** modelo trocado pra `openai/gpt-oss-120b` (substituto
+recomendado pela própria Groq) em `scripts/crew/config.py`. Os limites
+mudaram e os números do orçamento foram junto, em `main.py`:
+
+| | modelo antigo | modelo novo |
+|---|---|---|
+| Tokens por minuto | 12.000 | **8.000** (apertou) |
+| Tokens por dia | 100.000 | **200.000** (dobrou) |
+
+⚠️ **Pendente pro Breno:** se existir a variável `COTA_DIARIA_TOKENS`
+ou `TPM_GROQ` definida à mão no Railway, ela ganha do código — precisa
+apagar (ou atualizar pra 200000 / 8000), senão o time continua se
+achando mais pobre do que é.
+
+### Bug 2 (por que ninguém viu) — o banco recusava registrar falha
+
+`agent_runs` tinha um CHECK que só aceitava `pending`/`approved`/
+`rejected`. Mas o orquestrador grava `status='failed'` quando o ciclo
+quebra. **Toda falha era recusada pelo banco**, o erro caía num
+`try/except` que só loga aviso, e o ciclo sumia sem rastro.
+
+Na prática: a tabela `agent_runs` só sabia registrar SUCESSO. Por isso
+3 dias de quebra pareceram 3 dias de "nada aconteceu".
+
+**Corrigido:** `sql/030_agent_runs_status_failed.sql` (já aplicada em
+produção). Além disso, em `main.py`:
+- `montar_crew()` agora roda dentro de `try` — antes, falha na montagem
+  do time subia direto e não registrava nada;
+- o `except` de `_registrar_execucao` não depende mais de import que
+  pode não ter acontecido (ele lia `SUPABASE_URL` que podia estar
+  indefinida, estourando um segundo erro em cima do primeiro).
+
+**Lição que vale pra tudo:** um sistema que só consegue registrar
+sucesso não é um sistema observável — é um sistema que mente por
+omissão. Todo caminho de erro precisa de um lugar pra pousar.
+
+### A autoevolução funcionou — e produziu uma piora
+
+Em 13/08 o Executor reescreveu o próprio prompt (v2). O objetivo saiu
+de *"transformar a prioridade em algo pronto"* para *"desenvolver e
+implementar funcionalidades..."* — **algo que a Regra de Ouro nº 6
+proíbe expressamente**: o time não toca no produto.
+
+Ou seja: o agente evoluiu na direção de uma coisa que ele não tem
+permissão nem ferramenta pra fazer. Não é um bug de código, é o risco
+real de autoevolução sem trava semântica.
+
+**Corrigido** (Executor v3): objetivo concreto de volta, com a regra
+explícita — *"'implementar funcionalidade' nunca é entrega sua: a
+entrega é a especificação pronta"* — e uma instrução nova no próprio
+Executor pra não repetir o erro quando for evoluir outro agente:
+nunca trocar objetivo concreto por genérico.
+
+### Playbook de marketing embutido no time (pedido do Breno)
+
+Todos os 4 prompts do ciclo CEO subiram de versão em `agent_prompts`
+(analista v2, estrategista v2, executor v3, relator v2). O que entrou
+de novo, baseado no que a operação **realmente** aprendeu:
+
+- **O Starter grátis é ferramenta de aquisição, não custo.** A pergunta
+  do CEO deixou de ser "como convenço alguém a pagar" e passou a ser
+  "como coloco mais prédios usando de graça, e como faço quem já usa
+  crescer pra faixa paga".
+- **Administradora vale mais que síndico avulso.** Carteira fecha
+  vários prédios pelo mesmo esforço — e o único retorno real dos 29
+  e-mails veio de uma administradora (Magalhães).
+- **Ação de aquisição sem medição é proposta incompleta.** Todo link de
+  campanha sai com `utm_source`/`utm_campaign`. A empresa já perdeu a
+  leitura de uma campanha inteira por mandar link puro.
+- **Nicho é a vantagem.** Falar a dor do condomínio (porteiro, zelador,
+  escala, fechamento do mês, espelho de ponto), nunca "gestão de
+  pessoas" genérica.
+- O **Analista** agora é obrigado a reportar quando `ORIGEM_CADASTROS`
+  vier vazio, em vez de deixar passar.
+- O **Estrategista** ganhou a ferramenta `market_context` — antes
+  decidia estratégia sem enxergar concorrente nenhum.
+- O **Estrategista** também foi instruído a não repetir a prioridade do
+  ciclo anterior sem fato novo (3 dos 4 ciclos de 13–16/08 escolheram
+  exatamente a mesma coisa).
+
+Reverter qualquer um: em `agent_prompts`, marcar `ativo=false` na
+versão nova e `ativo=true` na anterior.
+
+⚠️ **Não confirmado ainda:** a chave da Groq só existe no Railway, então
+não deu pra testar a chamada real daqui. A prova de que voltou é o
+ciclo de amanhã (08:00 BRT) gravando linha em `agent_runs` — e, se
+quebrar de novo, agora **a quebra vai aparecer** como `failed`.
+
+---
+*Última atualização: 19/08/2026*
